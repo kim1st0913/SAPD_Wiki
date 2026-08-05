@@ -164,6 +164,7 @@
 
   function renderWorkstreamLead({ tone, label, title, description, primaryLabel, primaryRoute, primaryIssueId = "", metric, metricLabel, supporting, menu }) {
     const issueAttribute = primaryIssueId ? ` data-dashboard-issue-id="${utils.escapeHtml(primaryIssueId)}"` : "";
+    const metricDisplay = typeof metric === "number" ? formatNumber(metric) : utils.text(metric) || "—";
     return `
       <header class="dashboard-workstream-lead tone-${utils.escapeHtml(tone)}">
         <div class="dashboard-workstream-copy">
@@ -172,7 +173,7 @@
           <p>${utils.escapeHtml(description)}</p>
         </div>
         <div class="dashboard-workstream-command">
-          <span class="dashboard-workstream-metric"><strong>${utils.escapeHtml(formatNumber(metric))}</strong><small>${utils.escapeHtml(metricLabel)}</small></span>
+          <span class="dashboard-workstream-metric"><strong>${utils.escapeHtml(metricDisplay)}</strong><small>${utils.escapeHtml(metricLabel)}</small></span>
           <span class="dashboard-workstream-support">${utils.escapeHtml(supporting)}</span>
           <span class="dashboard-workstream-actions">
             <button class="dashboard-workstream-primary" type="button" data-app-route="${utils.escapeHtml(primaryRoute)}"${issueAttribute}>${utils.escapeHtml(primaryLabel)}</button>
@@ -214,6 +215,7 @@
     const visibleProjects = utils.list(maturitySummary.projects);
     const firstIssue = visibleIssues[0] || {};
     const firstProject = visibleProjects[0] || {};
+    const maturitySummaryReady = maturitySummary.dataState === "ready";
     return `
       <section class="dashboard-workbench-entry dashboard-p2-panel" aria-label="工作台入口">
         <header class="dashboard-p2-panel-head"><div><span class="dashboard-kicker">ACTION CENTER</span><h3>待办工作</h3></div><span class="dashboard-status">本地用户库</span></header>
@@ -243,12 +245,12 @@
               description: "项目、模板、评分、复核、结果与报告统一管理。",
               primaryLabel: firstProject.route ? "继续评估" : "进入工作台",
               primaryRoute: firstProject.route || "/workbench/maturity",
-              metric: maturitySummary.total,
+              metric: maturitySummaryReady ? maturitySummary.total : "—",
               metricLabel: "评估项目",
-              supporting: `${formatNumber(maturitySummary.resultReadyCount)} 个已有结果`,
-              menu: { label: "成熟度评估更多", route: "/workbench/maturity", actionLabel: `查看全部 ${formatNumber(maturitySummary.total)} 个项目` },
+              supporting: maturitySummaryReady ? `${formatNumber(maturitySummary.resultReadyCount)} 个已有结果` : "进入工作台初始化摘要",
+              menu: { label: "成熟度评估更多", route: "/workbench/maturity", actionLabel: maturitySummaryReady ? `查看全部 ${formatNumber(maturitySummary.total)} 个项目` : "打开成熟度评估" },
             })}
-            <div class="dashboard-workstream-list-head"><strong>继续评估</strong><span>${Math.min(3, visibleProjects.length)} 个项目</span></div>
+            <div class="dashboard-workstream-list-head"><strong>继续评估</strong><span>${maturitySummaryReady ? `${Math.min(3, visibleProjects.length)} 个项目` : "摘要待初始化"}</span></div>
             <div class="dashboard-recent-list" role="group" aria-label="最近 3 个成熟度项目结果">${renderMaturityProjects(maturitySummary)}</div>
           </section>
         </div>

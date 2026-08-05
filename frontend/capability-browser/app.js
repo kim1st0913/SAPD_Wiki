@@ -122,7 +122,6 @@ const state = {
   workbenchIssueSortDirection: "desc",
   workbenchPendingDeleteIssueId: "",
   workbenchIssueSaving: false,
-  overviewMaturityLoadPromise: null,
   activeUserTarget: null,
   activePageAnnotationTarget: null,
   userAnnotationDrawerOpen: false,
@@ -7569,13 +7568,6 @@ function renderModelingElementLegendPanel() {
   `;
 }
 
-function toggleModelingLegendSection(summary) {
-  const section = summary?.closest?.(".modeling-legend-section");
-  if (!section) return false;
-  section.open = !section.open;
-  return true;
-}
-
 function setModelingLegendSections(open) {
   document.querySelectorAll(".modeling-language-guide-workspace .modeling-legend-section").forEach((section) => {
     section.open = Boolean(open);
@@ -7734,6 +7726,19 @@ function handleModelingPosterLightboxWheel(event) {
   const currentZoom = Number(state.modelingPosterLightboxZoom || 1);
   const zoomDelta = event.deltaY < 0 ? 0.08 : -0.08;
   applyModelingPosterLightboxZoom(currentZoom + zoomDelta, event);
+}
+
+function bindSpecializedWheelSurfaces(root = document) {
+  root?.querySelectorAll?.("[data-environment-basemap-viewport]").forEach((viewport) => {
+    if (viewport.dataset.environmentBasemapWheelBound === "true") return;
+    viewport.addEventListener("wheel", handleEnvironmentBasemapWheel, { passive: false });
+    viewport.dataset.environmentBasemapWheelBound = "true";
+  });
+  root?.querySelectorAll?.(".modeling-poster-lightbox-scroll").forEach((viewport) => {
+    if (viewport.dataset.modelingPosterWheelBound === "true") return;
+    viewport.addEventListener("wheel", handleModelingPosterLightboxWheel, { passive: false });
+    viewport.dataset.modelingPosterWheelBound = "true";
+  });
 }
 
 function beginModelingPosterLightboxDrag(event) {
@@ -8356,6 +8361,7 @@ function renderModelingLanguageGuide(routeInfo = {}) {
       </article>
     `,
   );
+  bindSpecializedWheelSurfaces($("contentList"));
   setText("contentDetailType", "");
   setHtml("contentDetail", "");
 }
@@ -8839,14 +8845,6 @@ function renderOverview() {
   const recentIssues = workbenchRecentIssueRows(issueRows, 5);
   const maturityComponent = window.sapdComponents?.MaturityAssessmentWorkbench;
   const maturitySummary = maturityComponent?.dashboardSnapshot?.(3) || { dataState: "loading", total: 0, projects: [] };
-  if (maturitySummary.dataState === "loading" && !state.overviewMaturityLoadPromise && maturityComponent?.ensureDashboardData) {
-    state.overviewMaturityLoadPromise = Promise.resolve(maturityComponent.ensureDashboardData())
-      .catch((error) => console.warn("首页成熟度项目摘要加载失败", error))
-      .finally(() => {
-        state.overviewMaturityLoadPromise = null;
-        if (state.activeView === "overview") renderOverview();
-      });
-  }
   setHtml(
     "overviewWorkspace",
     window.sapdComponents?.P2ProductWorkspace?.render({
@@ -8872,6 +8870,13 @@ function renderWorkbenchHome() {
   const issueRows = workbenchAllIssueRows();
   const issueSummary = workbenchIssueSummary(issueRows);
   const recentIssues = issueRows.slice(0, 3);
+  const maturitySummary = window.sapdComponents?.MaturityAssessmentWorkbench?.dashboardSnapshot?.(3)
+    || { dataState: "summary_unavailable", total: null, resultReadyCount: null, projects: [] };
+  const maturitySummaryReady = maturitySummary.dataState === "ready";
+  const recentMaturityProjects = list(maturitySummary.projects);
+  const maturityInProgressCount = maturitySummaryReady
+    ? Math.max(0, Number(maturitySummary.total || 0) - Number(maturitySummary.resultReadyCount || 0))
+    : null;
   return `
     <section class="workbench-route-page" aria-label="工作台首页">
       <div class="workbench-section-title">
@@ -8887,8 +8892,9 @@ function renderWorkbenchHome() {
           <h3>管理客户评估项目</h3>
           <p>创建项目、选择基础或自定义模板、完成评分复核并生成结果和报告快照。</p>
           <div class="workbench-prototype-chip-row">
-            <span class="workbench-prototype-pill is-warn">1 暂存</span>
-            <span class="workbench-prototype-pill">3 项目</span>
+            ${maturitySummaryReady
+              ? `<span class="workbench-prototype-pill is-warn">${escapeHtml(formatNumber(maturityInProgressCount))} 进行中</span><span class="workbench-prototype-pill">${escapeHtml(formatNumber(maturitySummary.total || 0))} 项目</span>`
+              : `<span class="workbench-prototype-pill is-warn">摘要待初始化</span>`}
           </div>
         </button>
         <button class="workbench-prototype-card is-entry" type="button" data-app-route="/workbench/annotations">
@@ -8917,9 +8923,11 @@ function renderWorkbenchHome() {
         </section>
         <section class="workbench-prototype-panel">
           <div class="workbench-section-title"><h3>最近评估项目</h3><span>项目状态</span></div>
-          <button class="workbench-prototype-row is-active" type="button" data-app-route="/workbench/maturity/demo-project-001"><span>网络安全成熟度评估</span><strong>评分中</strong></button>
-          <button class="workbench-prototype-row" type="button" data-app-route="/workbench/maturity/demo-project-002"><span>业务应用安全评估</span><strong>已完成</strong></button>
-          <button class="workbench-prototype-row" type="button" data-app-route="/workbench/maturity/demo-project-003"><span>数据安全成熟度评估</span><strong>已生成报告</strong></button>
+          ${!maturitySummaryReady
+            ? `<div class="workbench-review-empty">进入成熟度评估后生成轻量项目摘要。</div>`
+            : recentMaturityProjects.length
+            ? recentMaturityProjects.map((project, index) => `<button class="workbench-prototype-row ${index === 0 ? "is-active" : ""}" type="button" data-app-route="${escapeHtml(project.route)}"><span>${escapeHtml(project.name || "未命名评估项目")}</span><strong>${escapeHtml(project.statusLabel || "状态未填写")}</strong></button>`).join("")
+            : `<div class="workbench-review-empty">当前没有评估项目。</div>`}
         </section>
       </div>
     </section>
@@ -9550,6 +9558,7 @@ function renderWorkbench() {
     maturity: renderWorkbenchMaturity,
     "maturity-project": renderWorkbenchProject,
   };
+  window.sapdComponents?.MaturityAssessmentWorkbench?.unmount?.();
   setHtml("workbenchWorkspace", (templates[routeType] || renderWorkbenchHome)());
   if (routeType === "maturity" || routeType === "maturity-project") {
     window.sapdComponents?.MaturityAssessmentWorkbench?.mount?.({
@@ -10783,6 +10792,7 @@ function renderEnvironment(options = {}) {
   if (basemapRoot && components.EnvironmentBasemapViewer?.mount) {
     components.EnvironmentBasemapViewer.mount(basemapRoot);
   }
+  bindSpecializedWheelSurfaces($("environmentDetail"));
   components.EnvironmentScopeServiceMatrix?.mount?.($("environmentDetail"));
   restoreEnvironmentTreeScroll(previousTreeScrollTop);
   updateEnvironmentPageSearchNavigation(viewModel);
@@ -11725,6 +11735,7 @@ function renderContent() {
           ? renderContentDetail(selected)
           : emptyState(contentSelection.message || "请选择内容")
       );
+  bindSpecializedWheelSurfaces($("contentDetail"));
   window.sapdComponents?.AppShell?.setAuxiliaryLayerState?.(
     "contentDetailPane",
     Boolean(state.selectedContentId) && !isSlideDeck,
@@ -12692,6 +12703,9 @@ function setActiveView(view, options = {}) {
     return;
   }
   if (view !== previousView) resetAnnotationInteraction({ collapse: true, clearDraft: true });
+  if (previousView === "workbench" && view !== "workbench") {
+    window.sapdComponents?.MaturityAssessmentWorkbench?.unmount?.();
+  }
   if (view === "capabilities" && previousView !== "capabilities") {
     state.selectedCapabilityId = null;
     state.expandedCapabilityIds = new Set();
@@ -13687,10 +13701,6 @@ function bindEvents() {
     endEnvironmentBasemapDrag(event);
     endModelingPosterLightboxDrag(event);
   });
-  document.addEventListener("wheel", (event) => {
-    if (handleEnvironmentBasemapWheel(event)) return;
-    handleModelingPosterLightboxWheel(event);
-  }, { passive: false });
   document.addEventListener("dblclick", (event) => {
     if (!state.modelingPosterLightboxTarget) return;
     if (!event.target?.closest?.(".modeling-poster-lightbox-scroll")) return;
@@ -13714,12 +13724,6 @@ function bindEvents() {
     window.requestAnimationFrame(updateWorkbenchPaneScrollAffordance);
   });
   document.addEventListener("keydown", (event) => {
-    const legendSummary = event.target?.closest?.(".modeling-legend-section-summary");
-    if (legendSummary && ["Enter", " "].includes(event.key)) {
-      event.preventDefault();
-      toggleModelingLegendSection(legendSummary);
-      return;
-    }
     if (state.modelingPosterLightboxTarget && event.key === "Escape") {
       event.preventDefault();
       closeModelingPosterLightbox();
@@ -13740,6 +13744,10 @@ function bindEvents() {
     changeContentSlide(event.key === "ArrowDown" ? 1 : -1, "active");
   });
   document.addEventListener("click", (event) => {
+    // Each legend group is owned by native <details>/<summary>. Keep the whole
+    // group out of the shared document action router; otherwise a click inside
+    // the group can rerender the page and reset every section at once.
+    if (event.target.closest(".modeling-legend-section")) return;
     const pageSearchStep = event.target.closest("[data-page-search-step]");
     if (pageSearchStep) {
       event.preventDefault();
@@ -13879,12 +13887,6 @@ function bindEvents() {
     const modelingLegendAction = event.target.closest("[data-modeling-legend-action]");
     if (modelingLegendAction) {
       setModelingLegendSections(modelingLegendAction.dataset.modelingLegendAction === "expand-all");
-      return;
-    }
-    const modelingLegendSummary = event.target.closest(".modeling-legend-section-summary");
-    if (modelingLegendSummary) {
-      event.preventDefault();
-      toggleModelingLegendSection(modelingLegendSummary);
       return;
     }
     const modelingLanguageTab = event.target.closest("[data-modeling-language-tab]");

@@ -1,7 +1,7 @@
 {
-  "version": "2026-07-29.system-settings-reviewed-baseline",
+  "version": "2026-08-04.p1-p2-fixes-reviewed-baseline",
   "scope": "frontend/capability-browser",
-  "purpose": "Current accepted ceilings after the July 2026 project test governance baseline. Lower values pass; increases require deliberate governance review.",
+  "purpose": "Current accepted ceilings after reviewed project-test governance updates. Lower values pass; increases require deliberate governance review.",
   "requiredReview": "docs/07-governance/project-test-workflow-and-case-matrix.md",
   "files": {
     "frontend/capability-browser/styles.css": {
@@ -13,7 +13,7 @@
       "maxColorMix": 681
     },
     "frontend/capability-browser/app.js": {
-      "maxLines": 13987
+      "maxLines": 14004
     },
     "frontend/capability-browser/viewModels.js": {
       "maxLines": 6176

@@ -13,6 +13,7 @@
         .replaceAll('"', "&quot;"));
 
   const STORAGE_KEY = "sapd-wiki-maturity-controlled-demo-v2.1";
+  const DASHBOARD_SUMMARY_STORAGE_KEY = "sapd-wiki-maturity-dashboard-summary-v1";
   const TAB_STORAGE_KEY = "sapd-wiki-maturity-project-tabs-v1";
   const LEGACY_PROJECT_ROUTE_ID = "project-001";
   const PROJECT_TAB_IDS = new Set(["overview", "template", "scoring", "review", "results", "report", "report-v2"]);
@@ -180,6 +181,11 @@
     projectDeleteStep: 0,
     templateDeleteCandidateId: "",
     templateDeleteStep: 0,
+    deleteReturnFocusSelector: "",
+    deleteModalInertElements: [],
+    deleteModalKeyboardBound: false,
+    persistenceTimer: 0,
+    pendingPersistenceDetail: null,
     listSearch: "",
     listStatus: "all",
     listTemplateType: "all",
@@ -222,6 +228,7 @@
     hierarchyExpansionByProject: {},
     directoryInitializedByProject: {},
     scoreDirectoryUiByProject: {},
+    scoreDirectoryResizeCleanup: null,
     resultsView: "customer",
     reportEditingSection: "",
     reportV2Stage: "1",
@@ -294,19 +301,123 @@
     return `${prefix}:${Date.now()}:${Math.random().toString(16).slice(2)}`;
   }
 
+  let localStoreReadAvailable = true;
+
+  function isRecord(value) {
+    return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+  }
+
   function safeStore() {
     try {
       const raw = window.localStorage?.getItem(STORAGE_KEY);
       const parsed = raw ? JSON.parse(raw) : {};
-      return parsed && typeof parsed === "object" ? parsed : {};
+      if (!isRecord(parsed) || (Object.prototype.hasOwnProperty.call(parsed, "projects") && !isRecord(parsed.projects))) {
+        throw new TypeError("invalid maturity local store structure");
+      }
+      localStoreReadAvailable = true;
+      return parsed;
     } catch {
+      localStoreReadAvailable = false;
       return {};
     }
   }
 
-  function writeStore(store) {
+  function dashboardSummaryEntry(detail) {
+    const project = detail?.project || {};
+    const summary = detail?.result?.summary || {};
+    const completionReady = Number(summary.completionRate || 0) >= 100
+      && Number(summary.notScoredCount || 0) === 0
+      && Number(summary.targetBelowCurrentCount || 0) === 0;
+    const resultReady = Boolean(
+      detail?.result?.ok
+      && LOCKED_ASSESSMENT_STATUSES.has(text(project.status))
+      && !detail.resultStale
+      && (summary.statisticsReady === true ? completionReady : summary.statisticsReady == null && completionReady)
+    );
+    return {
+      id: text(project.id),
+      name: text(project.name),
+      organization: text(project.organization),
+      status: text(project.status),
+      statusLabel: PROJECT_STATUS_NAMES[project.status] || text(project.status) || "状态未填写",
+      updatedAt: text(project.updatedAt),
+      currentIndex: resultReady && Number.isFinite(Number(summary.currentIndex)) ? Number(summary.currentIndex) : null,
+      currentLevel: resultReady ? text(summary.currentLevel) : "",
+      completionRate: Number.isFinite(Number(summary.completionRate)) ? Number(summary.completionRate) : 0,
+      resultReady,
+      route: `/workbench/maturity/${encodeURIComponent(project.id || "")}`,
+    };
+  }
+
+  function readDashboardSummary() {
     try {
-      window.localStorage?.setItem(STORAGE_KEY, JSON.stringify(store));
+      const storage = window.localStorage;
+      if (!storage || typeof storage.getItem !== "function") return { available: false, entries: [] };
+      const raw = storage.getItem(DASHBOARD_SUMMARY_STORAGE_KEY);
+      if (raw == null) return { available: false, entries: [] };
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed) || parsed.some((item) => !isRecord(item) || !text(item.id))) {
+        return { available: false, entries: [] };
+      }
+      return { available: true, entries: parsed };
+    } catch {
+      return { available: false, entries: [] };
+    }
+  }
+
+  function writeDashboardSummaryEntries(entries) {
+    try {
+      const storage = window.localStorage;
+      if (!storage || typeof storage.setItem !== "function") return false;
+      storage.setItem(DASHBOARD_SUMMARY_STORAGE_KEY, JSON.stringify(entries));
+      return true;
+    } catch {
+      try {
+        window.localStorage?.removeItem(DASHBOARD_SUMMARY_STORAGE_KEY);
+      } catch {
+        // Derived summary remains unavailable; the full maturity store is untouched.
+      }
+      return false;
+    }
+  }
+
+  function updateDashboardSummary(detail) {
+    const projectId = text(detail?.project?.id);
+    if (!projectId) return false;
+    const storedSummary = readDashboardSummary();
+    const entries = (storedSummary.available
+      ? storedSummary.entries
+      : Object.values(model.details || {})
+          .filter((item) => item?.project?.id && !item.project.templateWorkspace && !isControlledDemoProject(item))
+          .map(dashboardSummaryEntry))
+      .filter((item) => text(item.id) !== projectId);
+    if (!detail.project.templateWorkspace && !isControlledDemoProject(detail)) entries.push(dashboardSummaryEntry(detail));
+    entries.sort((left, right) => text(right.updatedAt).localeCompare(text(left.updatedAt), "zh-Hans-CN", { numeric: true }));
+    return writeDashboardSummaryEntries(entries);
+  }
+
+  function removeDashboardSummary(projectId) {
+    const normalized = text(projectId);
+    if (!normalized) return false;
+    const summary = readDashboardSummary();
+    if (!summary.available) return false;
+    return writeDashboardSummaryEntries(summary.entries.filter((item) => text(item.id) !== normalized));
+  }
+
+  function rebuildDashboardSummary(details) {
+    const entries = Object.values(details || {})
+      .filter((detail) => detail?.project?.id && !detail.project.templateWorkspace && !isControlledDemoProject(detail))
+      .map(dashboardSummaryEntry)
+      .sort((left, right) => text(right.updatedAt).localeCompare(text(left.updatedAt), "zh-Hans-CN", { numeric: true }));
+    return writeDashboardSummaryEntries(entries);
+  }
+
+  function writeStore(store) {
+    if (!localStoreReadAvailable) return false;
+    try {
+      const storage = window.localStorage;
+      if (!storage || typeof storage.setItem !== "function") return false;
+      storage.setItem(STORAGE_KEY, JSON.stringify(store));
       return true;
     } catch {
       return false;
@@ -418,17 +529,23 @@
 
   function persistDetail(detail) {
     if (!detail?.project?.id) return false;
+    if (model.pendingPersistenceDetail === detail) {
+      window.clearTimeout(model.persistenceTimer);
+      model.persistenceTimer = 0;
+      model.pendingPersistenceDetail = null;
+    }
     const store = safeStore();
     store.version = "2.1";
-    store.projects = store.projects && typeof store.projects === "object" ? store.projects : {};
+    store.projects = isRecord(store.projects) ? store.projects : {};
+    const savedAt = nowLabel();
     const persistedDetail = {
       project: detail.project,
       scoreEntries: detail.scoreEntries,
       template: detail.template?.type === "custom" ? compactTemplateForLocalStorage(detail.template) : null,
       result: detail.result || null,
       resultStale: Boolean(detail.resultStale),
-      localSaveState: detail.localSaveState || "saved",
-      lastSavedAt: detail.lastSavedAt || "",
+      localSaveState: "saved",
+      lastSavedAt: savedAt,
       lastCalculatedAt: detail.lastCalculatedAt || "",
       validation: detail.validation || null,
       report: detail.report || null,
@@ -443,8 +560,55 @@
       scoringLocation: detail.scoringLocation || null,
     };
     store.projects[detail.project.id] = persistedDetail;
-    if (writeStore(store)) return true;
-    return writeStore(compactMaturityStoreForRetry(store));
+    const saved = writeStore(store) || writeStore(compactMaturityStoreForRetry(store));
+    detail.localSaveState = saved ? "saved" : "error";
+    if (saved) {
+      detail.lastSavedAt = savedAt;
+      updateDashboardSummary(detail);
+    }
+    syncPersistenceFeedback(detail);
+    return saved;
+  }
+
+  function persistenceFailureFeedback() {
+    return `<div class="maturity-v24-feedback is-error" role="alert" data-maturity-persistence-feedback><strong>保存失败</strong><span>本地存储当前不可用，请保留页面并检查浏览器或 App 存储权限后重试。</span></div>`;
+  }
+
+  function syncPersistenceFeedback(detail) {
+    if (!model.root || activeDetail() !== detail) return;
+    const existing = model.root.querySelector("[data-maturity-persistence-feedback]");
+    if (detail.localSaveState !== "error") {
+      existing?.remove();
+      return;
+    }
+    if (existing) return;
+    model.root.querySelector(".maturity-v1-page")?.insertAdjacentHTML("afterbegin", persistenceFailureFeedback());
+  }
+
+  function scheduleDetailPersistence(detail) {
+    if (!detail?.project?.id) return false;
+    const pendingProjectId = model.pendingPersistenceDetail?.project?.id;
+    if (pendingProjectId && pendingProjectId !== detail.project.id) {
+      flushScheduledDetailPersistence();
+    }
+    window.clearTimeout(model.persistenceTimer);
+    model.pendingPersistenceDetail = detail;
+    model.persistenceTimer = window.setTimeout(() => {
+      const pending = model.pendingPersistenceDetail;
+      model.persistenceTimer = 0;
+      model.pendingPersistenceDetail = null;
+      if (pending) persistDetail(pending);
+    }, 300);
+    return true;
+  }
+
+  function flushScheduledDetailPersistence() {
+    const pending = model.pendingPersistenceDetail;
+    if (!pending) return true;
+    window.clearTimeout(model.persistenceTimer);
+    model.persistenceTimer = 0;
+    model.pendingPersistenceDetail = null;
+    return persistDetail(pending);
   }
 
   function clearRememberedProjectTab(projectId) {
@@ -466,7 +630,7 @@
     const deletedAt = nowLabel();
     const store = safeStore();
     store.version = "2.1";
-    store.projects = store.projects && typeof store.projects === "object" ? store.projects : {};
+    store.projects = isRecord(store.projects) ? store.projects : {};
     delete store.projects[projectId];
     store.deletedProjectIds = list(store.deletedProjectIds).filter((item) => text(item?.id || item) !== projectId);
     store.deletedProjectIds.push({ id: projectId, deletedAt });
@@ -486,6 +650,7 @@
       showToast("项目删除未保存，请检查本地存储空间后重试", "error");
       return false;
     }
+    removeDashboardSummary(projectId);
     delete model.details[projectId];
     clearRememberedProjectTab(projectId);
     if (model.expandedProjectId === projectId) model.expandedProjectId = "";
@@ -503,7 +668,7 @@
     const store = safeStore();
     store.templateLibrary = list(store.templateLibrary).filter((item) => (item?.template || item)?.id !== templateId);
     if (record.source === "created" && record.editDetailId) {
-      store.projects = store.projects && typeof store.projects === "object" ? store.projects : {};
+      store.projects = isRecord(store.projects) ? store.projects : {};
       delete store.projects[record.editDetailId];
     }
     if (!writeStore(store)) {
@@ -512,6 +677,7 @@
     }
     if (record.source === "created" && record.editDetailId) {
       delete model.details[record.editDetailId];
+      removeDashboardSummary(record.editDetailId);
       clearRememberedProjectTab(record.editDetailId);
     }
     if (model.createDraft.templateLibraryId === templateId) model.createDraft.templateLibraryId = "";
@@ -525,6 +691,7 @@
   function clearStoredDemo() {
     try {
       window.localStorage?.removeItem(STORAGE_KEY);
+      window.localStorage?.removeItem(DASHBOARD_SUMMARY_STORAGE_KEY);
     } catch {
       // The API-backed demo remains usable when localStorage is unavailable.
     }
@@ -629,6 +796,9 @@
 
   function hydrateWorkspace(workspace) {
     const localStore = safeStore();
+    if (!localStoreReadAvailable) {
+      throw new Error("本地成熟度工作区读取失败，请检查浏览器或 App 存储权限后重试。");
+    }
     const deletedProjectIds = new Set(list(localStore.deletedProjectIds).map((item) => text(item?.id || item)).filter(Boolean));
     const details = {};
     Object.entries(workspace?.projectDetails || {}).forEach(([id, detail]) => {
@@ -712,6 +882,7 @@
       detail.validation = null;
       detail.resultStale = true;
     });
+    rebuildDashboardSummary(details);
   }
 
   function formalAssessmentReady(detail) {
@@ -724,8 +895,7 @@
     return summary.statisticsReady === true ? completionReady : summary.statisticsReady == null && completionReady;
   }
 
-  function reportMatchesCurrentAssessment(detail, report) {
-    if (!formalAssessmentReady(detail) || report?.formal !== true) return false;
+  function reportReferencesCurrentAssessment(detail, report) {
     const reportModel = report?.reportModel || {};
     const reportProjectId = text(reportModel.project?.id || report?.persistence?.projectId);
     const liveRun = detail?.result?.calculationRun || {};
@@ -739,22 +909,44 @@
       && text(reportVersion.templateSnapshotId) === text(detail?.template?.snapshotId);
   }
 
+  function reportMatchesCurrentAssessment(detail, report) {
+    return formalAssessmentReady(detail) && report?.formal === true && reportReferencesCurrentAssessment(detail, report);
+  }
+
   async function restorePersistedReports() {
     const candidates = Object.values(model.details).filter((detail) => detail?.project?.id && formalAssessmentReady(detail));
     await Promise.all(candidates.map(async (detail) => {
       if (reportExportReady(detail.report) && reportMatchesCurrentAssessment(detail, detail.report)) {
-        persistDetail(detail);
         return;
       }
       const persistence = detail.report?.persistence && typeof detail.report.persistence === "object" ? detail.report.persistence : {};
       const calculationRun = detail.result?.calculationRun || {};
+      const requestContext = {
+        projectId: text(detail.project.id),
+        reportId: text(detail.report?.id),
+        artifactId: text(persistence.artifactId),
+        inputHash: text(calculationRun.inputHash),
+        resultHash: text(calculationRun.resultHash),
+        templateSnapshotId: text(detail.template?.snapshotId),
+      };
+      const needsLatestMatchingArtifact = !reportExportReady(detail.report);
       const response = await window.sapdDataClient?.getMaturityReportArtifact?.({
-        projectId: detail.project.id,
-        artifactId: persistence.artifactId || "",
-        reportId: detail.report?.id || "",
-        inputHash: calculationRun.inputHash || "",
-        resultHash: calculationRun.resultHash || "",
+        projectId: requestContext.projectId,
+        artifactId: needsLatestMatchingArtifact ? "" : requestContext.artifactId,
+        reportId: needsLatestMatchingArtifact ? "" : requestContext.reportId,
+        inputHash: requestContext.inputHash,
+        resultHash: requestContext.resultHash,
       });
+      const currentPersistence = detail.report?.persistence && typeof detail.report.persistence === "object" ? detail.report.persistence : {};
+      const currentRun = detail.result?.calculationRun || {};
+      if (
+        model.details[requestContext.projectId] !== detail
+        || text(detail.report?.id) !== requestContext.reportId
+        || text(currentPersistence.artifactId) !== requestContext.artifactId
+        || text(currentRun.inputHash) !== requestContext.inputHash
+        || text(currentRun.resultHash) !== requestContext.resultHash
+        || text(detail.template?.snapshotId) !== requestContext.templateSnapshotId
+      ) return;
       const report = unwrap(response);
       if (!reportExportReady(report) || !reportMatchesCurrentAssessment(detail, report)) {
         detail.report = detail.report?.id ? reportPersistenceReceipt(detail.report) : null;
@@ -785,15 +977,32 @@
     return detailList().filter((detail) => !detail.project.templateWorkspace);
   }
 
+  function isControlledDemoProject(detail) {
+    return /^demo-project-\d{3}$/.test(text(detail?.project?.id));
+  }
+
   function templateWorkspaceList() {
     return detailList().filter((detail) => detail.project.templateWorkspace);
   }
 
   function dashboardSnapshot(limit = 3) {
     const normalizedLimit = Math.max(0, Number(limit) || 0);
-    const projects = projectList();
+    if (!model.loaded) {
+      const summary = readDashboardSummary();
+      if (!summary.available) {
+        return { dataState: "summary_unavailable", total: null, resultReadyCount: null, projects: [] };
+      }
+      const projects = summary.entries;
+      return {
+        dataState: "ready",
+        total: projects.length,
+        resultReadyCount: projects.filter((item) => item.resultReady).length,
+        projects: projects.slice(0, normalizedLimit),
+      };
+    }
+    const projects = projectList().filter((detail) => !isControlledDemoProject(detail));
     return {
-      dataState: model.error ? "api_unavailable" : model.loading || !model.loaded ? "loading" : "ready",
+      dataState: model.loaded && model.error ? "api_unavailable" : "ready",
       total: projects.length,
       resultReadyCount: projects.filter((detail) => statisticsReadyForDisplay(detail)).length,
       projects: projects.slice(0, normalizedLimit).map((detail) => {
@@ -1175,7 +1384,7 @@
     detail.improvementRoadmap = improvementRoadmapRows(detail).map((row) => row.capabilityId === capabilityId ? { ...row, [field]: value } : row);
     detail.reportNarrativeDirty = true;
     detail.project.updatedAt = nowLabel();
-    persistDetail(detail);
+    scheduleDetailPersistence(detail);
   }
 
   function templateLibraryRecords() {
@@ -1226,8 +1435,18 @@
     if (record.source === "copy") return "模板复制";
     if (record.source === "import") return "XLSX 导入";
     if (record.source === "project-retained") return `原项目（已删除）：${record.sourceProjectName || record.template?.publishedFromProjectName || "本地项目"}`;
-    const project = record.sourceProjectId ? model.details[record.sourceProjectId]?.project : null;
-    return `项目：${project?.name || record.template?.publishedFromProjectName || "本地项目"}`;
+    return `项目：${templateProjectSourceName(record)}`;
+  }
+
+  function templateProjectSourceName(record) {
+    const project = record?.sourceProjectId ? model.details[record.sourceProjectId]?.project : null;
+    return project?.name || record?.sourceProjectName || record?.template?.publishedFromProjectName || "本地项目";
+  }
+
+  function renderTemplateProjectOrigin(record) {
+    if (record?.source !== "project") return "";
+    const projectName = templateProjectSourceName(record);
+    return `<span class="maturity-v57-template-project-origin" title="来自项目：${escapeHtml(projectName)}"><span>来自项目</span><strong>${escapeHtml(projectName)}</strong></span>`;
   }
 
   function templateImportHistory() {
@@ -1265,24 +1484,30 @@
 
   function renderTemplateManagerActions(record) {
     const templateId = escapeHtml(record.template.id);
-    let primaryAction = "";
-    let copyAction = "";
+    const actions = [];
     if (record.source === "project") {
-      primaryAction = `<button class="maturity-v1-button is-primary" type="button" data-maturity-action="open-source-project-template" data-project-id="${escapeHtml(record.sourceProjectId)}">进入项目优化</button>`;
-      copyAction = `<button class="maturity-v1-button is-secondary" type="button" data-maturity-action="copy-template-to-manager" data-template-id="${templateId}" title="创建副本并调整">创建副本</button>`;
+      actions.push(`<button class="maturity-v1-button is-primary maturity-v56-template-action" type="button" data-maturity-action="open-source-project-template" data-template-action-role="primary" data-project-id="${escapeHtml(record.sourceProjectId)}">进入项目优化</button>`);
+      actions.push(`<button class="maturity-v1-button is-secondary maturity-v56-template-action" type="button" data-maturity-action="copy-template-to-manager" data-template-action-role="secondary" data-template-id="${templateId}" title="创建副本">创建副本</button>`);
     } else if (record.source === "created") {
-      primaryAction = `<button class="maturity-v1-button is-primary" type="button" data-maturity-action="manage-template-project" data-project-id="${escapeHtml(record.editDetailId)}">继续优化</button>`;
+      actions.push(`<button class="maturity-v1-button is-primary maturity-v56-template-action" type="button" data-maturity-action="manage-template-project" data-template-action-role="primary" data-project-id="${escapeHtml(record.editDetailId)}">编辑</button>`);
     } else if (record.template.type === "custom") {
-      primaryAction = `<button class="maturity-v1-button is-secondary" type="button" data-maturity-action="copy-template-to-manager" data-template-id="${templateId}" title="创建副本并调整">创建副本</button>`;
+      actions.push(`<button class="maturity-v1-button is-secondary maturity-v56-template-action" type="button" data-maturity-action="copy-template-to-manager" data-template-action-role="secondary" data-template-id="${templateId}" title="创建副本">创建副本</button>`);
     }
-    const deleteAction = record.source === "default"
-      ? ""
-      : `<button class="maturity-v1-button maturity-v53-delete-button" type="button" data-maturity-action="request-template-delete" data-template-id="${templateId}">删除</button>`;
-    const exportAction = `<button class="maturity-v1-button is-secondary maturity-v28-export-button" type="button" data-maturity-action="export-global-template" data-template-id="${templateId}">导出</button>`;
-    return `<div class="maturity-v53-template-action-stack">
-      ${primaryAction || deleteAction ? `<div class="maturity-v54-template-main-actions">${primaryAction}${copyAction ? "" : exportAction}${deleteAction}</div>` : ""}
-      ${copyAction || (!primaryAction && !deleteAction) ? `<div class="maturity-v54-template-support-actions">${copyAction}${exportAction}</div>` : ""}
-    </div>`;
+    actions.push(`<button class="maturity-v1-button is-secondary maturity-v28-export-button maturity-v56-template-action" type="button" data-maturity-action="export-global-template" data-template-action-role="utility" data-template-id="${templateId}">导出</button>`);
+    if (record.source !== "default") {
+      const deleteTitle = record.source === "project" ? "项目仍在使用；点击查看删除约束" : "删除模板";
+      actions.push(`<button class="maturity-v1-button maturity-v53-delete-button maturity-v56-template-action" type="button" data-maturity-action="request-template-delete" data-template-action-role="danger" data-template-id="${templateId}" title="${deleteTitle}">删除</button>`);
+    }
+    const actionCount = actions.length;
+    return `<div class="maturity-v56-template-action-grid has-${actionCount}-actions" role="group" aria-label="模板操作，共 ${actionCount} 项" data-template-action-count="${actionCount}">${actions.join("")}</div>`;
+  }
+
+  function templateLibraryStatus(record) {
+    if (record.source === "project") {
+      return { label: "项目锁定", className: "is-locked", title: "项目来源模板仅允许在来源项目内修改" };
+    }
+    const ready = record.template.type === "base" || record.template.status === "validated";
+    return { label: ready ? "已校验" : "草稿", className: ready ? "is-good" : "is-warn", title: "" };
   }
 
   function renderTemplateManager() {
@@ -1293,11 +1518,11 @@
     const pagination = paginatedRows(templateRows, model.templateManagerPage, model.templateManagerPageSize);
     model.templateManagerPage = pagination.page;
     return `<section class="maturity-v24-home-section maturity-v24-template-manager" aria-labelledby="maturityTemplateManagerTitle">
-      <header><div><span>模板资产</span><h2 id="maturityTemplateManagerTitle">模板管理</h2><p>模板管理自建内容可在这里继续优化；项目来源模板只能回到原项目修改，也可创建独立副本。</p></div><div class="maturity-v51-template-manager-actions"><button class="maturity-v1-button is-primary" type="button" data-maturity-action="new-template">新增模板</button><button class="maturity-v1-button is-secondary maturity-v28-import-button" type="button" data-maturity-action="trigger-global-template-import">导入自定义模板</button><input type="file" accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.xlsx" hidden data-maturity-template-library-file /></div></header>
+      <header class="maturity-v60-template-control-header"><div><span>模板资产</span><h2 id="maturityTemplateManagerTitle">模板管理</h2><p>模板管理自建内容可在这里继续优化；项目来源模板只能回到原项目修改，也可创建独立副本。</p></div><div class="maturity-v51-template-manager-actions"><button class="maturity-v1-button is-primary" type="button" data-maturity-action="new-template">新增模板</button><button class="maturity-v1-button is-secondary maturity-v28-import-button" type="button" data-maturity-action="trigger-global-template-import">导入自定义模板</button><input type="file" accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.xlsx" hidden data-maturity-template-library-file /></div></header>
       <nav class="maturity-v24-template-views" aria-label="模板管理视图">
         ${[["all", "全部模板", records.length], ["custom", "自定义模板", records.filter((item) => item.template.type === "custom").length], ["history", "导入任务", history.length]].map(([value, label, count]) => `<button class="${model.templateManagerView === value ? "is-active" : ""}" type="button" data-maturity-action="set-template-view" data-template-view="${value}" aria-label="${label}，${count} 项" aria-pressed="${model.templateManagerView === value}">${label}</button>`).join("")}
       </nav>
-      ${model.templateManagerView === "history" ? `<div class="maturity-v24-template-table"><table class="maturity-v28-template-table is-history"><thead><tr><th>任务</th><th>来源类型</th><th>状态</th><th>结果</th></tr></thead><tbody>${history.length ? pagination.rows.map((item) => `<tr><td><strong>${escapeHtml(item.id)}</strong><small>${escapeHtml(item.importedAt || item.createdAt || "本地受控任务")}</small></td><td>自定义模板</td><td><span class="maturity-v1-status ${item.status === "success" ? "is-good" : "is-warn"}">${escapeHtml(item.status === "success" ? "成功" : item.status || "待确认")}</span></td><td>${Number(item.successCount || (item.status === "success" ? 1 : 0))} 成功 / ${Number(item.failureCount || 0)} 失败</td></tr>`).join("") : `<tr><td colspan="4"><div class="maturity-v1-table-empty"><strong>暂无模板导入任务</strong><span>导入自定义业务模板后，这里会保留本地受控记录。</span></div></td></tr>`}</tbody></table></div>` : `<div class="maturity-v24-template-table"><table class="maturity-v28-template-table"><thead><tr><th>模板</th><th>类型 / 状态</th><th>结构</th><th>来源</th><th>操作</th></tr></thead><tbody>${filtered.length ? pagination.rows.map((item) => { const stats = templateStats(item.template); const templateReady = item.template.type === "base" || item.template.status === "validated"; const sourceLabel = templateLibrarySourceLabel(item); return `<tr><td><strong>${escapeHtml(item.template.name || "未命名模板")}</strong><small>${escapeHtml(item.template.description || "暂无模板说明")}</small></td><td><div class="maturity-v55-template-state"><div><span class="maturity-v2-template-kind">${item.template.type === "base" ? "标准" : "自定义"}</span><span class="maturity-v1-status ${templateReady ? "is-good" : "is-warn"}">${templateReady ? "已校验" : "草稿"}</span></div><small>${escapeHtml(item.template.version || "V2.1")}</small></div></td><td><strong>${stats.capabilities} L2 · ${stats.focuses} 关注点</strong><small>${stats.scoreItems} 个评估点</small></td><td><strong>${escapeHtml(sourceLabel)}</strong><small>${escapeHtml(item.importedAt || "当前稳定版本")}</small></td><td><div class="maturity-v24-template-actions">${renderTemplateManagerActions(item)}</div></td></tr>`; }).join("") : `<tr><td colspan="5"><div class="maturity-v1-table-empty"><strong>暂无自定义模板</strong><span>点击“新增模板”进入图谱工作台，或导入已有 XLSX 模板。</span></div></td></tr>`}</tbody></table></div>`}
+      ${model.templateManagerView === "history" ? `<div class="maturity-v24-template-table"><table class="maturity-v28-template-table is-history"><thead><tr><th>任务</th><th>来源类型</th><th>状态</th><th>结果</th></tr></thead><tbody>${history.length ? pagination.rows.map((item) => `<tr><td><strong>${escapeHtml(item.id)}</strong><small>${escapeHtml(item.importedAt || item.createdAt || "本地受控任务")}</small></td><td>自定义模板</td><td><span class="maturity-v1-status ${item.status === "success" ? "is-good" : "is-warn"}">${escapeHtml(item.status === "success" ? "成功" : item.status || "待确认")}</span></td><td>${Number(item.successCount || (item.status === "success" ? 1 : 0))} 成功 / ${Number(item.failureCount || 0)} 失败</td></tr>`).join("") : `<tr><td colspan="4"><div class="maturity-v1-table-empty"><strong>暂无模板导入任务</strong><span>导入自定义业务模板后，这里会保留本地受控记录。</span></div></td></tr>`}</tbody></table></div>` : `<div class="maturity-v24-template-table"><table class="maturity-v28-template-table"><thead><tr><th>模板</th><th>类型 / 状态</th><th>结构</th><th>来源</th><th>操作</th></tr></thead><tbody>${filtered.length ? pagination.rows.map((item) => { const stats = templateStats(item.template); const status = templateLibraryStatus(item); const sourceLabel = templateLibrarySourceLabel(item); return `<tr><td><strong>${escapeHtml(displayTemplateLibraryName(item))}</strong>${renderTemplateProjectOrigin(item)}<small>${escapeHtml(item.template.description || "暂无模板说明")}</small></td><td><div class="maturity-v55-template-state"><div><span class="maturity-v2-template-kind">${item.template.type === "base" ? "标准" : "自定义"}</span><span class="maturity-v1-status ${status.className}"${status.title ? ` title="${escapeHtml(status.title)}"` : ""}>${status.label}</span></div><small>${escapeHtml(item.template.version || "V2.1")}</small></div></td><td><strong>${stats.capabilities} L2 · ${stats.focuses} 关注点</strong><small>${stats.scoreItems} 个评估点</small></td><td><strong>${escapeHtml(sourceLabel)}</strong><small>${escapeHtml(item.importedAt || "当前稳定版本")}</small></td><td><div class="maturity-v24-template-actions">${renderTemplateManagerActions(item)}</div></td></tr>`; }).join("") : `<tr><td colspan="5"><div class="maturity-v1-table-empty"><strong>暂无自定义模板</strong><span>点击“新增模板”进入图谱工作台，或导入已有 XLSX 模板。</span></div></td></tr>`}</tbody></table></div>`}
       ${renderWorkspacePagination("templates", pagination)}
     </section>`;
   }
@@ -1349,7 +1574,7 @@
       <aside class="maturity-v1-modal maturity-v53-delete-modal" role="dialog" aria-modal="true" aria-labelledby="maturityTemplateDeleteTitle">
         <header><div><span>第 ${secondStep ? "2" : "1"} / 2 次确认</span><h3 id="maturityTemplateDeleteTitle">${secondStep ? "最后确认删除模板" : "删除模板资产？"}</h3></div><button class="maturity-v1-icon-button" type="button" data-maturity-action="cancel-template-delete" aria-label="取消删除模板">×</button></header>
         <div class="maturity-v53-delete-body">
-          <div class="maturity-v53-delete-object"><span>待删除模板</span><strong>${escapeHtml(record.template.name || "未命名模板")}</strong><small>${escapeHtml(templateLibrarySourceLabel(record))}</small></div>
+          <div class="maturity-v53-delete-object"><span>待删除模板</span><strong>${escapeHtml(displayTemplateLibraryName(record))}</strong><small>${escapeHtml(templateLibrarySourceLabel(record))}</small></div>
           ${secondStep
             ? `<p><strong>这是最后一次确认。</strong>删除后模板会从本机模板管理中永久移除，刷新页面也不会恢复。</p>`
             : `<p>删除后该模板不再出现在模板管理，也不能作为新评估项目的来源。已经基于它创建的项目副本不受影响。</p>`}
@@ -1365,6 +1590,8 @@
   }
 
   function renderFeedback() {
+    const detail = activeDetail();
+    if (!model.toast && detail?.localSaveState === "error") return persistenceFailureFeedback();
     if (!model.toast || model.toastRoute !== normalizedRoute()) return "";
     return `<div class="maturity-v24-feedback is-${escapeHtml(model.toastTone)}" role="status"><strong>${model.toastTone === "error" ? "需要处理" : model.toastTone === "success" ? "操作完成" : "操作提示"}</strong><span>${escapeHtml(model.toast)}</span><button type="button" data-maturity-action="dismiss-feedback" aria-label="关闭提示">×</button></div>`;
   }
@@ -1381,6 +1608,52 @@
         render();
       }
     }, 2800);
+  }
+
+  function rememberDeleteReturnFocus(actionTarget) {
+    const action = text(actionTarget?.dataset?.maturityAction);
+    const projectId = text(actionTarget?.dataset?.projectId);
+    const templateId = text(actionTarget?.dataset?.templateId);
+    const escape = window.CSS?.escape || ((value) => String(value).replaceAll('"', '\\"'));
+    model.deleteReturnFocusSelector = action
+      ? `[data-maturity-action="${escape(action)}"]${projectId ? `[data-project-id="${escape(projectId)}"]` : ""}${templateId ? `[data-template-id="${escape(templateId)}"]` : ""}`
+      : "";
+  }
+
+  function restoreDeleteReturnFocus(fallbackSelector) {
+    const selector = model.deleteReturnFocusSelector;
+    model.deleteReturnFocusSelector = "";
+    window.setTimeout(() => {
+      ((selector ? model.root?.querySelector(selector) : null) || model.root?.querySelector(fallbackSelector))?.focus?.();
+    }, 0);
+  }
+
+  function clearDeleteModalInertBoundary() {
+    model.deleteModalInertElements.forEach((element) => { element.inert = false; });
+    model.deleteModalInertElements = [];
+  }
+
+  function applyDeleteModalInertBoundary(deleteLayer) {
+    let activeBranch = deleteLayer;
+    while (activeBranch?.parentElement) {
+      [...activeBranch.parentElement.children].forEach((sibling) => {
+        if (sibling !== activeBranch && !sibling.inert) {
+          sibling.inert = true;
+          model.deleteModalInertElements.push(sibling);
+        }
+      });
+      activeBranch = activeBranch.parentElement;
+      if (activeBranch === document.body) break;
+    }
+  }
+
+  function closeDeleteConfirmations(fallbackSelector = "#maturityNewProjectButton") {
+    model.projectDeleteCandidateId = "";
+    model.projectDeleteStep = 0;
+    model.templateDeleteCandidateId = "";
+    model.templateDeleteStep = 0;
+    render();
+    restoreDeleteReturnFocus(fallbackSelector);
   }
 
   function statusTone(status) {
@@ -1409,10 +1682,30 @@
   }
 
   function displayTemplateName(detail) {
-    if (detail?.project?.templateType === "base") {
-      return model.workspace?.template?.name || "SAPD标准能力成熟度模板";
-    }
-    return detail?.project?.templateName || detail?.template?.name || "未选择";
+    if (detail?.project?.templateType === "base" || detail?.template?.type === "base") return "SAPD标准模板";
+    if (detail?.project?.templateWorkspace) return standardCustomTemplateName(detail?.template?.name || detail?.project?.templateName) || "未命名模板";
+    if (detail?.project?.templateType === "custom") return standardProjectTemplateName(detail?.project?.name);
+    return standardCustomTemplateName(detail?.project?.templateName || detail?.template?.name || "未选择") || "未命名模板";
+  }
+
+  function standardProjectTemplateName(projectName = "") {
+    const name = text(projectName).trim();
+    if (!name) return "项目模板";
+    return `${name}${name.endsWith("项目") ? "" : "项目"}模板`;
+  }
+
+  function standardCustomTemplateName(templateName = "") {
+    let name = text(templateName).trim();
+    if (!name || name === "未选择") return name;
+    name = name.replace(/\s*模板\s*副本(?:\s*(\d+))?$/u, (_, index = "") => `副本${index}模板`);
+    name = name.replace(/\s*模板\s+(\d+)$/u, "$1模板");
+    return name.endsWith("模板") ? name : `${name}模板`;
+  }
+
+  function displayTemplateLibraryName(record) {
+    if (record?.source === "default" || record?.template?.type === "base") return "SAPD标准模板";
+    if (["project", "project-retained"].includes(record?.source)) return standardProjectTemplateName(templateProjectSourceName(record));
+    return standardCustomTemplateName(record?.template?.name) || "未命名模板";
   }
 
   function createDraftIsDirty() {
@@ -1494,20 +1787,22 @@
         ${renderFeedback()}
         <div class="maturity-v26-home-grid">
           <section class="maturity-v26-project-hub" aria-label="评估项目管理">
-        <header class="maturity-v24-home-heading"><div><span>当前工作</span><h2>评估项目管理</h2><p>查看评估阶段、评分完成度，并管理项目生命周期。</p></div><div class="maturity-v52-project-heading-actions"><dl><div><dt>进行中</dt><dd>${viewCounts.active}</dd></div><div><dt>已完成</dt><dd>${viewCounts.completed}</dd></div></dl><button id="maturityNewProjectButton" class="maturity-v1-button is-primary" type="button" data-maturity-action="new-project">新建评估项目</button></div></header>
+        <header class="maturity-v24-home-heading maturity-v60-project-control-header">
+          <div class="maturity-v60-project-heading-copy"><span>当前工作</span><h2>评估项目管理</h2><p>查看评估阶段、评分完成度，并管理项目生命周期。</p><div class="maturity-v52-project-heading-actions"><button id="maturityNewProjectButton" class="maturity-v1-button is-primary" type="button" data-maturity-action="new-project">新建评估项目</button></div></div>
+          <div class="maturity-v1-filterbar maturity-v60-project-header-filters" aria-label="评估项目筛选">
+            <label class="is-search"><span>项目 / 客户</span><input type="search" value="${escapeHtml(model.listSearch)}" placeholder="搜索项目、客户、负责人" autocomplete="off" data-maturity-list-search /></label>
+            <label><span>模板</span><select data-maturity-list-filter="templateType">
+              <option value="all">全部模板</option>
+              <option value="base"${model.listTemplateType === "base" ? " selected" : ""}>SAPD标准模板</option>
+              <option value="custom"${model.listTemplateType === "custom" ? " selected" : ""}>自定义模板</option>
+            </select></label>
+            <label><span>负责人</span><select data-maturity-list-filter="owner"><option value="all">全部负责人</option>${owners.map((value) => `<option value="${escapeHtml(value)}"${model.listOwner === value ? " selected" : ""}>${escapeHtml(value)}</option>`).join("")}</select></label>
+            <label><span>行业</span><select data-maturity-list-filter="industry"><option value="all">全部行业</option>${industries.map((value) => `<option value="${escapeHtml(value)}"${model.listIndustry === value ? " selected" : ""}>${escapeHtml(value)}</option>`).join("")}</select></label>
+            <button class="maturity-v1-link-button maturity-v2-clear-filters" type="button" data-maturity-action="clear-list-filters">清空筛选</button>
+          </div>
+        </header>
         <div class="maturity-v2-list-views" role="tablist" aria-label="项目状态视图">
           ${[["active", "进行中"], ["completed", "已完成"], ["all", "全部"]].map(([value, label]) => `<button class="${model.listStatus === value ? "is-active" : ""}" type="button" role="tab" aria-label="${label}，${viewCounts[value]} 项" aria-selected="${model.listStatus === value}" data-maturity-action="set-list-view" data-list-view="${value}">${label}<span aria-hidden="true">${viewCounts[value]}</span></button>`).join("")}
-        </div>
-        <div class="maturity-v1-filterbar">
-          <label class="is-search"><span>项目 / 客户</span><input type="search" value="${escapeHtml(model.listSearch)}" placeholder="搜索项目、客户、负责人" autocomplete="off" data-maturity-list-search /></label>
-          <label><span>模板</span><select data-maturity-list-filter="templateType">
-            <option value="all">全部模板</option>
-            <option value="base"${model.listTemplateType === "base" ? " selected" : ""}>基础能力体系模板</option>
-            <option value="custom"${model.listTemplateType === "custom" ? " selected" : ""}>自定义能力模板</option>
-          </select></label>
-          <label><span>负责人</span><select data-maturity-list-filter="owner"><option value="all">全部负责人</option>${owners.map((value) => `<option value="${escapeHtml(value)}"${model.listOwner === value ? " selected" : ""}>${escapeHtml(value)}</option>`).join("")}</select></label>
-          <label><span>行业</span><select data-maturity-list-filter="industry"><option value="all">全部行业</option>${industries.map((value) => `<option value="${escapeHtml(value)}"${model.listIndustry === value ? " selected" : ""}>${escapeHtml(value)}</option>`).join("")}</select></label>
-          <button class="maturity-v1-link-button maturity-v2-clear-filters" type="button" data-maturity-action="clear-list-filters">清空筛选</button>
         </div>
         <div class="maturity-v1-project-layout">
           <section class="maturity-v1-table-wrap" aria-label="评估项目表">
@@ -1521,8 +1816,8 @@
                   const totalItems = Number(summary.applicableItemCount || activeTemplateData(detail.template).scoreItems.length || 0);
                   const expanded = model.expandedProjectId === project.id;
                   const [primaryLabel, primaryTab] = projectPrimaryAction(project);
-                  return `<tr class="maturity-v2-project-row maturity-v28-project-row ${expanded ? "is-expanded" : ""}" data-maturity-action="toggle-project-preview" data-project-id="${escapeHtml(project.id)}" tabindex="0" aria-label="${escapeHtml(project.organization || project.name)}，展开项目摘要" aria-expanded="${expanded}">
-                    <td><div class="maturity-v54-project-identity"><strong>${escapeHtml(project.name || "未命名项目")}</strong><small class="notranslate" translate="no" data-maturity-literal="organization">${escapeHtml(project.organization || "客户未填写")}</small></div></td>
+                  return `<tr class="maturity-v2-project-row maturity-v28-project-row ${expanded ? "is-expanded" : ""}" data-maturity-action="toggle-project-preview" data-project-id="${escapeHtml(project.id)}" tabindex="0" aria-label="${escapeHtml(project.name || "未命名项目")}，${escapeHtml(project.organization || "客户未填写")}，展开项目摘要" aria-expanded="${expanded}">
+                    <td><div class="maturity-v54-project-identity"><strong class="notranslate" translate="no" data-maturity-literal="project-name">${escapeHtml(project.name || "未命名项目")}</strong><small class="notranslate" translate="no" data-maturity-literal="organization">${escapeHtml(project.organization || "客户未填写")}</small></div></td>
                     <td><span class="maturity-v1-status ${statusTone(project.status)}">${escapeHtml(PROJECT_STATUS_NAMES[project.status] || project.status)}</span></td>
                     <td><strong>${escapeHtml(displayTemplateName(detail))}</strong><span class="maturity-v2-template-kind">${project.templateType === "custom" ? "自定义" : project.templateType === "base" ? "固定" : "待选择"}</span></td>
                     <td><div class="maturity-v28-completion"><span class="maturity-v1-progress"><i style="width:${percent(summary.completionRate)}%"></i></span><strong>${percent(summary.completionRate).toFixed(0)}%</strong><small>${completedItems} / ${totalItems || "-"}</small></div></td>
@@ -1559,7 +1854,7 @@
     const libraryRecords = templateLibraryRecords();
     const reusableTemplates = libraryRecords.filter((item) => item.template.type === "custom");
     const selectedLibraryRecord = libraryRecords.find((item) => item.template.id === draft.templateLibraryId);
-    const selectedLibraryTemplate = selectedLibraryRecord?.template;
+    const selectedLibraryDisplayName = selectedLibraryRecord ? displayTemplateLibraryName(selectedLibraryRecord) : "SAPD标准模板";
     return `
       <div class="maturity-v1-modal-backdrop maturity-v2-create-layer" data-maturity-create-layer data-shell-workflow-overlay="maturity-project-create">
         <button class="maturity-v2-create-scrim" type="button" data-maturity-action="close-create" aria-label="关闭新建评估项目浮层"></button>
@@ -1584,19 +1879,19 @@
             ${model.createStep === 2 ? `
               <div class="maturity-v1-template-choice" role="radiogroup" aria-label="评估模板类型">
                 <button class="${draft.templateType === "base" ? "is-selected" : ""}" type="button" data-maturity-action="choose-template" data-template-type="base" role="radio" aria-checked="${draft.templateType === "base"}">
-                  <div><strong>固定知识库模板</strong><span class="maturity-v2-readonly-badge">只读结构</span></div><span>按知识快照中的真实关注点、作用域与服务关系生成评估点。</span><small>V2.1 · ${baseStats.topCategories} 个能力 L0 / ${baseStats.domains} 个能力 L1 / ${baseStats.capabilities} 个能力 L2 / ${baseStats.focuses} 个关注点 / ${baseStats.scoreItems} 个评估点</small>
+                  <div><strong>SAPD标准模板</strong><span class="maturity-v2-readonly-badge">只读结构</span></div><span>按知识快照中的真实关注点、作用域与服务关系生成评估点。</span><small>V2.1 · ${baseStats.topCategories} 个能力 L0 / ${baseStats.domains} 个能力 L1 / ${baseStats.capabilities} 个能力 L2 / ${baseStats.focuses} 个关注点 / ${baseStats.scoreItems} 个评估点</small>
                 </button>
                 <button class="${draft.templateType === "custom" ? "is-selected" : ""}" type="button" data-maturity-action="choose-template" data-template-type="custom" role="radio" aria-checked="${draft.templateType === "custom"}">
                   <div><strong>自定义模板</strong><span class="maturity-v2-template-kind">创建项目副本</span></div><span>从模板管理选择来源，创建项目专属副本后进入图谱工作台继续调整。</span><small>修改只写入新项目副本，不会覆盖标准模板或已保存的来源模板。</small>
                 </button>
               </div>
-              ${draft.templateType === "custom" ? `<section class="maturity-v52-template-source-picker" aria-label="选择自定义模板来源"><label><span>来源模板</span><select data-create-template-library-id aria-describedby="maturityCustomTemplateSourceHint"><option value="${escapeHtml(model.workspace?.template?.id || "")}"${draft.templateLibraryId === model.workspace?.template?.id ? " selected" : ""}>基于固定知识库模板新建</option>${reusableTemplates.map((item) => `<option value="${escapeHtml(item.template.id)}"${draft.templateLibraryId === item.template.id ? " selected" : ""}>${escapeHtml(item.template.name)} · ${item.template.status === "validated" ? "已校验" : "草稿"} · ${escapeHtml(templateLibrarySourceLabel(item))}</option>`).join("")}</select></label><div id="maturityCustomTemplateSourceHint"><strong>${escapeHtml(selectedLibraryTemplate?.name || model.workspace?.template?.name || "固定知识库模板")}</strong><span>${escapeHtml(selectedLibraryRecord ? templateLibrarySourceLabel(selectedLibraryRecord) : "知识库稳定模板")} · 创建后生成新模板 ID，来源保持不变。</span></div></section>` : ""}
+              ${draft.templateType === "custom" ? `<section class="maturity-v52-template-source-picker" aria-label="选择自定义模板来源"><label><span>来源模板</span><select data-create-template-library-id aria-describedby="maturityCustomTemplateSourceHint"><option value="${escapeHtml(model.workspace?.template?.id || "")}"${draft.templateLibraryId === model.workspace?.template?.id ? " selected" : ""}>SAPD标准模板</option>${reusableTemplates.map((item) => `<option value="${escapeHtml(item.template.id)}"${draft.templateLibraryId === item.template.id ? " selected" : ""}>${escapeHtml(displayTemplateLibraryName(item))} · ${item.template.status === "validated" ? "已校验" : "草稿"} · ${escapeHtml(templateLibrarySourceLabel(item))}</option>`).join("")}</select></label><div id="maturityCustomTemplateSourceHint"><strong>${escapeHtml(selectedLibraryDisplayName)}</strong><span>${escapeHtml(selectedLibraryRecord ? templateLibrarySourceLabel(selectedLibraryRecord) : "知识库稳定模板")} · 创建后生成新模板 ID，来源保持不变。</span></div></section>` : ""}
               ${error("templateType")}
             ` : ""}
             ${model.createStep === 3 ? `
               <div class="maturity-v1-confirm-grid">
                 <section><div class="maturity-v2-confirm-heading"><strong>客户与项目</strong><button type="button" data-maturity-action="create-edit-step" data-step="1">修改</button></div><dl><div><dt>项目</dt><dd class="notranslate" translate="no" data-maturity-literal="project-name">${escapeHtml(draft.name)}</dd></div><div><dt>客户企业组织</dt><dd class="notranslate" translate="no" data-maturity-literal="organization">${escapeHtml(draft.organization)}</dd></div><div><dt>所属行业 / 规模</dt><dd>${escapeHtml(draft.industry)} / ${escapeHtml(draft.companySize)}</dd></div><div><dt>项目负责人</dt><dd class="notranslate" translate="no" data-maturity-literal="project-owner">${escapeHtml(draft.owner)}</dd></div><div><dt>评估对象</dt><dd>企业组织</dd></div></dl></section>
-                <section><div class="maturity-v2-confirm-heading"><strong>评估模板</strong><button type="button" data-maturity-action="create-edit-step" data-step="2">修改</button></div><div class="maturity-v1-confirm-template"><span>模板</span><strong>${draft.templateType === "custom" ? escapeHtml(selectedLibraryTemplate?.name || model.workspace?.template?.name || "新自定义能力模板") : "当前知识库基础能力体系模板"}</strong><p>${draft.templateType === "custom" ? `创建项目专属副本后进入模板配置；${escapeHtml(selectedLibraryRecord ? templateLibrarySourceLabel(selectedLibraryRecord) : "知识库稳定模板")}原件保持不变。` : "固定模板结构只读；作用域和服务均来自字典真实映射。"}</p></div></section>
+                <section><div class="maturity-v2-confirm-heading"><strong>评估模板</strong><button type="button" data-maturity-action="create-edit-step" data-step="2">修改</button></div><div class="maturity-v1-confirm-template"><span>模板</span><strong>${draft.templateType === "custom" ? escapeHtml(standardProjectTemplateName(draft.name)) : "SAPD标准模板"}</strong><p>${draft.templateType === "custom" ? `将从“${escapeHtml(selectedLibraryDisplayName)}”创建项目专属模板；来源原件保持不变。` : "固定模板结构只读；作用域和服务均来自字典真实映射。"}</p></div></section>
               </div>
             ` : ""}
           </div>
@@ -1792,7 +2087,7 @@
     return `
       <section class="maturity-v1-section maturity-v1-template-summary">
         <div class="maturity-v1-panel-heading">
-          <div><span>基础能力体系模板</span><h3>${escapeHtml(template?.name || "未选择模板")}</h3></div>
+          <div><span>基础能力体系模板</span><h3>SAPD标准模板</h3></div>
           <div class="maturity-v1-toolbar">
             <button class="maturity-v1-button is-secondary" type="button" data-maturity-action="clone-custom-template">复制为自定义模板</button>
             <span class="maturity-v2-readonly-badge">标准模板结构只读</span>
@@ -2769,7 +3064,7 @@
         data-template-drop-id="${escapeHtml(detail.template.id)}"
         data-template-origin-label="${escapeHtml(TEMPLATE_ELEMENT_ORIGINS.custom.shortLabel)}"
         title="基础模板副本；右键编辑或复制完整模板">
-        <span>自定义评估模板</span><strong>${escapeHtml(detail.template.name || "未命名模板")}</strong>
+        <span>自定义评估模板</span><strong>${escapeHtml(displayTemplateName(detail))}</strong>
         <small>${context.capabilities.length} 个 L2 · ${context.focuses.length} 个关注点</small>
       </button>
       ${renderTemplateCollapseButton("TEMPLATE", detail.template.id, root)}
@@ -2835,7 +3130,9 @@
 
     if (selected.type === "TEMPLATE") {
       const nameControl = control('[data-template-root-field="name"]');
-      const name = text(nameControl?.value).trim();
+      const name = detail.project.templateWorkspace
+        ? standardCustomTemplateName(nameControl?.value)
+        : standardProjectTemplateName(detail.project.name);
       if (!name) return fail("请输入模板名称", nameControl);
       detail.template.name = name;
       detail.template.description = valueOf('[data-template-root-field="description"]');
@@ -2946,7 +3243,7 @@
     const definitionValue = text(record.description) || inheritedDefinition;
     const definitionField = (attribute, idAttribute, id) => `<label class="maturity-v51-definition-field"><span>定义 <b>可选</b></span><textarea rows="5" ${attribute}="description" ${idAttribute}="${escapeHtml(id)}" placeholder="说明该节点的业务范围、目标和边界">${escapeHtml(definitionValue)}</textarea><small>${baseRecord ? "已带出知识库标准定义；修改只保存在当前模板，并标记为“标准修改”。" : "定义为非必填，只保存在当前自定义模板中。"}</small></label>`;
     const fields = selected.type === "TEMPLATE"
-      ? `<label><span>模板名称</span><input value="${escapeHtml(record.name)}" data-template-root-field="name" /></label><label><span>模板说明</span><textarea rows="4" data-template-root-field="description">${escapeHtml(record.description || "")}</textarea></label><p class="maturity-v41-base-source-note">默认来源：基础模板 ${escapeHtml(record.sourceTemplateId || model.workspace?.template?.id || "")}</p>`
+      ? `<label><span>模板名称</span><input value="${escapeHtml(displayTemplateName(detail))}" data-template-root-field="name"${detail.project.templateWorkspace ? "" : " readonly aria-readonly=\"true\""} /></label><label><span>模板说明</span><textarea rows="4" data-template-root-field="description">${escapeHtml(record.description || "")}</textarea></label><p class="maturity-v41-base-source-note">${detail.project.templateWorkspace ? `默认来源：基础模板 ${escapeHtml(record.sourceTemplateId || model.workspace?.template?.id || "")}` : "项目模板名称跟随项目名称，仅可在项目信息中调整。"}</p>`
       : selected.type === "DRAFT"
         ? `<label><span>节点名称</span><input value="${escapeHtml(record.name)}" data-template-loose-field="name" data-loose-id="${escapeHtml(record.id)}" /></label><label><span>节点编号</span><input value="${escapeHtml(record.code || "")}" data-template-loose-field="code" data-loose-id="${escapeHtml(record.id)}" /></label>${definitionField("data-template-loose-field", "data-loose-id", record.id)}<label><span>节点类型</span><select data-template-loose-field="nodeType" data-loose-id="${escapeHtml(record.id)}">${[["L0", "能力 L0"], ["L1", "能力 L1"], ["L2", "能力 L2"], ["FOCUS", "关注点"], ["SERVICE", "安全技术服务"]].map(([value, label]) => `<option value="${value}"${record.nodeType === value ? " selected" : ""}>${label}</option>`).join("")}</select></label><p class="maturity-v41-base-source-note">编辑完成后，将节点拖到任意合法父级；蓝色吸附态出现时松开即可加入模板树。</p>`
         : ["L0", "L1"].includes(selected.type)
@@ -3074,7 +3371,7 @@
         <header class="maturity-v47-template-shell-header">
           <div class="maturity-v47-template-identity">
             <span>自定义能力模板</span>
-            <h3>${escapeHtml(detail.template?.name || "未命名模板")}</h3>
+            <h3>${escapeHtml(displayTemplateName(detail))}</h3>
           </div>
           <div class="maturity-v47-template-actions">
             <button class="maturity-v1-button is-secondary" type="button" data-maturity-action="export-template">导出自定义模板</button>
@@ -3342,11 +3639,16 @@
     const startX = event.clientX;
     const startWidth = clampScoreDirectoryWidth(ui.width, shell);
     document.body.classList.add("is-resizing");
+    model.scoreDirectoryResizeCleanup?.();
+    let finished = false;
     const finish = () => {
+      if (finished) return;
+      finished = true;
       document.body.classList.remove("is-resizing");
       document.removeEventListener("pointermove", move);
       document.removeEventListener("pointerup", finish);
       document.removeEventListener("pointercancel", finish);
+      if (model.scoreDirectoryResizeCleanup === finish) model.scoreDirectoryResizeCleanup = null;
     };
     const move = (moveEvent) => {
       ui.width = startWidth + (moveEvent.clientX - startX) / adaptiveScale;
@@ -3355,6 +3657,7 @@
     document.addEventListener("pointermove", move);
     document.addEventListener("pointerup", finish, { once: true });
     document.addEventListener("pointercancel", finish, { once: true });
+    model.scoreDirectoryResizeCleanup = finish;
   }
 
   function hierarchyKey(level, id) {
@@ -4956,7 +5259,8 @@
   function renderImprovementRoadmap(detail, { open = true } = {}) {
     const rows = improvementRoadmapRows(detail);
     if (!rows.length) return renderCollapsibleResultSection({ className: "maturity-v35-improvement-roadmap", eyebrow: "行动规划", title: "改进路线图", meta: "0 项", body: `<div class="maturity-v1-empty-inline">当前没有可转化为行动计划的成熟度差距。</div>`, open });
-    const body = `<div class="maturity-v1-table-wrap maturity-v35-roadmap-scroll"><table class="maturity-v1-table maturity-v35-roadmap-table"><thead><tr><th>优先级</th><th>L2 能力</th><th>当前 / 目标</th><th>改进行动</th><th>负责人</th><th>资源投入</th><th>依赖事项</th><th>状态</th></tr></thead><tbody>${rows.map((row) => `<tr data-maturity-roadmap-row="${escapeHtml(row.capabilityId)}"><td><b class="maturity-v35-roadmap-rank">${row.rank}</b>${renderPriorityBadge(row.priority)}<small>${row.priorityScore == null ? "—" : Number(row.priorityScore).toFixed(1)}</small></td><td><span class="maturity-v1-code">${escapeHtml(row.capabilityCode)}</span><strong>${escapeHtml(row.capabilityName)}</strong><small>差距 ${row.gapIndex == null ? "—" : Number(row.gapIndex).toFixed(2)}</small></td><td><strong>${escapeHtml(row.currentLevel || "—")} → ${escapeHtml(row.targetLevel || "—")}</strong></td><td><textarea rows="3" data-maturity-roadmap-field="action" data-capability-id="${escapeHtml(row.capabilityId)}" placeholder="填写可执行的改进行动">${escapeHtml(row.action)}</textarea></td><td><input type="text" value="${escapeHtml(row.owner)}" data-maturity-roadmap-field="owner" data-capability-id="${escapeHtml(row.capabilityId)}" placeholder="责任部门 / 人" /></td><td><input type="text" value="${escapeHtml(row.resources)}" data-maturity-roadmap-field="resources" data-capability-id="${escapeHtml(row.capabilityId)}" placeholder="预算、人力等" /></td><td><textarea rows="2" data-maturity-roadmap-field="dependencies" data-capability-id="${escapeHtml(row.capabilityId)}" placeholder="前置条件或协同事项">${escapeHtml(row.dependencies)}</textarea></td><td><select data-maturity-roadmap-field="status" data-capability-id="${escapeHtml(row.capabilityId)}">${ROADMAP_STATUSES.map((status) => `<option value="${status}"${row.status === status ? " selected" : ""}>${status}</option>`).join("")}</select></td></tr>`).join("")}</tbody></table></div>`;
+    const editDisabled = model.reportGenerating ? " disabled" : "";
+    const body = `<div class="maturity-v1-table-wrap maturity-v35-roadmap-scroll"><table class="maturity-v1-table maturity-v35-roadmap-table"><thead><tr><th>优先级</th><th>L2 能力</th><th>当前 / 目标</th><th>改进行动</th><th>负责人</th><th>资源投入</th><th>依赖事项</th><th>状态</th></tr></thead><tbody>${rows.map((row) => `<tr data-maturity-roadmap-row="${escapeHtml(row.capabilityId)}"><td><b class="maturity-v35-roadmap-rank">${row.rank}</b>${renderPriorityBadge(row.priority)}<small>${row.priorityScore == null ? "—" : Number(row.priorityScore).toFixed(1)}</small></td><td><span class="maturity-v1-code">${escapeHtml(row.capabilityCode)}</span><strong>${escapeHtml(row.capabilityName)}</strong><small>差距 ${row.gapIndex == null ? "—" : Number(row.gapIndex).toFixed(2)}</small></td><td><strong>${escapeHtml(row.currentLevel || "—")} → ${escapeHtml(row.targetLevel || "—")}</strong></td><td><textarea rows="3" data-maturity-roadmap-field="action" data-capability-id="${escapeHtml(row.capabilityId)}" placeholder="填写可执行的改进行动"${editDisabled}>${escapeHtml(row.action)}</textarea></td><td><input type="text" value="${escapeHtml(row.owner)}" data-maturity-roadmap-field="owner" data-capability-id="${escapeHtml(row.capabilityId)}" placeholder="责任部门 / 人"${editDisabled} /></td><td><input type="text" value="${escapeHtml(row.resources)}" data-maturity-roadmap-field="resources" data-capability-id="${escapeHtml(row.capabilityId)}" placeholder="预算、人力等"${editDisabled} /></td><td><textarea rows="2" data-maturity-roadmap-field="dependencies" data-capability-id="${escapeHtml(row.capabilityId)}" placeholder="前置条件或协同事项"${editDisabled}>${escapeHtml(row.dependencies)}</textarea></td><td><select data-maturity-roadmap-field="status" data-capability-id="${escapeHtml(row.capabilityId)}"${editDisabled}>${ROADMAP_STATUSES.map((status) => `<option value="${status}"${row.status === status ? " selected" : ""}>${status}</option>`).join("")}</select></td></tr>`).join("")}</tbody></table></div>`;
     return renderCollapsibleResultSection({ className: "maturity-v35-improvement-roadmap", eyebrow: "行动规划", title: "改进路线图", meta: `${rows.length} 项 · 自动保存并同步到报告`, body, open });
   }
 
@@ -5070,7 +5374,7 @@
     const value = text(narrative[section.key]);
     return `<section id="report-${escapeHtml(section.key)}" class="maturity-v37-report-narrative ${editing ? "is-editing" : ""}" data-report-section="report-${escapeHtml(section.key)}">
       <header><h3>${section.index}、${escapeHtml(section.label)}</h3><button type="button" data-maturity-action="${editing ? "finish-report-section" : "edit-report-section"}" data-report-field="${escapeHtml(section.key)}">${editing ? "完成" : "编辑"}</button></header>
-      ${editing ? `<textarea rows="5" data-maturity-report-field="${escapeHtml(section.key)}" placeholder="${escapeHtml(section.placeholder)}">${escapeHtml(value)}</textarea><p>内容自动保存在当前项目；重新生成报告后同步到 HTML 与 Markdown。</p>` : `<p class="${value.trim() ? "has-content" : ""}">${value.trim() ? escapeHtml(value) : escapeHtml(section.helper)}</p>`}
+      ${editing ? `<textarea rows="5" data-maturity-report-field="${escapeHtml(section.key)}" placeholder="${escapeHtml(section.placeholder)}"${model.reportGenerating ? " disabled" : ""}>${escapeHtml(value)}</textarea><p>内容自动保存在当前项目；重新生成报告后同步到 HTML 与 Markdown。</p>` : `<p class="${value.trim() ? "has-content" : ""}">${value.trim() ? escapeHtml(value) : escapeHtml(section.helper)}</p>`}
     </section>`;
   }
 
@@ -5287,6 +5591,7 @@
       node = node.parentElement;
     }
     const table = model.root?.querySelector(".maturity-v1-score-table-scroll");
+    const homePage = model.root?.querySelector(".maturity-v1-list-page");
     const projectPage = model.root?.querySelector(".maturity-v1-project-page");
     const directoryTree = model.root?.querySelector(".maturity-v4-directory-tree");
     const scorePanels = [...(model.root?.querySelectorAll(".maturity-v3-focus-list > div, .maturity-v3-score-form") || [])].map((panel, index) => ({ index, top: panel.scrollTop, left: panel.scrollLeft }));
@@ -5296,6 +5601,8 @@
       pageY: window.scrollY,
       tableTop: table?.scrollTop || 0,
       tableLeft: table?.scrollLeft || 0,
+      homeTop: homePage?.scrollTop || 0,
+      homeLeft: homePage?.scrollLeft || 0,
       projectTop: projectPage?.scrollTop || 0,
       projectLeft: projectPage?.scrollLeft || 0,
       directoryTop: directoryTree?.scrollTop || 0,
@@ -5317,6 +5624,11 @@
       if (table) {
         table.scrollTop = state.tableTop;
         table.scrollLeft = state.tableLeft;
+      }
+      const homePage = model.root?.querySelector(".maturity-v1-list-page");
+      if (homePage) {
+        homePage.scrollTop = state.homeTop;
+        homePage.scrollLeft = state.homeLeft;
       }
       const projectPage = model.root?.querySelector(".maturity-v1-project-page");
       if (projectPage) {
@@ -5347,7 +5659,7 @@
     if (!slot) return;
     const pageTitle = document.querySelector("#appPageTitle");
     const pageDescription = document.querySelector("#appPageHeader .page-header-copy > p");
-    if (pageTitle) pageTitle.textContent = detail?.project?.templateWorkspace ? detail.template.name : detail ? detail.project.name : "SAPD 成熟度评估";
+    if (pageTitle) pageTitle.textContent = detail?.project?.templateWorkspace ? displayTemplateName(detail) : detail ? detail.project.name : "SAPD 成熟度评估";
     if (pageDescription) {
       pageDescription.textContent = detail?.project?.templateWorkspace
         ? `模板资产工作区 · 基于 ${detail.template.sourceTemplateId || model.workspace?.template?.name || "标准模板"} · 最近更新 ${detail.project.updatedAt || "-"}`
@@ -5401,6 +5713,7 @@
 
   function render() {
     if (!model.root) return;
+    clearDeleteModalInertBoundary();
     const previousScrollTop = model.root.scrollTop;
     const renderContext = `${model.route}|${model.activeTab}`;
     const preservedPosition = model.lastRenderContext === renderContext ? captureRenderPosition() : null;
@@ -5415,6 +5728,9 @@
     const detail = activeDetail();
     if (detail) rememberProjectTab(model.activeTab, detail.project.id);
     model.root.innerHTML = detail ? renderProject(detail) : renderProjectList();
+    const deleteLayer = model.root.querySelector("[data-maturity-delete-layer], [data-maturity-template-delete-layer]");
+    if (deleteLayer) applyDeleteModalInertBoundary(deleteLayer);
+    bindTemplateMindmapInputSurface();
     window.requestAnimationFrame(() => {
       syncMaturityShellHeader(detail);
       syncFixedScoreContextPosition();
@@ -5496,8 +5812,15 @@
       && (detail.resultStale || detail.dirty || !detail.result?.ok)
     ));
     await Promise.all(candidates.map(async (detail) => {
+      const projectId = text(detail.project.id);
+      const calculationRevision = Number(detail.calculationRevision || 0);
+      const requestIsCurrent = () => (
+        model.details[projectId] === detail
+        && calculationRevision === Number(detail.calculationRevision || 0)
+      );
       try {
         const result = await requestMaturityCalculation(detail);
+        if (!requestIsCurrent()) return;
         applyCalculatedResult(detail, result);
         if (LOCKED_ASSESSMENT_STATUSES.has(detail.project.status) && !formalAssessmentReady(detail)) {
           detail.project.status = "score_review";
@@ -5507,6 +5830,7 @@
         }
         persistDetail(detail);
       } catch (error) {
+        if (!requestIsCurrent()) return;
         detail.resultStale = true;
         detail.calculationRefreshError = error?.message || "后台试算暂不可用";
       }
@@ -5545,7 +5869,9 @@
     detail.dirty = true;
     detail.lastSavedAt = nowLabel();
     detail.localSaveState = "saved";
-    if (!persistDetail(detail)) detail.localSaveState = "error";
+    const saved = persistDetail(detail);
+    if (!saved) detail.localSaveState = "error";
+    return saved;
   }
 
   function markCalculationDirty(detail) {
@@ -5710,7 +6036,6 @@
         }
         return result;
       } catch (error) {
-        detail.localSaveState = "error";
         if (!silent) {
           model.toast = error?.message || "评分计算失败";
           model.toastTone = "error";
@@ -5893,7 +6218,12 @@
       showToast("项目信息没有变化", "info");
       return;
     }
+    const previousDetail = clone(detail);
     Object.keys(fieldLabels).forEach((field) => { detail.project[field] = clone(nextValues[field]); });
+    if (detail.project.templateType === "custom" && !detail.project.templateWorkspace) {
+      detail.template.name = standardProjectTemplateName(detail.project.name);
+      detail.project.templateName = detail.template.name;
+    }
     detail.project.customerContextSnapshot = {
       ...(detail.project.customerContextSnapshot || {}),
       organization: draft.organization,
@@ -5904,19 +6234,27 @@
     };
     appendProjectHistory(detail, "PROJECT_INFO_UPDATED", "更新项目信息", `已修改：${changedFields.map((field) => fieldLabels[field]).join("、")}`);
     model.projectHistoryPage = 0;
-    touchDetail(detail, { invalidateResult: true, invalidateReport: true });
+    if (!touchDetail(detail, { invalidateResult: true, invalidateReport: true })) {
+      Object.keys(detail).forEach((key) => delete detail[key]);
+      Object.assign(detail, previousDetail, { localSaveState: "error" });
+      render();
+      showToast("项目信息未保存，请检查本地存储空间后重试", "error");
+      return false;
+    }
     model.projectInfoEditId = "";
     model.projectInfoDraft = {};
     model.projectInfoErrors = {};
     render();
     showToast("项目信息已保存，评估结果正在同步更新", "success");
     scheduleCalculation(detail);
+    return true;
   }
 
   function saveCreateDraft() {
     const draft = model.createDraft;
     const projectId = model.createDraftProjectId || uid("demo-project");
-    const existing = model.details[projectId] || {};
+    const previousDetail = model.details[projectId] || null;
+    const existing = previousDetail || {};
     const project = {
       ...(existing.project || {}),
       id: projectId,
@@ -5944,11 +6282,18 @@
     };
     const detail = { ...existing, project, template: existing.template || clone(model.workspace?.template), scoreEntries: list(existing.scoreEntries), result: existing.result || null, report: existing.report || null, reportNarrative: existing.reportNarrative || defaultReportNarrative(), reportNarrativeDirty: Boolean(existing.reportNarrativeDirty), reportV2Conclusions: existing.reportV2Conclusions || defaultReportV2Conclusions(), reportV2Dirty: Boolean(existing.reportV2Dirty), improvementRoadmap: list(existing.improvementRoadmap), exchangeBatches: list(existing.exchangeBatches), scoreImportIssues: list(existing.scoreImportIssues), scoreImportNotice: existing.scoreImportNotice || null, locallyStored: true };
     model.details[projectId] = detail;
-    persistDetail(detail);
+    if (!persistDetail(detail)) {
+      if (previousDetail) model.details[projectId] = previousDetail;
+      else delete model.details[projectId];
+      showToast("项目草稿未保存，请检查本地存储空间后重试", "error");
+      render();
+      return false;
+    }
     model.createOpen = false;
     model.createDraftProjectId = "";
     render();
     showToast("项目草稿已保存", "success");
+    return true;
   }
 
   function createBlankEntries(template) {
@@ -5956,11 +6301,12 @@
   }
 
   function nextStandaloneTemplateName(sourceName = "") {
-    const used = new Set(templateLibraryRecords().map((item) => text(item.template?.name).trim().toLocaleLowerCase("zh-Hans-CN")));
-    const preferredBase = text(sourceName).trim() ? `${text(sourceName).trim()} 副本` : "新建自定义模板";
+    const used = new Set(templateLibraryRecords().map((item) => displayTemplateLibraryName(item).toLocaleLowerCase("zh-Hans-CN")));
+    const sourceStem = standardCustomTemplateName(sourceName).replace(/模板$/u, "").trim();
+    const preferredBase = text(sourceName).trim() ? `${sourceStem}副本` : "新建自定义";
     let index = 1;
-    while (used.has((index === 1 ? preferredBase : `${preferredBase} ${index}`).toLocaleLowerCase("zh-Hans-CN"))) index += 1;
-    return index === 1 ? preferredBase : `${preferredBase} ${index}`;
+    while (used.has(`${preferredBase}${index === 1 ? "" : index}模板`.toLocaleLowerCase("zh-Hans-CN"))) index += 1;
+    return `${preferredBase}${index === 1 ? "" : index}模板`;
   }
 
   function createStandaloneTemplateWorkspace(sourceTemplate = null, sourceRecord = null) {
@@ -5972,7 +6318,7 @@
     }
     const workspaceId = uid("template-workspace");
     const copied = Boolean(sourceTemplate);
-    const templateName = nextStandaloneTemplateName(copied ? baseTemplate.name : "");
+    const templateName = nextStandaloneTemplateName(copied ? (sourceRecord ? displayTemplateLibraryName(sourceRecord) : baseTemplate.name) : "");
     const template = {
       ...baseTemplate,
       id: uid("custom-template"),
@@ -6031,7 +6377,11 @@
       locallyStored: true,
     };
     model.details[workspaceId] = detail;
-    persistDetail(detail);
+    if (!persistDetail(detail)) {
+      delete model.details[workspaceId];
+      showToast("模板草稿未保存，请检查本地存储空间后重试", "error");
+      return false;
+    }
     model.activeTab = "template";
     model.selectedTemplateCapabilityId = "";
     model.selectedTemplateNodeType = "TEMPLATE";
@@ -6057,6 +6407,7 @@
     rememberProjectTab("template", workspaceId);
     model.navigate?.(`/workbench/maturity/${encodeURIComponent(workspaceId)}`);
     showToast(copied ? "已创建独立模板副本，来源模板保持不变" : "已基于标准模板创建模板草稿", "success");
+    return true;
   }
 
   function createProject() {
@@ -6076,7 +6427,7 @@
           ...baseTemplate,
           id: uid("custom-template"),
           snapshotId: uid("draft-template"),
-          name: libraryTemplate ? `${libraryTemplate.name} · ${draft.name} 副本` : `${draft.name} 自定义模板`,
+          name: standardProjectTemplateName(draft.name),
           type: "custom",
           status: "draft",
           readOnly: false,
@@ -6129,9 +6480,16 @@
       mode: "controlled_demo",
       readOnly: false,
     };
+    const previousDetail = model.details[projectId] || null;
     const detail = { project, template, scoreEntries: createBlankEntries(template), result: null, report: null, reportNarrative: defaultReportNarrative(), reportNarrativeDirty: false, reportV2Conclusions: defaultReportV2Conclusions(), reportV2Dirty: false, improvementRoadmap: [], exchangeBatches: [], scoreImportIssues: [], scoreImportNotice: null, locallyStored: true };
     model.details[projectId] = detail;
-    persistDetail(detail);
+    if (!persistDetail(detail)) {
+      if (previousDetail) model.details[projectId] = previousDetail;
+      else delete model.details[projectId];
+      showToast("项目未创建，请检查本地存储空间后重试", "error");
+      render();
+      return false;
+    }
     model.createOpen = false;
     model.createDraftProjectId = "";
     model.createStep = 1;
@@ -6164,6 +6522,8 @@
     model.collapsedTemplateNodeKeys = [];
     rememberProjectTab(model.activeTab, projectId);
     model.navigate?.(`/workbench/maturity/${encodeURIComponent(projectId)}`);
+    showToast("成熟度评估项目已创建", "success");
+    return true;
   }
 
   function cloneAsCustom(detail) {
@@ -6657,7 +7017,7 @@
         ...clone(template),
         id: uid("custom-template-copy"),
         snapshotId: uid("draft-template-copy"),
-        name: `${template.name || "自定义模板"} 副本`,
+        name: nextStandaloneTemplateName(displayTemplateName(detail)),
         status: "draft",
         sourceTemplateId: template.id,
         sourceTemplateSnapshotId: template.snapshotId,
@@ -6665,7 +7025,10 @@
       const store = safeStore();
       store.templateLibrary = list(store.templateLibrary);
       store.templateLibrary.push({ template: compactTemplateForLocalStorage(copied), importedAt: nowLabel(), sourceTemplateType: "custom", librarySourceType: "TEMPLATE_COPY", copiedFromTemplateId: template.id });
-      writeStore(store);
+      if (!writeStore(store)) {
+        showToast("模板复制未保存，请检查本地存储空间后重试", "error");
+        return;
+      }
       showToast("已复制完整模板及全部下级内容，可在模板管理中创建项目副本", "success");
       render();
       return;
@@ -7282,8 +7645,27 @@
   }
 
   async function validateTemplate(detail) {
+    detail.template.name = detail.project.templateWorkspace
+      ? standardCustomTemplateName(detail.template.name)
+      : standardProjectTemplateName(detail.project.name);
+    detail.project.templateName = detail.template.name;
+    if (detail.project.templateWorkspace) detail.project.name = detail.template.name;
+    const validationContext = {
+      projectId: text(detail.project.id),
+      calculationRevision: Number(detail.calculationRevision || 0),
+      templateRenderRevision: Number(detail.templateRenderRevision || 0),
+    };
     const response = await window.sapdDataClient?.validateMaturityTemplate?.(detail.template);
     const validation = unwrap(response);
+    if (
+      model.details[validationContext.projectId] !== detail
+      || Number(detail.calculationRevision || 0) !== validationContext.calculationRevision
+      || Number(detail.templateRenderRevision || 0) !== validationContext.templateRenderRevision
+    ) {
+      showToast("模板内容已在校验期间发生变化，请重新校验", "error");
+      return false;
+    }
+    const previousDetail = clone(detail);
     detail.validation = validation;
     model.validation = validation;
     if (validation?.valid) {
@@ -7302,13 +7684,20 @@
         if (detail.project.status === "template_configuring") detail.project.status = "scoring";
         detail.project.statusLabel = PROJECT_STATUS_NAMES[detail.project.status] || detail.project.status;
       }
-      touchDetail(detail, { invalidateResult: true, invalidateReport: true });
+      if (!touchDetail(detail, { invalidateResult: true, invalidateReport: true })) {
+        Object.keys(detail).forEach((key) => delete detail[key]);
+        Object.assign(detail, previousDetail, { localSaveState: "error" });
+        render();
+        showToast("模板校验结果未保存，请检查本地存储空间后重试", "error");
+        return false;
+      }
       render();
       showToast(detail.project.templateWorkspace ? "模板校验通过，已保存到首页模板管理" : "模板校验通过，已保存；模板管理已同步项目来源", "success");
-      return;
+      return true;
     }
     render();
     showToast(list(validation?.errors)[0]?.message || "模板校验未通过", "error");
+    return false;
   }
 
   async function exportTemplateRecord(template, detail = null) {
@@ -7344,35 +7733,56 @@
       if (!imported?.ok) throw new Error(list(imported?.rowErrors)[0]?.message || "导入模板校验未通过");
       const store = safeStore();
       store.templateLibrary = list(store.templateLibrary).filter((item) => (item?.template || item)?.id !== imported.template.id);
-      const hydratedTemplate = hydrateStandardTemplateDefinitions({ ...imported.template, type: "custom" }, model.workspace?.template);
+      const hydratedTemplate = hydrateStandardTemplateDefinitions({ ...imported.template, name: standardCustomTemplateName(imported.template?.name), type: "custom" }, model.workspace?.template);
       store.templateLibrary.push({ template: compactTemplateForLocalStorage(hydratedTemplate), importedAt: nowLabel(), sourceTemplateType: imported.sourceTemplateType || "custom", librarySourceType: "XLSX_IMPORT" });
       store.templateImportBatches = list(store.templateImportBatches);
       store.templateImportBatches.push({ ...imported.batch, importedAt: nowLabel(), sourceTemplateType: imported.sourceTemplateType || "custom" });
-      writeStore(store);
+      if (!writeStore(store)) throw new Error("模板导入结果未保存，请检查本地存储空间后重试");
       model.templateManagerView = "custom";
-      showToast("自定义业务模板已导入：评分标题与评分列已保留，评分数据单元格为空。", "success");
+      showToast("自定义业务模板已导入：评分标题和评分列已保留，评分数据单元格为空。", "success");
     } catch (error) {
       showToast(error?.message || "模板导入失败", "error");
     }
   }
 
   async function importTemplate(detail, file) {
+    const importContext = {
+      projectId: text(detail?.project?.id),
+      calculationRevision: Number(detail?.calculationRevision || 0),
+      templateSnapshotId: text(detail?.template?.snapshotId),
+    };
     try {
       const exchange = await workbookExchange(file);
+      if (
+        model.details[importContext.projectId] !== detail
+        || Number(detail.calculationRevision || 0) !== importContext.calculationRevision
+        || text(detail.template?.snapshotId) !== importContext.templateSnapshotId
+      ) throw new Error("导入期间项目已被修改，本次模板结果未应用，请重新选择文件");
       const response = await window.sapdDataClient?.importMaturityTemplateExchange?.(exchange);
+      if (
+        model.details[importContext.projectId] !== detail
+        || Number(detail.calculationRevision || 0) !== importContext.calculationRevision
+        || text(detail.template?.snapshotId) !== importContext.templateSnapshotId
+      ) throw new Error("导入期间项目已被修改，本次模板结果未应用，请重新选择文件");
       const imported = unwrap(response);
       if (!imported?.ok) throw new Error(list(imported?.rowErrors)[0]?.message || "导入模板校验未通过");
-      detail.template = hydrateStandardTemplateDefinitions({ ...imported.template, type: "custom", status: "validated" }, model.workspace?.template);
-      detail.project.templateId = detail.template.id || uid("custom-template");
-      detail.project.templateName = detail.template.name || "导入的自定义模板";
-      detail.project.templateType = "custom";
-      detail.project.templateSnapshotId = detail.template.snapshotId;
-      detail.project.status = "scoring";
-      detail.scoreEntries = createBlankEntries(detail.template);
-      detail.validation = imported.validation;
-      detail.exchangeBatches = list(detail.exchangeBatches);
-      detail.exchangeBatches.push({ ...imported.batch, rowErrors: list(imported.rowErrors) });
-      touchDetail(detail, { invalidateResult: true, invalidateReport: true });
+      const importedDetail = clone(detail);
+      importedDetail.template = hydrateStandardTemplateDefinitions({ ...imported.template, name: standardProjectTemplateName(detail.project.name), type: "custom", status: "validated" }, model.workspace?.template);
+      importedDetail.project.templateId = importedDetail.template.id || uid("custom-template");
+      importedDetail.project.templateName = importedDetail.template.name;
+      importedDetail.project.templateType = "custom";
+      importedDetail.project.templateSnapshotId = importedDetail.template.snapshotId;
+      importedDetail.project.status = "scoring";
+      importedDetail.scoreEntries = createBlankEntries(importedDetail.template);
+      importedDetail.validation = imported.validation;
+      importedDetail.exchangeBatches = list(importedDetail.exchangeBatches);
+      importedDetail.exchangeBatches.push({ ...imported.batch, rowErrors: list(imported.rowErrors) });
+      if (!touchDetail(importedDetail, { invalidateResult: true, invalidateReport: true })) {
+        detail.localSaveState = "error";
+        throw new Error("模板导入结果未保存，请检查本地存储空间后重试");
+      }
+      Object.keys(detail).forEach((key) => delete detail[key]);
+      Object.assign(detail, importedDetail);
       render();
       showToast("自定义模板结构已导入并通过后端校验", "success");
     } catch (error) {
@@ -7397,33 +7807,55 @@
   }
 
   async function importScoreExchange(detail, file) {
+    const importContext = {
+      projectId: text(detail?.project?.id),
+      calculationRevision: Number(detail?.calculationRevision || 0),
+      templateSnapshotId: text(detail?.template?.snapshotId),
+    };
     try {
       const exchange = await workbookExchange(file);
+      if (
+        model.details[importContext.projectId] !== detail
+        || Number(detail.calculationRevision || 0) !== importContext.calculationRevision
+        || text(detail.template?.snapshotId) !== importContext.templateSnapshotId
+      ) throw new Error("导入期间评分已被修改，本次文件结果未应用，请重新选择文件");
       const response = await window.sapdDataClient?.importMaturityScoreExchange?.({ project: detail.project, template: detail.template, scoreEntries: detail.scoreEntries, exchange });
+      if (
+        model.details[importContext.projectId] !== detail
+        || Number(detail.calculationRevision || 0) !== importContext.calculationRevision
+        || text(detail.template?.snapshotId) !== importContext.templateSnapshotId
+      ) throw new Error("导入期间评分已被修改，本次文件结果未应用，请重新选择文件");
       const imported = unwrap(response);
-      detail.exchangeBatches = list(detail.exchangeBatches);
-      if (imported?.batch) detail.exchangeBatches.push({ ...imported.batch, rowErrors: list(imported.rowErrors) });
-      detail.scoreImportIssues = list(imported?.rowErrors);
+      const importedDetail = clone(detail);
+      importedDetail.exchangeBatches = list(importedDetail.exchangeBatches);
+      if (imported?.batch) importedDetail.exchangeBatches.push({ ...imported.batch, rowErrors: list(imported.rowErrors) });
+      importedDetail.scoreImportIssues = list(imported?.rowErrors);
       if (!imported?.ok && !list(imported?.scoreEntries).length) {
-        detail.scoreImportNotice = { tone: "error", message: list(imported?.rowErrors)[0]?.message || "评分文件导入失败" };
-        persistDetail(detail);
+        importedDetail.scoreImportNotice = { tone: "error", message: list(imported?.rowErrors)[0]?.message || "评分文件导入失败" };
+        if (persistDetail(importedDetail)) Object.assign(detail, importedDetail);
+        else detail.localSaveState = "error";
         render();
         showToast(list(imported?.rowErrors)[0]?.message || "评分文件导入失败", "error");
         return;
       }
-      detail.scoreEntries = normalizeScoreEntries(list(imported.scoreEntries));
+      importedDetail.scoreEntries = normalizeScoreEntries(list(imported.scoreEntries));
       const successes = Number(imported.batch?.successCount || 0);
       const failures = Number(imported.batch?.failureCount || 0);
-      const templateLabel = detail.template?.type === "base" ? "标准模板" : "自定义模板";
+      const templateLabel = importedDetail.template?.type === "base" ? "标准模板" : "自定义模板";
       const successMessage = failures ? `${templateLabel}评分文件已导入 ${successes} 个评估点，${failures} 行需要修正` : `${templateLabel}评分文件上传成功，已导入 ${successes} 个评估点`;
-      detail.scoreImportNotice = { tone: failures ? "info" : "success", message: successMessage };
+      importedDetail.scoreImportNotice = { tone: failures ? "info" : "success", message: successMessage };
       appendProjectHistory(
-        detail,
+        importedDetail,
         "SCORE_FILE_IMPORTED",
         failures ? "上传评分文件（部分成功）" : "上传评分文件",
         `${file?.name || "评分文件"} · 成功导入 ${successes} 个评估点${failures ? `，${failures} 行需要修正` : ""}`,
       );
-      touchDetail(detail, { invalidateResult: true, invalidateReport: true });
+      if (!touchDetail(importedDetail, { invalidateResult: true, invalidateReport: true })) {
+        detail.localSaveState = "error";
+        throw new Error("评分导入结果未保存，请检查本地存储空间后重试");
+      }
+      Object.keys(detail).forEach((key) => delete detail[key]);
+      Object.assign(detail, importedDetail);
       await calculateDetail(detail, { silent: true });
       showToast(successMessage, failures ? "info" : "success");
     } catch (error) {
@@ -7480,21 +7912,60 @@
       showToast("请先完成全部适用评估点并正式完成评估，再生成评估报告", "error");
       return;
     }
+    if (
+      detail.reportLocalPersistencePending === true
+      && !detail.reportNarrativeDirty
+      && reportExportReady(detail.report)
+      && reportMatchesCurrentAssessment(detail, detail.report)
+    ) {
+      if (persistDetail(detail)) {
+        detail.reportLocalPersistencePending = false;
+        showToast("评估报告已在后端生成，本地工作区已恢复保存。", "success");
+      } else {
+        showToast("评估报告已在后端生成，但本地工作区仍保存失败；请保持当前页面，并在本地存储恢复后重试。", "error");
+      }
+      return;
+    }
     const updateMode = reportPreviouslyGenerated(detail);
+    const narrative = { ...defaultReportNarrative(), ...(detail.reportNarrative || {}) };
+    const roadmap = improvementRoadmapRows(detail);
+    const reportInputSnapshot = JSON.stringify({ narrative, roadmap });
+    const reportContext = {
+      projectId: detail.project.id,
+      project: detail.project,
+      status: detail.project.status,
+      readOnly: detail.project.readOnly,
+      calculationRevision: Number(detail.calculationRevision || 0),
+    };
     model.reportGenerating = true;
     render();
     try {
-      const response = await window.sapdDataClient?.createMaturityReport?.({ project: detail.project, template: detail.template, scoreEntries: detail.scoreEntries, narrative: { ...defaultReportNarrative(), ...(detail.reportNarrative || {}) }, improvementRoadmap: improvementRoadmapRows(detail), operation: updateMode ? "update" : "create" });
+      const response = await window.sapdDataClient?.createMaturityReport?.({ project: detail.project, template: detail.template, scoreEntries: detail.scoreEntries, narrative, improvementRoadmap: improvementRoadmapRows(detail), operation: updateMode ? "update" : "create" });
       const report = unwrap(response);
       if (!report?.ok) throw new Error(list(report?.validation?.errors)[0]?.message || report?.error || "报告生成失败");
+      if (JSON.stringify({ narrative: { ...defaultReportNarrative(), ...(detail.reportNarrative || {}) }, roadmap: improvementRoadmapRows(detail) }) !== reportInputSnapshot) {
+        detail.reportNarrativeDirty = true;
+        throw new Error("报告生成期间汇报内容已修改，旧结果未应用，请重新生成");
+      }
+      if (
+        model.details[reportContext.projectId] !== detail
+        || detail.project !== reportContext.project
+        || detail.project.status !== reportContext.status
+        || detail.project.readOnly !== reportContext.readOnly
+        || Number(detail.calculationRevision || 0) !== reportContext.calculationRevision
+      ) {
+        throw new Error("报告生成期间项目状态已变化，旧结果未应用，请重新生成");
+      }
+      if (!reportReferencesCurrentAssessment(detail, report)) throw new Error("报告生成期间评估结果已变化，旧结果未应用，请重新生成");
       const reportResultHash = text(report.reportModel?.resultVersion?.resultHash);
       const reportSnapshotHash = text(report.reportModel?.resultSnapshot?.calculationRun?.resultHash);
       if (!reportResultHash || reportResultHash !== reportSnapshotHash) throw new Error("报告结果版本校验失败，请重新生成");
-      detail.report = report;
-      detail.reportNarrativeDirty = false;
+      const persistedDetail = clone(detail);
+      persistedDetail.report = report;
+      persistedDetail.reportNarrativeDirty = false;
       const htmlFileName = report.fileNames?.html || "maturity-report.html";
       appendProjectHistory(
-        detail,
+        persistedDetail,
         updateMode ? "REPORT_UPDATED" : "REPORT_GENERATED",
         `${updateMode ? "更新" : "生成"} HTML ${report.formal ? "评估报告" : "报告草稿"}`,
         `${htmlFileName} · ${report.id || "报告快照"}`,
@@ -7508,10 +7979,21 @@
         },
       );
       if (report.formal) {
-        detail.project.status = "reported";
-        detail.project.readOnly = true;
+        persistedDetail.project.status = "reported";
+        persistedDetail.project.readOnly = true;
       }
-      touchDetail(detail);
+      const locallySaved = touchDetail(persistedDetail);
+      Object.keys(detail).forEach((key) => delete detail[key]);
+      Object.assign(detail, persistedDetail);
+      if (!locallySaved) {
+        detail.localSaveState = "error";
+        detail.reportLocalPersistencePending = true;
+        model.toast = "评估报告已在后端生成，但本地工作区保存失败；请保持当前页面，并在本地存储恢复后重试。";
+        model.toastTone = "error";
+        model.toastRoute = normalizedRoute();
+        return;
+      }
+      detail.reportLocalPersistencePending = false;
       model.toast = report.formal
         ? updateMode ? "正式评估报告已更新" : "正式评估报告已生成"
         : updateMode ? "评估报告草稿已更新" : "评估报告草稿已生成";
@@ -7718,12 +8200,21 @@
       showToast("后端正在校验评分，请稍候再完成评估", "info");
       return;
     }
+    const previousDetail = clone(detail);
     model.calculating = true;
+    detail.calculationRevision = Number(detail.calculationRevision || 0) + 1;
+    const completionContext = {
+      projectId: text(detail.project.id),
+      calculationRevision: Number(detail.calculationRevision || 0),
+    };
+    const completionIsCurrent = () => (
+      model.details[completionContext.projectId] === detail
+      && Number(detail.calculationRevision || 0) === completionContext.calculationRevision
+    );
     render();
     try {
       const liveResult = await requestMaturityCalculation(detail);
-      applyCalculatedResult(detail, liveResult);
-      persistDetail(detail);
+      if (!completionIsCurrent()) throw new Error("项目内容已在完成校验期间发生变化，请重新完成评估");
       const liveSummary = liveResult.summary || {};
       if (liveSummary.statisticsReady !== true) {
         model.activeTab = "review";
@@ -7742,6 +8233,7 @@
         entry.status = "confirmed";
       });
       const finalResult = await requestMaturityCalculation({ project: completedProject, template: detail.template, scoreEntries: completedEntries });
+      if (!completionIsCurrent()) throw new Error("项目内容已在完成校验期间发生变化，请重新完成评估");
       const finalSummary = finalResult.summary || {};
       if (finalSummary.statisticsReady !== true || Number(finalSummary.completionRate || 0) < 100 || Number(finalSummary.notScoredCount || 0) !== 0) {
         throw new Error("完成状态复核未通过，项目状态未改变");
@@ -7751,7 +8243,11 @@
       detail.scoreEntries = completedEntries;
       applyCalculatedResult(detail, finalResult);
       appendProjectHistory(detail, "ASSESSMENT_COMPLETED", "完成评估并锁定评分", "评分检查通过，当前评估结果已重新锁定。");
-      touchDetail(detail, { invalidateReport: true });
+      if (!touchDetail(detail, { invalidateReport: true })) {
+        Object.keys(detail).forEach((key) => delete detail[key]);
+        Object.assign(detail, previousDetail, { localSaveState: "error" });
+        throw new Error("评估完成状态未保存，请检查本地存储空间后重试");
+      }
       model.activeTab = "results";
       model.toast = "评估已完成，全部适用评估点已锁定；不适用与无证据项未作为阻断项。";
       model.toastTone = "success";
@@ -7769,15 +8265,23 @@
 
   function unlockAssessmentForEditing(detail) {
     if (!detail?.project || !LOCKED_ASSESSMENT_STATUSES.has(detail.project.status) || !detail.project.readOnly) return;
+    const previousDetail = clone(detail);
     appendProjectHistory(detail, "ASSESSMENT_UNLOCKED", "解锁评分修改", "保留现有评分，项目回到评分检查阶段；原正式评估报告失效。");
     detail.project.status = "score_review";
     detail.project.readOnly = false;
     detail.resultStale = false;
-    touchDetail(detail, { invalidateReport: true });
+    if (!touchDetail(detail, { invalidateReport: true })) {
+      Object.keys(detail).forEach((key) => delete detail[key]);
+      Object.assign(detail, previousDetail, { localSaveState: "error" });
+      render();
+      showToast("项目解锁状态未保存，请检查本地存储空间后重试", "error");
+      return false;
+    }
     model.unlockConfirmProjectId = "";
     model.activeTab = "scoring";
     render();
     showToast("项目已解锁，可以修改评分；评分检查中的“完成评估”已恢复。", "success");
+    return true;
   }
 
   function scheduleScoringLanding(detail, itemId, { firstMissing = false, targetConflict = false } = {}) {
@@ -7997,6 +8501,7 @@
     if (action === "request-project-delete") {
       const candidate = model.details[actionTarget.dataset.projectId || ""];
       if (!candidate?.project || candidate.project.templateWorkspace) return;
+      rememberDeleteReturnFocus(actionTarget);
       model.projectDeleteCandidateId = candidate.project.id;
       model.projectDeleteStep = 1;
       render();
@@ -8011,14 +8516,14 @@
       return;
     }
     if (action === "cancel-project-delete") {
-      model.projectDeleteCandidateId = "";
-      model.projectDeleteStep = 0;
-      render();
+      closeDeleteConfirmations();
       return;
     }
     if (action === "confirm-project-delete") {
       const candidate = model.details[model.projectDeleteCandidateId];
-      if (model.projectDeleteStep >= 2 && candidate) deleteProjectFromLocalWorkspace(candidate);
+      if (model.projectDeleteStep >= 2 && candidate && deleteProjectFromLocalWorkspace(candidate)) {
+        restoreDeleteReturnFocus("#maturityNewProjectButton");
+      }
       return;
     }
     if (action === "request-template-delete") {
@@ -8033,6 +8538,7 @@
         showToast(`该模板仍由项目“${projectName}”使用，请先删除项目；项目删除后模板会保留并可单独删除`, "error");
         return;
       }
+      rememberDeleteReturnFocus(actionTarget);
       model.templateDeleteCandidateId = record.template.id;
       model.templateDeleteStep = 1;
       render();
@@ -8047,14 +8553,14 @@
       return;
     }
     if (action === "cancel-template-delete") {
-      model.templateDeleteCandidateId = "";
-      model.templateDeleteStep = 0;
-      render();
+      closeDeleteConfirmations('[data-maturity-action="new-template"]');
       return;
     }
     if (action === "confirm-template-delete") {
       const record = templateLibraryRecords().find((item) => item.template.id === model.templateDeleteCandidateId);
-      if (model.templateDeleteStep >= 2 && record) deleteTemplateFromLocalWorkspace(record);
+      if (model.templateDeleteStep >= 2 && record && deleteTemplateFromLocalWorkspace(record)) {
+        restoreDeleteReturnFocus('[data-maturity-action="new-template"]');
+      }
       return;
     }
     if (action === "return-template-manager") {
@@ -8512,6 +9018,9 @@
 
   function handleChange(event) {
     const detail = activeDetail();
+    if (event.target.matches("[data-maturity-report-field], [data-maturity-report-v2-field], [data-maturity-roadmap-field]")) {
+      flushScheduledDetailPersistence();
+    }
     if (event.target.matches("[data-maturity-report-download-format]")) {
       model.reportDownloadFormat = event.target.value === "markdown" ? "markdown" : "html";
       render();
@@ -8750,7 +9259,7 @@
     detail.reportV2Conclusions = { ...defaultReportV2Conclusions(), ...(detail.reportV2Conclusions || {}), [fieldId]: value };
     detail.reportV2Dirty = true;
     detail.project.updatedAt = nowLabel();
-    persistDetail(detail);
+    scheduleDetailPersistence(detail);
     const textarea = model.root?.querySelector(`[data-maturity-report-v2-field="${CSS.escape(fieldId)}"]`);
     const preview = model.root?.querySelector(`[data-maturity-report-v2-preview-field="${CSS.escape(fieldId)}"]`);
     if (textarea && textarea !== source && textarea.value !== value) textarea.value = value;
@@ -8805,7 +9314,7 @@
       detail.reportNarrative = { ...defaultReportNarrative(), ...(detail.reportNarrative || {}), [event.target.dataset.maturityReportField]: event.target.value };
       detail.reportNarrativeDirty = true;
       detail.project.updatedAt = nowLabel();
-      persistDetail(detail);
+      scheduleDetailPersistence(detail);
       return;
     }
     if (event.target.matches("[data-maturity-report-v2-field]")) {
@@ -9264,6 +9773,17 @@
     model.templateMindmapGesture = null;
   }
 
+  function bindTemplateMindmapInputSurface(root = model.root) {
+    root?.querySelectorAll?.("[data-template-mindmap-viewport]").forEach((viewport) => {
+      if (viewport.dataset.maturityMindmapInputBound === "true") return;
+      viewport.addEventListener("wheel", handleTemplateMindmapWheel, { passive: false });
+      viewport.addEventListener("gesturestart", handleTemplateGestureStart, { passive: false });
+      viewport.addEventListener("gesturechange", handleTemplateGestureChange, { passive: false });
+      viewport.addEventListener("gestureend", handleTemplateGestureEnd, { passive: false });
+      viewport.dataset.maturityMindmapInputBound = "true";
+    });
+  }
+
   function handleTemplateMindmapPointerDown(event) {
     const viewport = event.target.closest?.("[data-template-mindmap-viewport]");
     if (event.button !== 0 || !viewport || event.target.closest?.("button, input, select, textarea, [data-template-node-type], .maturity-v41-floating-panel")) return;
@@ -9299,16 +9819,31 @@
     event.preventDefault();
   }
 
-  function handleKeydown(event) {
-    if ((model.projectDeleteCandidateId || model.templateDeleteCandidateId) && event.key === "Escape") {
+  function handleDeleteModalKeydown(event) {
+    const deleteModal = model.root?.querySelector(".maturity-v53-delete-modal");
+    if (!deleteModal) return;
+    if (event.key === "Escape") {
       event.preventDefault();
-      model.projectDeleteCandidateId = "";
-      model.projectDeleteStep = 0;
-      model.templateDeleteCandidateId = "";
-      model.templateDeleteStep = 0;
-      render();
+      event.stopPropagation();
+      closeDeleteConfirmations(model.templateDeleteCandidateId ? '[data-maturity-action="new-template"]' : "#maturityNewProjectButton");
       return;
     }
+    if (event.key !== "Tab") return;
+    event.stopPropagation();
+    const focusable = [...deleteModal.querySelectorAll('button:not(:disabled), [tabindex]:not([tabindex="-1"])')].filter((element) => !element.hidden && element.offsetParent !== null);
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (!deleteModal.contains(document.activeElement)) {
+      event.preventDefault();
+      (event.shiftKey ? last : first).focus();
+      return;
+    }
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+    if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+  }
+
+  function handleKeydown(event) {
     if (model.templateMouseDrag?.active && event.key === "Escape") {
       event.preventDefault();
       model.templateMouseDrag.cancel?.();
@@ -9505,6 +10040,12 @@
     if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
   }
 
+  function handleFocusOut(event) {
+    if (event.target.matches?.("[data-maturity-report-field], [data-maturity-report-v2-field], [data-maturity-report-v2-preview-field], [data-maturity-roadmap-field]")) {
+      flushScheduledDetailPersistence();
+    }
+  }
+
   function bindRoot(root) {
     if (model.boundRoot === root) return;
     model.boundRoot = root;
@@ -9512,14 +10053,11 @@
     root.addEventListener("change", handleChange);
     root.addEventListener("input", handleInput);
     root.addEventListener("compositionend", handleCompositionEnd);
+    root.addEventListener("focusout", handleFocusOut);
     root.addEventListener("keydown", handleKeydown);
     root.addEventListener("contextmenu", handleTemplateContextMenu);
     root.addEventListener("mousedown", handleTemplateMouseDown);
     root.addEventListener("selectstart", handleTemplateSelectStart);
-    root.addEventListener("wheel", handleTemplateMindmapWheel, { passive: false });
-    root.addEventListener("gesturestart", handleTemplateGestureStart, { passive: false });
-    root.addEventListener("gesturechange", handleTemplateGestureChange, { passive: false });
-    root.addEventListener("gestureend", handleTemplateGestureEnd, { passive: false });
     root.addEventListener("pointerdown", handleTemplateMindmapPointerDown);
     root.addEventListener("pointermove", handleTemplateMindmapPointerMove);
     root.addEventListener("pointerup", handleTemplateMindmapPointerUp);
@@ -9529,6 +10067,53 @@
       window.addEventListener("resize", syncFixedScoreContextPosition, { passive: true });
       model.scoreContextResizeBound = true;
     }
+    if (!model.persistenceLifecycleBound) {
+      window.addEventListener("pagehide", flushScheduledDetailPersistence);
+      model.persistenceLifecycleBound = true;
+    }
+    if (!model.deleteModalKeyboardBound) {
+      document.addEventListener("keydown", handleDeleteModalKeydown, true);
+      model.deleteModalKeyboardBound = true;
+    }
+  }
+
+  function unbindRoot(root = model.boundRoot) {
+    root?.removeEventListener?.("click", handleClick);
+    root?.removeEventListener?.("change", handleChange);
+    root?.removeEventListener?.("input", handleInput);
+    root?.removeEventListener?.("compositionend", handleCompositionEnd);
+    root?.removeEventListener?.("focusout", handleFocusOut);
+    root?.removeEventListener?.("keydown", handleKeydown);
+    root?.removeEventListener?.("contextmenu", handleTemplateContextMenu);
+    root?.removeEventListener?.("mousedown", handleTemplateMouseDown);
+    root?.removeEventListener?.("selectstart", handleTemplateSelectStart);
+    root?.removeEventListener?.("pointerdown", handleTemplateMindmapPointerDown);
+    root?.removeEventListener?.("pointermove", handleTemplateMindmapPointerMove);
+    root?.removeEventListener?.("pointerup", handleTemplateMindmapPointerUp);
+    root?.removeEventListener?.("pointercancel", handleTemplateMindmapPointerUp);
+    root?.removeEventListener?.("pointerdown", beginScoreDirectoryResize);
+  }
+
+  function unmount() {
+    const activeTemplateDrag = model.templateMouseDrag;
+    model.templateMouseDrag = null;
+    activeTemplateDrag?.cancel?.();
+    const activeDirectoryResizeCleanup = model.scoreDirectoryResizeCleanup;
+    model.scoreDirectoryResizeCleanup = null;
+    activeDirectoryResizeCleanup?.();
+    clearDeleteModalInertBoundary();
+    model.projectDeleteCandidateId = "";
+    model.projectDeleteStep = 0;
+    model.templateDeleteCandidateId = "";
+    model.templateDeleteStep = 0;
+    model.deleteReturnFocusSelector = "";
+    if (model.deleteModalKeyboardBound) {
+      document.removeEventListener("keydown", handleDeleteModalKeydown, true);
+      model.deleteModalKeyboardBound = false;
+    }
+    unbindRoot();
+    model.root = null;
+    model.boundRoot = null;
   }
 
   components.MaturityAssessmentWorkbench = {
@@ -9539,6 +10124,7 @@
     renderShell() {
       return `<section class="maturity-v1-page is-loading" aria-label="成熟度评估正在准备"><p>正在准备成熟度评估工作台...</p></section>`;
     },
+    unmount,
     mount({ root, route, navigate }) {
       const nextRoute = normalizedRoute(route || "/workbench/maturity");
       if (model.toast && model.toastRoute && model.toastRoute !== nextRoute) {

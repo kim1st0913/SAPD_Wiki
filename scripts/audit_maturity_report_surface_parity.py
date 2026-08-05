@@ -245,16 +245,27 @@ def latest_report_paths(project_id: str) -> list[Path]:
 def source_contract_checks() -> list[dict[str, Any]]:
     component = (ROOT / "frontend" / "capability-browser" / "components" / "MaturityAssessmentWorkbench.js").read_text(encoding="utf-8")
     styles = (ROOT / "frontend" / "capability-browser" / "maturity-assessment-workbench.css").read_text(encoding="utf-8")
+    restore_source = component[
+        component.index("async function restorePersistedReports()") : component.index("function activeProjectId()")
+    ]
+    ready_report_branch = re.search(
+        r"if \(reportExportReady\(detail\.report\) && reportMatchesCurrentAssessment\(detail, detail\.report\)\) \{\s*(.*?)\s*\}",
+        restore_source,
+        flags=re.DOTALL,
+    )
     contracts = {
         "下载入口位于第 6 步": "index === 5 && reportDownloadAvailable" in component,
         "已有报告刷新后可恢复": all(token in component for token in (
             "async function restorePersistedReports()",
             "formalAssessmentReady(detail)",
             "reportMatchesCurrentAssessment(detail, report)",
-            "inputHash: calculationRun.inputHash",
-            "resultHash: calculationRun.resultHash",
+            "inputHash: requestContext.inputHash",
+            "resultHash: requestContext.resultHash",
             "getMaturityReportArtifact",
-        )),
+        )) and bool(ready_report_branch)
+            and "return;" in ready_report_branch.group(1)
+            and "persistDetail" not in ready_report_branch.group(1)
+            and "persistDetail(detail)" in restore_source,
         "项目 Tab 刷新保留": all(token in component for token in (
             "TAB_STORAGE_KEY",
             "rememberedProjectTab(nextRoute)",

@@ -6,12 +6,14 @@ const root = process.cwd();
 const componentPath = path.join(root, "frontend/capability-browser/components/MaturityAssessmentWorkbench.js");
 const stylesPath = path.join(root, "frontend/capability-browser/maturity-assessment-workbench.css");
 const indexPath = path.join(root, "frontend/capability-browser/index.html");
+const appPath = path.join(root, "frontend/capability-browser/app.js");
 const maturityPath = path.join(root, "src/sapd_wiki/maturity.py");
 const appShellPath = path.join(root, "frontend/capability-browser/components/AppShell.js");
 
 const component = fs.readFileSync(componentPath, "utf8");
 const styles = fs.readFileSync(stylesPath, "utf8");
 const index = fs.readFileSync(indexPath, "utf8");
+const app = fs.readFileSync(appPath, "utf8");
 const maturity = fs.readFileSync(maturityPath, "utf8");
 const appShell = fs.readFileSync(appShellPath, "utf8");
 const issues = [];
@@ -38,11 +40,11 @@ requireContract(
 requireContract(
   includesAll(component, [
     'data-maturity-action="manage-template-project"',
-    ">继续优化</button>",
+    ">编辑</button>",
     'data-maturity-action="open-source-project-template"',
     ">进入项目优化</button>",
     'data-maturity-action="copy-template-to-manager"',
-    'title="创建副本并调整">创建副本</button>',
+    'title="创建副本">创建副本</button>',
     'const [primaryLabel, primaryTab] = projectPrimaryAction(project)',
   ]),
   "模板管理必须区分项目原件、模板管理原件和独立副本入口，项目列表按状态直达当前步骤。",
@@ -175,11 +177,12 @@ requireContract(
     "function handleTemplateGestureStart(event)",
     "function handleTemplateGestureChange(event)",
     "function handleTemplateGestureEnd(event)",
+    "function bindTemplateMindmapInputSurface(root = model.root)",
     'root.addEventListener("pointermove", handleTemplateMindmapPointerMove)',
-    'root.addEventListener("wheel", handleTemplateMindmapWheel, { passive: false })',
-    'root.addEventListener("gesturestart", handleTemplateGestureStart, { passive: false })',
-    'root.addEventListener("gesturechange", handleTemplateGestureChange, { passive: false })',
-    'root.addEventListener("gestureend", handleTemplateGestureEnd, { passive: false })',
+    'viewport.addEventListener("wheel", handleTemplateMindmapWheel, { passive: false })',
+    'viewport.addEventListener("gesturestart", handleTemplateGestureStart, { passive: false })',
+    'viewport.addEventListener("gesturechange", handleTemplateGestureChange, { passive: false })',
+    'viewport.addEventListener("gestureend", handleTemplateGestureEnd, { passive: false })',
     "event.ctrlKey || event.metaKey",
     "空白处拖动 / 双指平移 / 捏合缩放",
     "templateMindmapPanX",
@@ -187,8 +190,19 @@ requireContract(
     "templateMindmapZoom",
     'data-maturity-action="zoom-template-mindmap"',
     'data-maturity-action="center-template-mindmap"',
-  ]),
+  ]) && !component.includes('root.addEventListener("wheel", handleTemplateMindmapWheel'),
   "脑图工作台必须支持空白处平移、缩放、适配和状态保持。",
+);
+
+requireContract(
+  includesAll(app, [
+    "function bindSpecializedWheelSurfaces(root = document)",
+    'viewport.addEventListener("wheel", handleEnvironmentBasemapWheel, { passive: false })',
+    'viewport.addEventListener("wheel", handleModelingPosterLightboxWheel, { passive: false })',
+    'bindSpecializedWheelSurfaces($("environmentDetail"))',
+    'bindSpecializedWheelSurfaces($("contentDetail"))',
+  ]) && !app.includes('document.addEventListener("wheel"'),
+  "画布和海报的非被动滚轮监听必须局部绑定，不能阻塞成熟度列表的合成器滚动。",
 );
 
 requireContract(
@@ -698,8 +712,29 @@ requireContract(
     "maturity-v52-project-heading-actions",
     'id="maturityNewProjectButton"',
     "slot.hidden = true",
-  ]) && !component.includes('slot.innerHTML = `<div class="maturity-v2-page-actions"><button id="maturityNewProjectButton"'),
-  "新建评估项目按钮必须位于项目进展区域，成熟度首页全局页头不再重复显示。",
+  ])
+    && !component.includes('slot.innerHTML = `<div class="maturity-v2-page-actions"><button id="maturityNewProjectButton"')
+    && !component.includes("<dl><div><dt>进行中</dt><dd>${viewCounts.active}</dd></div><div><dt>已完成</dt>"),
+  "新建评估项目按钮必须位于项目管理标题区；进行中与已完成数量只保留在状态标签，不在标题区重复展示。",
+);
+
+requireContract(
+  includesAll(component, [
+    "maturity-v60-project-control-header",
+    "maturity-v60-project-heading-copy",
+    "maturity-v60-project-header-filters",
+    'aria-label="评估项目筛选"',
+    "maturity-v60-template-control-header",
+  ])
+    && includesAll(styles, [
+      "--maturity-v60-home-header-height: 158px",
+      ".maturity-v1-list-page .maturity-v60-project-control-header",
+      ".maturity-v1-list-page .maturity-v60-project-header-filters",
+      ".maturity-v1-list-page .maturity-v60-template-control-header",
+      "grid-template-rows: auto auto minmax(0, 1fr) auto",
+    ])
+    && !component.includes('</header>\n        <div class="maturity-v1-filterbar"'),
+  "项目标题、新建入口与筛选控件必须共用同一头部；项目与模板头部等高，状态视图位于头部下方。",
 );
 
 requireContract(
@@ -716,14 +751,32 @@ requireContract(
   includesAll(component, [
     'listStatus: "all"',
     "<th>项目 / 客户</th>",
+    '[project.name, project.organization, project.industry, project.companySize, displayTemplateName(detail), project.owner]',
+    '<span>项目 / 客户</span><input type="search"',
+    'placeholder="搜索项目、客户、负责人"',
     "maturity-v54-project-identity",
-    "project.name || \"未命名项目\"",
+    'data-maturity-literal="project-name"',
+    'project.name || "未命名项目"',
     "project.organization || \"客户未填写\"",
-  ]) && includesAll(styles, [
+  ])
+    && includesAll(styles, [
     ".maturity-v54-project-identity",
     ".maturity-v53-project-row-actions",
   ]),
-  "成熟度首页必须默认展示全部测试项目，并同时显示项目名与客户名，操作按钮不得越出表格。",
+  "成熟度首页必须默认展示全部测试项目；项目名是首列主身份且可搜索，客户名称作为辅助身份，操作按钮不得越出表格。",
+);
+
+requireContract(
+  includesAll(component, [
+    'return "SAPD标准模板"',
+    "function standardProjectTemplateName(projectName = \"\")",
+    "function standardCustomTemplateName(templateName = \"\")",
+    "function displayTemplateLibraryName(record)",
+    "name: standardProjectTemplateName(draft.name)",
+    "name: nextStandaloneTemplateName(displayTemplateName(detail))",
+    "displayTemplateLibraryName(item)",
+  ]),
+  "模板名称必须统一为 SAPD标准模板、{项目名}项目模板或{自定义名称}模板，并由同一命名入口覆盖列表、新建、复制和导入流程。",
 );
 
 requireContract(
@@ -755,20 +808,63 @@ requireContract(
 
 requireContract(
   includesAll(component, [
-    "maturity-v54-template-main-actions",
-    "maturity-v54-template-support-actions",
+    "const actions = []",
+    "const actionCount = actions.length",
+    "maturity-v56-template-action-grid has-${actionCount}-actions",
+    'data-template-action-count="${actionCount}"',
+    'data-template-action-role="primary"',
+    'data-template-action-role="secondary"',
+    'data-template-action-role="utility"',
+    'data-template-action-role="danger"',
     "maturity-v55-template-state",
+    "function templateLibraryStatus(record)",
+    'label: "项目锁定", className: "is-locked"',
+    "项目来源模板仅允许在来源项目内修改",
+    "function renderTemplateProjectOrigin(record)",
+    "maturity-v57-template-project-origin",
+    "来自项目",
     'record.source === "default"',
     'data-maturity-action="export-global-template"',
-  ]) && !component.includes("不可删除") && includesAll(styles, [
-    ".maturity-v54-template-main-actions",
-    ".maturity-v54-template-support-actions",
+  ]) && !component.includes("不可删除") && !component.includes("maturity-v54-template-main-actions") && includesAll(styles, [
+    ".maturity-v56-template-action-grid.has-1-actions",
+    ".maturity-v56-template-action-grid.has-3-actions",
+    ".maturity-v56-template-action-grid.has-4-actions",
+    "grid-template-columns: repeat(3, minmax(0, 1fr))",
+    "grid-template-columns: repeat(2, minmax(0, 1fr))",
     ".maturity-v55-template-state",
+    ".maturity-v1-status.is-locked",
+    ".maturity-v57-template-project-origin",
     "justify-items: center",
     "justify-content: flex-start",
     "text-align: left",
   ]),
-  "模板状态与操作区必须稳定排版，操作列从左侧起排并复用项目按钮密度；标准模板仅显示导出。",
+  "模板操作必须先按资产类型固定为 1 / 3 / 4 个动作，再使用单槽、三等分或 2×2 等宽网格；标准模板仅显示导出。",
+);
+
+requireContract(
+  includesAll(styles, [
+    ".app-shell-integrated .maturity-v1-list-page",
+    "Maturity home has one vertical scroll owner",
+    "Maturity home keeps the two desktop modules side by side",
+    "grid-template-columns: repeat(2, minmax(0, 1fr))",
+    "container-name: maturity-project-module",
+    "container-name: maturity-template-module",
+    "@container maturity-project-module (max-width: 720px)",
+    "@container maturity-template-module (max-width: 720px)",
+    "grid-template-columns: repeat(3, minmax(0, 1fr)) auto",
+    "overflow-y: auto",
+    "overscroll-behavior-y: contain",
+    "align-items: start",
+    "align-self: start",
+    ".maturity-v1-list-page .maturity-v1-project-layout > .maturity-v1-table-wrap",
+    ".maturity-v1-list-page .maturity-v24-template-table",
+    "overflow: visible",
+    ".maturity-v1-list-page .maturity-v26-home-grid .maturity-v24-template-table table",
+    "min-width: 0",
+  ])
+    && !styles.includes("repeat(auto-fit, minmax(min(100%, 730px), 1fr))")
+    && !styles.includes(".maturity-v1-list-page .maturity-v1-filterbar label:nth-of-type(4)"),
+  "成熟度模块首页必须在桌面端保持项目管理与模板管理左右并列，并在模块内部紧凑适配筛选、标题和操作控件。",
 );
 
 requireContract(

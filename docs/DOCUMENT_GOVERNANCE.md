@@ -123,6 +123,7 @@
 
 ### 交付
 
+- `09-delivery/packaging-directory-map.md`
 - `09-delivery/desktop-packaging-runbook.md`
 - `09-delivery/mac-dmg-browser-parity-contract.md`
 - `09-delivery/release-acceptance-matrix-0.1.md`

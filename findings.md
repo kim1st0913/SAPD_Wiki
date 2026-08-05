@@ -4,6 +4,11 @@
 
 ## 当前关键决策
 
+- 2026-08-05 macOS Runtime 指纹只作为构建版本标记，不作为启动时全树完整性门禁。
+  原因是 `codesign` 会正常修改包内 Mach-O，签名前记录值无法与签名后全树重算一致，
+  且实测每次启动全树读取增加约 `0.72—0.79s`。下一轮 App 继续用源 / 目标构建标记判断
+  是否更新 Runtime；内容资产数据库按 manifest SHA-256 校验，关键前端、backend、基础库
+  和签名在发布验收中分别核对，不改变既有签名顺序。
 - 2026-07-31 成熟度本地资产生命周期冻结为“显式保存 + 所有权删除约束”：模板节点属性
   由常驻底栏一次提交，不再在失焦阶段写入并重绘；成功后关闭详情栏，失败时保留输入。
   模板 Tab 固定占满项目工作区且项目页自身不滚动，模板总保存和节点保存入口保持可达。
@@ -65,7 +70,9 @@
   可验证的持续优化对象后的本轮结果，不是统一的最高等级硬规则。T-IN.IP 按 L2—L5；
   T-OF 条件适用并从 L3 起评。V3 指南、基线主表、差异说明、结构化提案和
   离线工作台均为业务审阅提案，不得在未完成裁定和正式迁移授权时改写 V2.1 正式字典、
-  API、评分结果、源 Excel、SQLite、历史项目或用户库。
+  API、评分结果、源 Excel、SQLite、历史项目或用户库。文档所有权按层冻结：业务设计
+  维护规范语义，V3 基线维护具体评分内容，前端设计只维护实现契约；仅跨层变化才联动，
+  前端和业务早期章节不得再保留独立的通用矩阵副本。
 - 2026-07-28 Keychain 故障处理收敛为 0.3.0 最小修复：用户确认交互解锁
   `login.keychain-db` 后，原证书、OAuth 和 MCP 链路可以恢复，因此当前不再把该事件
   定性为证书失效或口令永久丢失。源码恢复 `/usr/bin/security` 登录钥匙串路径；
@@ -87,7 +94,8 @@
   私有交付域。当前业务愿景与架构入口分别为 `docs/00-overview/project-vision.md` 和
   `docs/01-architecture/architecture.md`。
 - 2026-07-27 文档权威顺序冻结为“当前状态 / 现行合同 / 操作手册 / 历史证据”四层：`CURRENT_STATE.md` 说明当前事实，`task_plan.md` 只保留未完成主线，`docs/README.md` 按场景导航，`docs/DOCUMENT_GOVERNANCE.md` 定义状态和归档；completed / historical / retired 文档不得指导新实现。依赖已删除分支、旧任务机制、ZIP alpha 或 Mac 手工组装 Windows 安装器的材料统一进入 `docs/05-archive/`，不再留在当前治理和交付目录。
-- 2026-07-27 Windows GitHub Installer 迁移冻结为“macOS 本地不迁移 + 私有仓主动拉取公开源码 + 私有构建”：Windows 源码以公开 `main` 为唯一事实源，私有仓按精确 `source_sha` 与不可变 Delivery Data 在 `windows-2022` Runner 生成完整 MCP backend、Electron Runtime 和 NSIS `Setup.exe`；正式 SQLite、Delivery Data 和安装器不进入公开仓。W0—W5、相同输入双构建和指纹比较已完成，旧 backend-only / Mac组装流程与 `codex/windows-electron` 分支已经退役；当前安装包作为 Internal Release 可直接使用，未执行真实 Windows 10/11 UAT 时不得伪装为正式实测通过。macOS 继续读取正式 Mac 主工作区批准数据库并本地打 DMG，不依赖 Windows Delivery Data。详细入口见 `docs/09-delivery/desktop-packaging-runbook.md` 与 `docs/09-delivery/windows-github-installer-migration-plan-2026-07-27.md`。
+- 2026-07-27 Windows GitHub Installer 迁移冻结为“macOS 本地不迁移 + 私有仓主动拉取公开源码 + 私有构建”：Windows 源码以公开 `main` 为唯一事实源，私有仓按精确 `source_sha` 与不可变 Delivery Data 在 `windows-2022` Runner 生成完整 MCP backend、Electron Runtime 和 NSIS `Setup.exe`；正式 SQLite、Delivery Data 和安装器不进入公开仓。W0—W5、相同输入双构建和指纹比较曾完成，旧 backend-only / Mac组装流程与 `codex/windows-electron` 分支已经退役；当前安装包作为 Internal Release 可直接使用，未执行真实 Windows 10/11 UAT 时不得伪装为正式实测通过。2026-08-03 静态检查发现 watcher 未向 builder 传递必填 `app_version`，因此历史完成不代表当前自动触发健康；修复前只允许显式传版本的手工 dispatch。macOS 继续读取正式 Mac 主工作区批准数据库并本地打 DMG，不依赖 Windows Delivery Data。详细入口见 `docs/09-delivery/desktop-packaging-runbook.md` 与 `docs/09-delivery/windows-github-installer-migration-plan-2026-07-27.md`。
+- 2026-08-03 桌面打包目录 owner 冻结为“平台源码在 `apps/`、共享生产脚本留在 `scripts/` 根、公开仓只放公开安全门禁、Windows 编排和 Release 在私有交付仓、本地历史产物只进各平台 archive”：私有 Windows workflow 仍按公开仓现有精确脚本路径取数，因此不得为了目录美观单仓移动生产脚本；未来若下沉目录，必须同步修改公开源码引用和私有四条 workflow，并以精确 SHA 完成一次 Runner 实包验证。当前地图为 `docs/09-delivery/packaging-directory-map.md`。
 - 2026-07-27 MCP 凭据与审计展示合同冻结为“1小时短期访问 + 原始审计逐条保留 + 低风险成功事件界面聚合”：Access Token 默认TTL为3600秒，refresh token仍为30天并保持单次轮换、复用即撤销及Resource/scope/runtime绑定。只允许在控制API展示投影合并24小时内同一客户端的成功`TOKEN_REFRESHED`和同名成功`TOOL_CALL`，次数、最早/最近时间、返回数和耗时必须显式投影；任何授权、签发、撤销、失败、异常或其他安全事件均不得合并并切断当前聚合段。`event_count`、保留上限和清理策略继续基于独立控制库的原始逐条记录，不得为了界面降噪修改或删除底层审计。
 - 2026-07-26 Draw.io 内容入库粒度冻结为“有效页签独立内容、空页不入库、来源物理定位不重编号”：0节点且0连线的页签不是知识对象，不得生成片段、关系、证据或有效数量；有内容页签各自可精确查询。为保持可追溯性，过滤空页后仍沿用源文件物理页签序号和定位，因此本例有效ref为 `page:001` 与 `page:003`，不得把底图伪装成物理第2页。对外文档元数据只声明 `contentUnitCount` 和 `contentUnitMode=independent`，不把源文件物理页签数描述为业务内容页数；源Draw.io与其资产BLOB保持不变。
 - 2026-07-26 信息化环境主数据P7.1冻结“定义来自受控裁定、关联使用来自真实上下文投影”：原始Excel没有环境或对象定义列，环境子类定义本来也来自P2基于名称和关系上下文的人工作业裁定；因此新增的10条环境和51条对象定义必须明确标记为裁定文本，不能冒充源原文，也不得由前端运行时临时推断。字典关系上下文仍保持29个环境子类和67个对象上下文，正式关系不增不删；环境主数据的展开列表必须投影其所属29个真实子类上下文，而不是10条环境自身占位，故三类关联使用口径固定为29/29/67共125条。摘要和按钮数量只能来自同一可展开集合，逐环境为3/5/3/1/4/4/2/1/3/3。P7.1恢复包同时保护基础库、用户库和字典包；关系、身份、来源证据、用户库或源Excel任一漂移都触发基础库/字典恢复。

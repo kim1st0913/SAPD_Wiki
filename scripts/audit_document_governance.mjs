@@ -20,6 +20,11 @@ function lineCount(text) {
   return text === "" ? 0 : text.split(/\r?\n/).length;
 }
 
+export function latestDatedHeading(text) {
+  const dates = [...text.matchAll(/^## (\d{4}-\d{2}-\d{2})$/gm)].map((match) => match[1]);
+  return dates.sort().at(-1) || "";
+}
+
 const requiredFiles = [
   "README.md",
   "docs/README.md",
@@ -28,7 +33,13 @@ const requiredFiles = [
   "docs/00-overview/project-vision.md",
   "docs/01-architecture/architecture.md",
   "docs/07-governance/governance-index.md",
+  "docs/09-delivery/packaging-directory-map.md",
   "docs/09-delivery/desktop-packaging-runbook.md",
+  "docs/09-delivery/windows-github-installer-migration-plan-2026-07-27.md",
+  "apps/README.md",
+  "scripts/retired/zip-alpha/README.md",
+  "docs/05-archive/delivery-retired-2026-07/workflows/README.md",
+  "docs/05-archive/delivery-retired-2026-07/workflows/build-windows-backend.yml",
   "CURRENT_STATE.md",
   "progress.md",
   "task_plan.md",
@@ -41,6 +52,17 @@ for (const file of requiredFiles) {
 const taskPlan = read("task_plan.md");
 const currentState = read("CURRENT_STATE.md");
 const progress = read("progress.md");
+const openIssues = read("docs/06-implementation/open-issues.md");
+const windowsMigrationPlan = read(
+  "docs/09-delivery/windows-github-installer-migration-plan-2026-07-27.md",
+);
+const progressUpdateDate = /^> 更新日期：(\d{4}-\d{2}-\d{2})$/m.exec(progress)?.[1] || "";
+const latestProgressDate = latestDatedHeading(progress);
+if (!progressUpdateDate || progressUpdateDate !== latestProgressDate) {
+  failures.push(
+    `progress date mismatch: declared=${progressUpdateDate || "missing"} latest=${latestProgressDate || "missing"}`,
+  );
+}
 if (lineCount(taskPlan) > 160) {
   failures.push(`task_plan.md exceeds 160 lines: ${lineCount(taskPlan)}`);
 }
@@ -49,6 +71,19 @@ if (lineCount(currentState) > 120) {
 }
 if (lineCount(progress) > 100) {
   failures.push(`progress.md exceeds 100 lines: ${lineCount(progress)}`);
+}
+
+const declaredOpenIssueCount = Number(
+  /当前未关闭问题数：(\d+)/.exec(openIssues)?.[1] ?? Number.NaN,
+);
+const currentOpenIssueTable = openIssues
+  .split("## 当前未关闭问题", 2)[1]
+  ?.split("## 最近关闭问题", 1)[0] || "";
+const listedOpenIssueCount = (currentOpenIssueTable.match(/^\| OI-\d+ \|/gm) || []).length;
+if (!Number.isInteger(declaredOpenIssueCount) || declaredOpenIssueCount !== listedOpenIssueCount) {
+  failures.push(
+    `open issue count mismatch: declared=${Number.isInteger(declaredOpenIssueCount) ? declaredOpenIssueCount : "missing"} listed=${listedOpenIssueCount}`,
+  );
 }
 
 for (const forbiddenHeading of [
@@ -105,11 +140,39 @@ if (fs.existsSync(currentGovernanceDir)) {
   }
 }
 
-const currentIndexes = [
+const currentIndexFiles = [
   "docs/README.md",
   "docs/DOCUMENT_GOVERNANCE.md",
   "docs/07-governance/governance-index.md",
-].map(read).join("\n");
+];
+const currentIndexes = currentIndexFiles.map(read).join("\n");
+
+for (const indexFile of ["docs/README.md", "docs/DOCUMENT_GOVERNANCE.md"]) {
+  if (!read(indexFile).includes("09-delivery/packaging-directory-map.md")) {
+    failures.push(`${indexFile} does not list the packaging directory source of truth`);
+  }
+}
+
+if (taskPlan.includes("Windows 交付 | `operational / internal_release_ready`")) {
+  failures.push("task_plan.md claims Windows automatic delivery is operational");
+}
+if (/\| W4 main watcher .*\| `complete` \|/.test(windowsMigrationPlan)) {
+  failures.push("Windows migration plan still marks the blocked W4 watcher complete");
+}
+
+for (const retiredPackagingPath of [
+  ".github/workflows/build-windows-backend.yml",
+  "scripts/create_alpha_release.py",
+  "scripts/create_update_package.py",
+  "scripts/start-macos.command",
+  "scripts/start-windows.bat",
+  "scripts/stop-macos.command",
+  "scripts/stop-windows.bat",
+]) {
+  if (fs.existsSync(path.join(root, retiredPackagingPath))) {
+    failures.push(`retired packaging entry returned to active path: ${retiredPackagingPath}`);
+  }
+}
 
 const retiredCurrentPaths = [
   "docs/00-overview/stitch-design-handoff-v2.md",

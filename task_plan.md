@@ -2,7 +2,7 @@
 
 > 状态：`active`
 >
-> 更新日期：2026-07-30
+> 更新日期：2026-08-05
 
 本文件只保留未完成主线、下一步和停止条件。已完成阶段的详细过程进入专题文档、
 `progress.md` 或 `docs/05-archive/`，不再复制到当前计划。
@@ -20,34 +20,75 @@
 - 文档导航：`docs/README.md`
 - 文档治理：`docs/DOCUMENT_GOVERNANCE.md`
 
-## 当前执行任务：成熟度图谱模板权限与项目选模闭环
+## 已完成任务：第八轮代码审计问题收敛
 
-> 状态：`implemented / user_review_pending`
+> 状态：`complete / 3 P1 + 9 P2 fixed and verified`
 
-- 目标：让首页新增模板与项目内评估模板共用同一图谱编辑器；节点定义可编辑，项目来源
-  原件与模板管理副本具有明确权限，新项目从固定 / 自定义两类中选择且不改写来源模板。
-- 成功标准：标准来源节点带出知识库定义；节点属性有显式确认；属性面板无大面积无效
-  留白；目录退出后顶部搜索可定位脑图；项目来源模板只能回项目优化或创建独立副本；
-  新建项目按钮位于项目进展；自定义来源复制为项目专属新模板；工作区返回成熟度首页。
-- 数据边界：标准模板与知识库字典继续只读；定义修改只写本地自定义模板副本，不覆盖
-  保护基线、正式 SQLite、源 Excel、评分规则或真实用户库。
-- 验收：专项前端契约、后端模板定义 / 校验契约、5173 首页与模板工作台闭环；App /
-  DMG 留给发布矩阵。
-- 当前结果：实现和长期合同已同步，专项前端契约 `41 / 41`、JS 语法、差异检查及
-  5173 home / health 通过；标准定义动态检查为分类 `13 / 13`、L2 `32 / 32`、关注点
-  `91 / 91`。应用内 Browser 被当前本地访问策略阻止，未绕过；等待用户直接页面复核
-  后关闭本任务。全量 V2.1 / XLSX / 历史报告审计的既有环境或历史基线阻断已单独记录，
-  不作为本轮页面闭环的通过证据。
+- P1：stable 报告写探针、跨路由 `inert` 和完成评估异步覆盖均已修复并补负向回归。
+- P2：矩阵漏测、runner 后代清理、页面 smoke 假绿、项目身份、报告对账、来源 owner、
+  重导消失类型及报告 / 导出 symlink 越界均已修复。
+- 验收：定向导入 `19/19`、用户路径 `36/36`、交付控制 `19/19`、成熟度
+  `43/43 + 236/236`、Electron `14/14`；最终 9 个 suite、82 个非 DMG 命令全部通过。
+  正式用户库、报告 manifest 和 27 个现有工件未变化。
+- 边界：最新实包 28776 与 DMG UAT 仍按用户要求后置，不纳入本轮通过声明。
+
+## 已完成任务：G2 与 macOS 启动全树哈希回退
+
+> 状态：`complete / targeted rollback`
+
+- G2 稳定身份字段已进入正式 `006_stable_identity.sql` migration，新库、已有字段库、并发
+  执行和失败回滚通过。
+- macOS 启动时 Runtime 全树重算及复制后强制复验已回退，恢复原有构建指纹标记比较；
+  内容资产数据库 hash、写路径软链接保护和原签名流程不变。
+- 当前源码尚未重打 DMG；下一次明确打包时由 `release-full` 验证真实签名 App 和 28776。
+
+## 已完成记录：第六至七轮代码审计与故障回归复核
+
+> 状态：`historical matrix pass / superseded by round 8 audit`
+
+- P1：SQLite migration 原子提交 / 并发互斥、来源关系安全收敛、成熟度异步状态与本地持久化、runner 进程树中断已修复。
+- P2：连接资源、报告路径 / symlink、Bundle 必需 rewrite owner、文档日期和 Runtime smoke 用户状态边界已修复。
+- 长期门禁：新增 database resource、关系审批、报告路径、成熟度行为、进程树、Bundle 缺 owner 和日期最大值负向回归。
+- 保护边界：不构建 DMG、不重启 5173/28776、不修改真实用户库、正式 SQLite、源 Excel 或现有打包产物。
+- 结果：定向后端 `51/51`、交付 `21/21`、成熟度行为 `34/34`、V2.1 `236/236`、自定义模板 `58/58` 通过；最终 8 个 suite、80 个非 DMG 编排命令全部通过。最新源码尚未打包，28776 与实包 UAT 继续后置。
+
+## 已完成任务：代码审计 P2 首轮收敛
+
+> 状态：`complete / 10 findings`
+
+- 用户状态：降低成熟度报告输入持久化频率，修复并发报告 manifest 丢记录、首页滚动丢失和删除弹窗焦点约束。
+- 安全边界：用户导出产生本地文件时必须校验当前会话写入令牌。
+- 交付边界：backend 自动重建哈希覆盖 MCP contract，移除退役 0.3.0 backend 搜索路径，严格源码模式缺 staging 必须失败。
+- 发布门禁：`release-full` 必须完成产物验收后才能 PASS；pre-commit / pre-DMG 覆盖关键打包脚本与 Windows 合同测试。
+- 验收：全部使用临时用户库、临时报告目录和 dry-run / 静态产物合同；不构建 DMG，不修改现有产物或真实用户库。
+- 结果：10 项 P2 已完成定向回归；完整 pre-commit 已通过 static、boundaries、data，进入 frontend 后因 5173 当前未运行而停止，未为测试重启服务。
+
+## 并行保留任务：OI-197 V3 业务复核推进
+
+> 状态：`proposal_ready / staged_business_review`
+
+- 目标：不要求一次人工逐格验收全部 3,700 个单元，先确认会影响全表的业务规则和例外，
+  再在离线工作台按争议项收口 91 个关注点和 185 个评估点。
+- 第一批复核：连续等级范围、自定义模板通用 L1—L5 基线、T-IN.IP 的 L2—L5、T-OF
+  的条件适用与 L3 起评、L4 的受控运行 / 可比较结果 / 偏差纠正 / 效果验证，以及 L5
+  去 AI 必选化。
+- 第二批复核：原 15 项映射争议、拆分 / 补齐 Rubric 和建议校准标题；只记录用户否决或
+  要求修改的对象，其余保留当前 V3 提案。
+- 完成条件：91 个关注点、160 条服务关系和 185 个评估点唯一绑定评分依据，业务复核
+  结果可追溯；正式迁移仍需用户另行授权。
+- 数据边界：本阶段只改业务审阅提案、生成器和契约审计，不写 Rubric 字典、评分规则、
+  源 Excel、正式 SQLite、历史项目或真实用户库。
 
 ## 未完成主线
 
 | 主线 | 当前状态 | 下一步 | 停止条件 |
 |---|---|---|---|
 | 知识内容增量发布 | `gated` | 在下一次明确发布窗口执行正式 apply、immutable runtime restart、MCP 五工具验收和 accept | 未取得正式发布授权前不写正式双库 |
-| OI-197 成熟度 Rubric 映射 | `v3_proposal_ready / business_review_pending` | 在 V3 离线工作台复核 91 个关注点范围和 185 个评估点的 3,700 个等级维度单元；同时复核自定义模板 L1—L5 通用基线。L4 按量化控制与效果验证审阅，不预设指标，L5 按最低门槛裁定 | 取得完整业务裁定和正式迁移授权前不写 Rubric 字典、评分规则、源 Excel、正式数据或历史结果 |
-| `styles.css` P1 收敛 | `web_verified / app_pending` | Web 已纯删除 4 个完整重复规则块并通过专项、Runtime 与浏览器断点验收；下一次最新 DMG 与 `28776` MCP 一起复验 App | 最新实包矩阵完成前不宣称 shared runtime 通过；不为行数门禁继续删除有效声明 |
-| macOS 交付 | `keychain_minimal_fix / latest_package_uat_pending` | 用户要求新包时，从同一当前源码重建双 staging，并在最新实包内验证首次建证、退出重开、锁屏 / 解锁恢复路径和 App MCP `28776` 的 OAuth、五工具及审计 | staging 与当前源码不一致时不得宣称当前源码已打包；最新实包矩阵完成前不得宣称 App MCP 或钥匙串连续性验收通过 |
-| Windows 交付 | `operational / internal_release_ready` | 日常按“最新 main + 最新批准 Delivery Data”构建；发现实机问题再修复 | 不伪造 Windows 10/11 UAT；未实测版本保持 Internal Release 标识 |
+| OI-197 成熟度 Rubric 映射 | `v3_proposal_ready / staged_business_review` | 先复核全局规则与例外，再在 V3 离线工作台只处理争议对象；不要求用户一次逐格验收全部 3,700 个单元 | 取得完整业务裁定和正式迁移授权前不写 Rubric 字典、评分规则、源 Excel、正式数据或历史结果 |
+| dirty 工作树收口 | `five_scopes_identified / targeted_validation_pass` | macOS parity、模板工作台 `54 / 54`、成熟度合同 `236 / 236`、桌面打包目录治理、文档治理和差异检查已通过；后续按五个范围收口 | 未获明确提交指令前不 stage、commit 或 push，不把不同业务范围混成一个 checkpoint |
+| `styles.css` P1 收敛 | `web_verified / app_uat_nonblocking` | Web 已完成；条件允许时在现有 0.4.0 实包中抽查共享样式，不继续为行数门禁拆分 | App 抽查未完成只限制 shared runtime 完整验收声明，不阻塞当前开发 |
+| macOS 交付 | `0.4.0_auto_matrix_pass / manual_uat_nonblocking` | 保留现有 0.4.0 双包；条件允许时补首次路径、锁屏恢复和 App MCP `28776` 五工具审计 | 未完成人工 UAT 不阻塞当前内部开发，但不得宣称最新实包完整 UAT 或正式外部分发通过 |
+| Windows 交付 | `manual_dispatch_ready / auto_trigger_blocked` | 先修复私有 watcher 缺失的 `app_version` 输入并取得成功 Actions 证据；修复前仅允许显式传版本的手工 dispatch | 不伪造自动触发健康或 Windows 10/11 UAT；未实测版本保持 Internal Release 标识 |
 
 ## 已完成并关闭
 
@@ -62,9 +103,11 @@
 - Keychain 故障已收敛为 0.3.0 路径上的最小修复：回退 Native Security Broker、
   Data Protection Keychain 和 `app` profile 强制门禁，只保留 `36 / 51` 临时错误分类、
   解锁提示、运行中 Sidecar 保持和解锁后手动重试；相关定向与完整 MCP 回归已通过。
-- Windows GitHub 构建迁移已完成：公开 `main` 为源码事实源，私有 Runner 生成完整
-  `Setup.exe`，旧 `codex/windows-electron` 分支已删除。
+- Windows GitHub 构建基础迁移已完成：公开 `main` 为源码事实源，私有 Runner 可生成完整
+  `Setup.exe`，旧 `codex/windows-electron` 分支已删除；当前 watcher 输入回归仍列在未完成主线。
 - Git 工作树和历史 MCP 分支收敛已经完成；旧工作树 / 分支过程不再进入当前计划。
+- OI-128 批注 / 工作台用户写入入口已实现并通过自动回归，2026-08-03 按当前范围关闭；
+  导出格式扩展、能力重组、导入或 Skill 集成属于未来独立范围，不继续占用当前 Issue。
 
 详细历史入口：
 
@@ -75,18 +118,17 @@
 
 ## 当前执行顺序
 
-1. 用户批准执行后，按零影响模式执行
-   `docs/06-implementation/frontend-styles-css-p1-optimization-plan-2026-07-29.md`
-   的静态等价审计和纯删除；不与当前 `app.js / index.html` dirty 变更并发写同一文件。
-2. 用户复核 OI-197 V3 提案包及自定义模板 L1—L5 通用基线；优先处理连续等级范围、
+1. 用户分批复核 OI-197 V3 提案包及自定义模板 L1—L5 通用基线；优先处理连续等级范围、
    T-OF 授权边界、拆分 / 补齐 Rubric、建议校准标题、Level 4 量化控制证据和
    Level 5 最低门槛。
+2. 将当前 dirty 改动按 macOS 0.4.0、成熟度模板工作台、OI-197 业务审阅、桌面打包目录、
+   P1 / P2 审计修复和状态治理六个 checkpoint 准备；只有用户明确要求提交时才定向 stage / commit。
 3. 用户要求发布新知识内容时，执行增量发布的正式 apply → restart → MCP 验收 →
    accept。
-4. 用户要求打最新 Windows 包时，检查最新代码和正式数据后触发私有 Runner。
-5. 用户要求打最新 macOS 包时，先核对当前源码与正式数据，再同步重建双 staging；
-   对最新实包验证首次系统认证、完全退出重开、锁屏 / 解锁后的明确恢复路径，以及
-   App MCP `28776` 的 OAuth、五工具、`TOOL_CALL` 审计和用户数据边界。
+4. 用户要求打最新 Windows 包时，先检查最新代码和正式数据；自动 watcher 修复取证前，
+   只能用显式 `app_version` 的手工 dispatch 触发私有 Runner。
+5. 现有 macOS 0.4.0 双包继续作为当前内测包；人工 UAT 持续保留但不阻塞，只有新增源码
+   需要进入新包或用户明确要求时才重新构建。
 
 ## 保护边界
 

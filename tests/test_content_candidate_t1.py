@@ -6,6 +6,7 @@ import sqlite3
 import sys
 import tempfile
 import unittest
+from contextlib import closing
 from pathlib import Path
 
 
@@ -20,18 +21,18 @@ SPEC.loader.exec_module(MODULE)
 
 class ContentCandidateT1Tests(unittest.TestCase):
     def test_query_schema_is_additive_and_has_all_content_owners(self) -> None:
-        connection = sqlite3.connect(":memory:")
-        connection.executescript(
-            (ROOT / "config/sql/content-query-schema-v1.sql").read_text(
-                encoding="utf-8"
+        with closing(sqlite3.connect(":memory:")) as connection:
+            connection.executescript(
+                (ROOT / "config/sql/content-query-schema-v1.sql").read_text(
+                    encoding="utf-8"
+                )
             )
-        )
-        tables = {
-            row[0]
-            for row in connection.execute(
-                "SELECT name FROM sqlite_master WHERE type='table'"
-            )
-        }
+            tables = {
+                row[0]
+                for row in connection.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table'"
+                )
+            }
         self.assertTrue(
             {
                 "content_documents",
@@ -44,20 +45,20 @@ class ContentCandidateT1Tests(unittest.TestCase):
         )
 
     def test_asset_schema_enforces_blob_length(self) -> None:
-        connection = sqlite3.connect(":memory:")
-        connection.executescript(
-            (ROOT / "config/sql/content-asset-schema-v1.sql").read_text(
-                encoding="utf-8"
+        with closing(sqlite3.connect(":memory:")) as connection:
+            connection.executescript(
+                (ROOT / "config/sql/content-asset-schema-v1.sql").read_text(
+                    encoding="utf-8"
+                )
             )
-        )
-        with self.assertRaises(sqlite3.IntegrityError):
-            connection.execute(
-                """
-                INSERT INTO content_assets(
-                  asset_hash, mime_type, format, byte_count, content_bytes, created_at
-                ) VALUES ('hash', 'text/plain', 'txt', 2, X'00', '2026-07-26T00:00:00Z')
-                """
-            )
+            with self.assertRaises(sqlite3.IntegrityError):
+                connection.execute(
+                    """
+                    INSERT INTO content_assets(
+                      asset_hash, mime_type, format, byte_count, content_bytes, created_at
+                    ) VALUES ('hash', 'text/plain', 'txt', 2, X'00', '2026-07-26T00:00:00Z')
+                    """
+                )
 
     def test_manifest_logical_names_exclude_sample_tokens(self) -> None:
         manifest = json.loads(

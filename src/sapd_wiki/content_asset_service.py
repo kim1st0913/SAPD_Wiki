@@ -137,6 +137,7 @@ class ContentAssetService:
 
     def _connect(self) -> sqlite3.Connection:
         uri = f"file:{quote(str(self.database), safe='/')}?mode=ro&immutable=1"
+        connection: sqlite3.Connection | None = None
         try:
             connection = sqlite3.connect(uri, uri=True, timeout=1.0)
             connection.row_factory = sqlite3.Row
@@ -155,7 +156,13 @@ class ContentAssetService:
                 raise ContentAssetError("asset database schema is incomplete")
             connection.set_authorizer(self._authorizer)
             return connection
+        except ContentAssetError:
+            if connection is not None:
+                connection.close()
+            raise
         except (OSError, sqlite3.Error) as exc:
+            if connection is not None:
+                connection.close()
             raise ContentAssetError("asset database open failed") from exc
 
     @staticmethod

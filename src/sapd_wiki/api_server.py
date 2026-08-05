@@ -2,15 +2,19 @@ from __future__ import annotations
 
 import argparse
 import base64
+import hashlib
 import ipaddress
 import json
 import os
 import re
 import secrets
 import signal
+import shutil
 import sqlite3
+import tempfile
 import time
 import uuid
+from contextlib import closing, contextmanager
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from threading import Lock
@@ -107,7 +111,11 @@ APP_DISPLAY_VERSION = "0.2.0"
 USER_STATE_EPHEMERAL = False
 _EPHEMERAL_USER_DB_URI = ""
 _EPHEMERAL_USER_DB_KEEPER: sqlite3.Connection | None = None
+_EPHEMERAL_USER_ARTIFACTS: tempfile.TemporaryDirectory[str] | None = None
+_EPHEMERAL_PREVIOUS_EXPORT_DIR: Path | None = None
 _EPHEMERAL_USER_DB_LOCK = Lock()
+_MATURITY_REPORT_MANIFEST_LOCKS: dict[str, Lock] = {}
+_MATURITY_REPORT_MANIFEST_LOCKS_GUARD = Lock()
 _CONTENT_CURSOR_KEY = secrets.token_bytes(32)
 MATURITY_REPORT_ARTIFACT_SCHEMA = "sapd-maturity-report-artifact-v1"
 RUNTIME_LABEL = "stable"
@@ -594,7 +602,9 @@ def configure_runtime_paths(
     global BASE_DB_PATH, CONTENT_QUERY_DB_PATH, CONTENT_ASSET_DB_PATH
     global USER_DB_PATH, DATA_PACKAGE_ROOT, USER_EXPORT_DIR, RUNTIME_LABEL
     global USER_IMPORT_DIR, APP_DATA_ROOT, APP_DISPLAY_VERSION
-    global USER_STATE_EPHEMERAL, _EPHEMERAL_USER_DB_URI
+    global USER_STATE_EPHEMERAL, _EPHEMERAL_USER_DB_URI, _EPHEMERAL_USER_ARTIFACTS
+    global _EPHEMERAL_PREVIOUS_EXPORT_DIR
+    leaving_ephemeral_export_dir = _EPHEMERAL_PREVIOUS_EXPORT_DIR
     close_ephemeral_user_state()
     USER_STATE_EPHEMERAL = bool(ephemeral_user_state)
     _EPHEMERAL_USER_DB_URI = (
@@ -602,6 +612,20 @@ def configure_runtime_paths(
         if USER_STATE_EPHEMERAL
         else ""
     )
+    _EPHEMERAL_USER_ARTIFACTS = (
+        tempfile.TemporaryDirectory(prefix="sapd-wiki-web-dev-artifacts-")
+        if USER_STATE_EPHEMERAL
+        else None
+    )
+    if USER_STATE_EPHEMERAL:
+        _EPHEMERAL_PREVIOUS_EXPORT_DIR = leaving_ephemeral_export_dir or USER_EXPORT_DIR
+        USER_EXPORT_DIR = (Path(_EPHEMERAL_USER_ARTIFACTS.name) / "exports").resolve()
+    elif export_dir:
+        USER_EXPORT_DIR = resolve_project_path(export_dir).resolve()
+        _EPHEMERAL_PREVIOUS_EXPORT_DIR = None
+    elif leaving_ephemeral_export_dir is not None:
+        USER_EXPORT_DIR = leaving_ephemeral_export_dir
+        _EPHEMERAL_PREVIOUS_EXPORT_DIR = None
     if base_db:
         BASE_DB_PATH = resolve_project_path(base_db).resolve()
     CONTENT_QUERY_DB_PATH = (
@@ -618,8 +642,6 @@ def configure_runtime_paths(
         USER_DB_PATH = resolve_project_path(user_db).resolve()
     if data_root:
         DATA_PACKAGE_ROOT = resolve_project_path(data_root).resolve()
-    if export_dir:
-        USER_EXPORT_DIR = resolve_project_path(export_dir).resolve()
     if import_dir:
         USER_IMPORT_DIR = resolve_project_path(import_dir).resolve()
     if app_data_root:
@@ -650,36 +672,84 @@ def _user_export_segment(value: Any, fallback: str) -> str:
     return normalized[:96] or fallback
 
 
+def sanitize_user_export_file_name(value: Any, fallback: str = "sapd-export") -> str:
+    original = Path(str(value or "")).name
+    safe_name = _user_export_segment(original, fallback)
+    suffix = Path(original).suffix
+    if suffix and not safe_name.lower().endswith(suffix.lower()):
+        safe_name = f"{safe_name}{suffix}"
+    return safe_name
+
+
+def _user_export_identity_segment(value: Any, fallback: str = "project") -> str:
+    raw = str(value or "").strip()
+    if re.fullmatch(r"[A-Za-z0-9._-]{1,32}", raw) and raw not in {".", ".."}:
+        return raw
+    normalized = _user_export_segment(raw, fallback)
+    digest = hashlib.sha256(raw.encode("utf-8")).hexdigest()[:10]
+    prefix = normalized[: 32 - len(digest) - 1].rstrip(".-") or fallback
+    return f"{prefix}-{digest}"
+
+
 def _user_export_timestamp() -> str:
     return time.strftime("%Y-%m-%d_%H%M%S", time.localtime())
+
+
+def _resolve_user_export_directory(path: Path, root: Path, *, label: str) -> Path:
+    resolved_root = root.resolve()
+    resolved_path = path.resolve()
+    try:
+        resolved_path.relative_to(resolved_root)
+    except ValueError as error:
+        raise RuntimeError(f"{label} escapes configured export root: {path}") from error
+    return resolved_path
 
 
 def _user_export_project_directory(category: str, project: dict[str, Any] | None = None) -> Path:
     category_name = USER_EXPORT_CATEGORY_DIRS.get(str(category or "").strip())
     if not category_name:
         raise ValueError("unsupported export category")
-    directory = (USER_EXPORT_DIR / category_name).resolve()
+    export_root = USER_EXPORT_DIR.resolve()
+    directory = _resolve_user_export_directory(
+        export_root / category_name,
+        export_root,
+        label="export category path",
+    )
     if project:
-        project_id = _user_export_segment(project.get("id"), "project")
+        project_id = _user_export_identity_segment(project.get("id"), "project")
         project_name = _user_export_segment(project.get("name"), "成熟度评估项目")
-        directory = (directory / f"{project_name}__{project_id[:32]}").resolve()
+        category_root = directory
+        try:
+            directory = (category_root / f"{project_name}__{project_id}").resolve()
+            directory.relative_to(category_root)
+        except ValueError as error:
+            raise RuntimeError(
+                f"export project path escapes configured export category: {category_root}"
+            ) from error
     directory.mkdir(parents=True, exist_ok=True)
     return directory
 
 
-def _available_user_export_path(directory: Path, file_name: str) -> Path:
-    safe_name = _user_export_segment(Path(str(file_name or "")).name, "sapd-export")
-    suffix = Path(str(file_name or "")).suffix
-    if suffix and not safe_name.lower().endswith(suffix.lower()):
-        safe_name = f"{safe_name}{suffix}"
-    candidate = directory / safe_name
-    counter = 2
-    while candidate.exists():
-        stem = Path(safe_name).stem
-        suffix = Path(safe_name).suffix
-        candidate = directory / f"{stem}-{counter}{suffix}"
-        counter += 1
-    return candidate
+def _write_unique_user_export(directory: Path, file_name: str, content: str | bytes) -> Path:
+    safe_name = sanitize_user_export_file_name(file_name)
+    stem = Path(safe_name).stem
+    suffix = Path(safe_name).suffix
+    for counter in range(1, 10_000):
+        candidate = directory / (safe_name if counter == 1 else f"{stem}-{counter}{suffix}")
+        try:
+            if isinstance(content, bytes):
+                with candidate.open("xb") as handle:
+                    handle.write(content)
+            else:
+                with candidate.open("x", encoding="utf-8") as handle:
+                    handle.write(content)
+            return candidate
+        except FileExistsError:
+            continue
+        except Exception:
+            candidate.unlink(missing_ok=True)
+            raise
+    raise RuntimeError("unable to allocate a unique export file")
 
 
 def _user_export_result(output_path: Path, *, category: str, extra: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -702,14 +772,21 @@ def _user_export_result(output_path: Path, *, category: str, extra: dict[str, An
 
 
 def maturity_report_storage_root() -> Path:
-    """Keep report history beside the configured user database.
+    """Keep report history inside the active user-state boundary.
 
     The macOS wrapper relocates USER_DB_PATH into the user-selected Runtime,
-    so this directory follows the same initialization boundary without
-    changing the user database schema.
+    while isolated Web/test runtimes use a disposable temporary directory.
     """
 
-    return (USER_DB_PATH.parent / "maturity-reports").resolve()
+    if USER_STATE_EPHEMERAL:
+        if _EPHEMERAL_USER_ARTIFACTS is None:
+            raise RuntimeError("ephemeral user artifact storage is unavailable")
+        storage_root = Path(_EPHEMERAL_USER_ARTIFACTS.name) / "maturity-reports"
+    else:
+        storage_root = USER_DB_PATH.parent / "maturity-reports"
+    if storage_root.is_symlink():
+        raise RuntimeError(f"maturity report storage root must not be a symbolic link: {storage_root}")
+    return storage_root.resolve()
 
 
 def _maturity_artifact_segment(value: Any, fallback: str) -> str:
@@ -717,23 +794,159 @@ def _maturity_artifact_segment(value: Any, fallback: str) -> str:
     return normalized[:96] or fallback
 
 
+def _maturity_project_segment(project_id: str) -> str:
+    raw = str(project_id or "").strip()
+    normalized = re.sub(r"[^A-Za-z0-9._-]+", "-", raw).strip(".-")
+    digest = hashlib.sha256(raw.encode("utf-8")).hexdigest()[:12]
+    prefix = (normalized[:83] or "assessment-project")[:83]
+    return f"{prefix}-{digest}"
+
+
+def _maturity_resolve_within(path: Path, root: Path, *, label: str) -> Path:
+    if path.is_symlink():
+        raise RuntimeError(f"{label} must not be a symbolic link: {path}")
+    resolved_root = root.resolve()
+    resolved_path = path.resolve()
+    try:
+        resolved_path.relative_to(resolved_root)
+    except ValueError as error:
+        raise RuntimeError(f"{label} escapes maturity report storage: {path}") from error
+    return resolved_path
+
+
+def _valid_maturity_manifest_entry(project_id: str, project_root: Path, item: Any) -> bool:
+    if not isinstance(item, dict):
+        return False
+    artifact_id = str(item.get("artifactId") or "")
+    report_id = str(item.get("reportId") or "")
+    created_at = str(item.get("createdAt") or "")
+    if (
+        item.get("schemaVersion") != MATURITY_REPORT_ARTIFACT_SCHEMA
+        or item.get("projectId") != project_id
+        or not report_id
+        or not created_at
+        or artifact_id in {".", ".."}
+        or not re.fullmatch(r"[A-Za-z0-9._-]{1,160}", artifact_id)
+    ):
+        return False
+    expected_path = (project_root / "artifacts" / artifact_id).resolve()
+    storage_parent = maturity_report_storage_root().parent
+    try:
+        expected_relative = expected_path.relative_to(storage_parent).as_posix()
+    except ValueError:
+        return False
+    return str(item.get("relativePath") or "") == expected_relative
+
+
+def _maturity_project_root(project_id: str) -> Path:
+    storage_root = maturity_report_storage_root()
+    current_root = _maturity_resolve_within(
+        storage_root / _maturity_project_segment(project_id),
+        storage_root,
+        label="maturity report project path",
+    )
+    legacy_root = _maturity_resolve_within(
+        storage_root / _maturity_artifact_segment(project_id, "assessment-project"),
+        storage_root,
+        label="maturity report legacy project path",
+    )
+    current_manifest_path = _maturity_resolve_within(
+        current_root / "manifest.json",
+        current_root,
+        label="maturity report manifest path",
+    )
+    legacy_manifest_path = _maturity_resolve_within(
+        legacy_root / "manifest.json",
+        legacy_root,
+        label="maturity report legacy manifest path",
+    )
+    if current_manifest_path.is_file():
+        return current_root
+    if legacy_root == current_root or not legacy_manifest_path.is_file():
+        return current_root
+    try:
+        legacy_manifest = json.loads(legacy_manifest_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise RuntimeError(f"maturity report legacy manifest is unreadable: {legacy_manifest_path}") from error
+    if not isinstance(legacy_manifest, dict) or not isinstance(legacy_manifest.get("projectId"), str):
+        raise RuntimeError(f"maturity report legacy manifest has an invalid schema: {legacy_manifest_path}")
+    return legacy_root if legacy_manifest.get("projectId") == project_id else current_root
+
+
 def _read_maturity_report_manifest(project_id: str) -> dict[str, Any]:
-    project_segment = _maturity_artifact_segment(project_id, "assessment-project")
-    manifest_path = maturity_report_storage_root() / project_segment / "manifest.json"
+    project_root = _maturity_project_root(project_id)
+    manifest_path = _maturity_resolve_within(
+        project_root / "manifest.json",
+        project_root,
+        label="maturity report manifest path",
+    )
     if not manifest_path.is_file():
         return {"schemaVersion": MATURITY_REPORT_ARTIFACT_SCHEMA, "projectId": project_id, "artifacts": []}
     try:
         payload = json.loads(manifest_path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        payload = {}
-    if not isinstance(payload, dict):
-        payload = {}
-    artifacts = payload.get("artifacts") if isinstance(payload.get("artifacts"), list) else []
+    except (OSError, json.JSONDecodeError) as error:
+        raise RuntimeError(f"maturity report manifest is unreadable: {manifest_path}") from error
+    entries = payload.get("artifacts") if isinstance(payload, dict) else None
+    if (
+        not isinstance(payload, dict)
+        or payload.get("schemaVersion") != MATURITY_REPORT_ARTIFACT_SCHEMA
+        or payload.get("projectId") != project_id
+        or not isinstance(entries, list)
+        or any(not _valid_maturity_manifest_entry(project_id, project_root, item) for item in entries)
+        or len({str(item.get("artifactId")) for item in entries}) != len(entries)
+    ):
+        raise RuntimeError(f"maturity report manifest has an invalid schema: {manifest_path}")
     return {
         "schemaVersion": MATURITY_REPORT_ARTIFACT_SCHEMA,
         "projectId": project_id,
-        "artifacts": [item for item in artifacts if isinstance(item, dict)],
+        "artifacts": entries,
     }
+
+
+def _maturity_report_manifest_lock(project_segment: str) -> Lock:
+    with _MATURITY_REPORT_MANIFEST_LOCKS_GUARD:
+        return _MATURITY_REPORT_MANIFEST_LOCKS.setdefault(project_segment, Lock())
+
+
+@contextmanager
+def _maturity_report_file_lock(handle, *, platform_name: str | None = None):
+    if (platform_name or os.name) == "nt":
+        import msvcrt
+
+        handle.seek(0, os.SEEK_END)
+        if handle.tell() == 0:
+            handle.write(b"\0")
+            handle.flush()
+        handle.seek(0)
+        msvcrt.locking(handle.fileno(), msvcrt.LK_LOCK, 1)
+        try:
+            yield
+        finally:
+            handle.seek(0)
+            msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+    else:
+        import fcntl
+
+        fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+
+
+@contextmanager
+def _maturity_report_process_lock(project_root: Path):
+    """Serialize manifest updates across backend/App processes sharing one Runtime."""
+
+    project_root.mkdir(parents=True, exist_ok=True)
+    lock_path = _maturity_resolve_within(
+        project_root / "manifest.lock",
+        project_root,
+        label="maturity report lock path",
+    )
+    with lock_path.open("a+b") as handle:
+        with _maturity_report_file_lock(handle):
+            yield
 
 
 def persist_maturity_report_artifact(report: dict[str, Any], payload: dict[str, Any]) -> dict[str, Any]:
@@ -744,14 +957,25 @@ def persist_maturity_report_artifact(report: dict[str, Any], payload: dict[str, 
     if not str(report.get("html") or "").strip() or not str(report.get("markdown") or "").strip():
         raise ValueError("generated report is missing HTML or Markdown content")
 
-    project_segment = _maturity_artifact_segment(project_id, "assessment-project")
+    project_root = _maturity_project_root(project_id)
+    project_segment = project_root.name
     report_id = str(report.get("id") or "maturity-report").strip()
     created_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-    artifact_id = f"{_maturity_artifact_segment(report_id, 'maturity-report')}-{time.strftime('%Y%m%d-%H%M%SZ', time.gmtime())}-{uuid.uuid4().hex[:8]}"
-    project_root = maturity_report_storage_root() / project_segment
-    artifact_root = project_root / "artifacts" / artifact_id
-    artifact_root.mkdir(parents=True, exist_ok=False)
-    relative_path = artifact_root.relative_to(USER_DB_PATH.parent).as_posix()
+    artifact_suffix = f"-{time.strftime('%Y%m%d-%H%M%SZ', time.gmtime())}-{uuid.uuid4().hex[:8]}"
+    artifact_prefix = _maturity_artifact_segment(report_id, "maturity-report")[: 96 - len(artifact_suffix)].rstrip(".-") or "maturity-report"
+    artifact_id = f"{artifact_prefix}{artifact_suffix}"
+    storage_root = maturity_report_storage_root()
+    artifacts_root = _maturity_resolve_within(
+        project_root / "artifacts",
+        project_root,
+        label="maturity report artifacts path",
+    )
+    artifact_root = _maturity_resolve_within(
+        artifacts_root / artifact_id,
+        artifacts_root,
+        label="maturity report artifact path",
+    )
+    relative_path = artifact_root.relative_to(storage_root.parent).as_posix()
     persistence = {
         "schemaVersion": MATURITY_REPORT_ARTIFACT_SCHEMA,
         "mode": "local_user_artifact",
@@ -762,27 +986,40 @@ def persist_maturity_report_artifact(report: dict[str, Any], payload: dict[str, 
         "relativePath": relative_path,
     }
     persisted_report = {**report, "persistence": persistence}
-    (artifact_root / "report.html").write_text(str(report.get("html") or ""), encoding="utf-8")
-    (artifact_root / "report.md").write_text(str(report.get("markdown") or ""), encoding="utf-8")
-    (artifact_root / "report.json").write_text(json.dumps(persisted_report, ensure_ascii=False, indent=2), encoding="utf-8")
-
-    manifest = _read_maturity_report_manifest(project_id)
-    manifest["artifacts"].append(
-        {
-            **persistence,
-            "operation": str(payload.get("operation") or "create"),
-            "generatedAt": str(report.get("generatedAt") or ""),
-            "formal": bool(report.get("formal")),
-            "fileNames": report.get("fileNames") if isinstance(report.get("fileNames"), dict) else {},
-            "htmlBytes": (artifact_root / "report.html").stat().st_size,
-            "markdownBytes": (artifact_root / "report.md").stat().st_size,
-        }
-    )
-    project_root.mkdir(parents=True, exist_ok=True)
-    manifest_path = project_root / "manifest.json"
-    temporary_manifest = project_root / f"manifest-{uuid.uuid4().hex}.tmp"
-    temporary_manifest.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
-    temporary_manifest.replace(manifest_path)
+    with _maturity_report_manifest_lock(project_segment):
+        with _maturity_report_process_lock(project_root):
+            manifest = _read_maturity_report_manifest(project_id)
+            temporary_manifest: Path | None = None
+            artifact_created = False
+            try:
+                artifact_root.mkdir(parents=True, exist_ok=False)
+                artifact_created = True
+                report_html_path = _maturity_resolve_within(artifact_root / "report.html", artifact_root, label="maturity report HTML path")
+                report_markdown_path = _maturity_resolve_within(artifact_root / "report.md", artifact_root, label="maturity report Markdown path")
+                report_json_path = _maturity_resolve_within(artifact_root / "report.json", artifact_root, label="maturity report JSON path")
+                report_html_path.write_text(str(report.get("html") or ""), encoding="utf-8")
+                report_markdown_path.write_text(str(report.get("markdown") or ""), encoding="utf-8")
+                report_json_path.write_text(json.dumps(persisted_report, ensure_ascii=False, indent=2), encoding="utf-8")
+                manifest_entry = {
+                    **persistence,
+                    "operation": str(payload.get("operation") or "create"),
+                    "generatedAt": str(report.get("generatedAt") or ""),
+                    "formal": bool(report.get("formal")),
+                    "fileNames": report.get("fileNames") if isinstance(report.get("fileNames"), dict) else {},
+                    "htmlBytes": report_html_path.stat().st_size,
+                    "markdownBytes": report_markdown_path.stat().st_size,
+                }
+                manifest["artifacts"].append(manifest_entry)
+                manifest_path = project_root / "manifest.json"
+                temporary_manifest = project_root / f"manifest-{uuid.uuid4().hex}.tmp"
+                temporary_manifest.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+                temporary_manifest.replace(manifest_path)
+            except Exception:
+                if temporary_manifest is not None:
+                    temporary_manifest.unlink(missing_ok=True)
+                if artifact_created and artifact_root.exists():
+                    shutil.rmtree(artifact_root)
+                raise
     return persisted_report
 
 
@@ -806,17 +1043,29 @@ def load_maturity_report_artifact(
         raise ValueError("project_id is required")
     manifest = _read_maturity_report_manifest(normalized_project_id)
     artifacts = manifest["artifacts"]
-    project_segment = _maturity_artifact_segment(normalized_project_id, "assessment-project")
-    project_root = (maturity_report_storage_root() / project_segment).resolve()
+    project_root = _maturity_project_root(normalized_project_id)
+    artifacts_root = _maturity_resolve_within(
+        project_root / "artifacts",
+        project_root,
+        label="maturity report artifacts path",
+    )
 
     def read_selected(selected: dict[str, Any]) -> dict[str, Any]:
-        artifact_segment = _maturity_artifact_segment(selected.get("artifactId"), "")
-        if not artifact_segment or artifact_segment != str(selected.get("artifactId") or ""):
+        artifact_segment = str(selected.get("artifactId") or "")
+        if artifact_segment in {".", ".."} or not re.fullmatch(r"[A-Za-z0-9._-]{1,160}", artifact_segment):
             return {"ok": False, "dataState": "invalid", "error": "invalid_report_artifact"}
-        report_path = (project_root / "artifacts" / artifact_segment / "report.json").resolve()
         try:
-            report_path.relative_to(project_root)
-        except ValueError:
+            artifact_root = _maturity_resolve_within(
+                artifacts_root / artifact_segment,
+                artifacts_root,
+                label="maturity report artifact path",
+            )
+            report_path = _maturity_resolve_within(
+                artifact_root / "report.json",
+                artifact_root,
+                label="maturity report JSON path",
+            )
+        except RuntimeError:
             return {"ok": False, "dataState": "invalid", "error": "invalid_report_artifact_path"}
         if not report_path.is_file():
             return {"ok": False, "dataState": "missing", "error": "report_artifact_file_missing"}
@@ -824,7 +1073,25 @@ def load_maturity_report_artifact(
             report = json.loads(report_path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
             return {"ok": False, "dataState": "invalid", "error": "report_artifact_unreadable"}
-        return report if isinstance(report, dict) else {"ok": False, "dataState": "invalid", "error": "report_artifact_invalid"}
+        if not isinstance(report, dict):
+            return {"ok": False, "dataState": "invalid", "error": "report_artifact_invalid"}
+        persistence = report.get("persistence") if isinstance(report.get("persistence"), dict) else {}
+        selected_report_id = str(selected.get("reportId") or "")
+        if (
+            persistence.get("projectId") != normalized_project_id
+            or persistence.get("artifactId") != artifact_segment
+            or persistence.get("reportId") != selected_report_id
+        ):
+            return {"ok": False, "dataState": "invalid", "error": "report_artifact_identity_mismatch"}
+        report_id_value = str(report.get("id") or "")
+        if report_id_value and report_id_value != selected_report_id:
+            return {"ok": False, "dataState": "invalid", "error": "report_artifact_identity_mismatch"}
+        report_model = report.get("reportModel") if isinstance(report.get("reportModel"), dict) else {}
+        report_project = report_model.get("project") if isinstance(report_model.get("project"), dict) else {}
+        report_project_id = str(report_project.get("id") or "")
+        if report_project_id and report_project_id != normalized_project_id:
+            return {"ok": False, "dataState": "invalid", "error": "report_artifact_identity_mismatch"}
+        return report
 
     def matches_result_version(report: dict[str, Any]) -> bool:
         report_model = report.get("reportModel") if isinstance(report.get("reportModel"), dict) else {}
@@ -841,19 +1108,48 @@ def load_maturity_report_artifact(
     selected = None
     if artifact_id:
         selected = next((item for item in reversed(artifacts) if str(item.get("artifactId") or "") == artifact_id), None)
+        if selected and report_id and str(selected.get("reportId") or "") != report_id:
+            return {"ok": False, "dataState": "invalid", "error": "report_artifact_selector_mismatch"}
     elif report_id:
         selected = next((item for item in reversed(artifacts) if str(item.get("reportId") or "") == report_id), None)
-    if selected and (input_hash or result_hash):
+    if artifact_id or report_id:
+        if not selected:
+            return {"ok": False, "dataState": "missing", "error": "report_artifact_not_found"}
+        if not (input_hash or result_hash):
+            return read_selected(selected)
         selected_report = read_selected(selected)
+        if selected_report.get("ok") is not True:
+            return selected_report
         if matches_result_version(selected_report):
             return selected_report
-        selected = None
-    if not selected and (input_hash or result_hash):
+        if input_hash and result_hash:
+            selected_artifact_id = str(selected.get("artifactId") or "")
+            for candidate in reversed(artifacts):
+                if str(candidate.get("artifactId") or "") == selected_artifact_id:
+                    continue
+                candidate_report = read_selected(candidate)
+                report_model = (
+                    candidate_report.get("reportModel")
+                    if isinstance(candidate_report.get("reportModel"), dict)
+                    else {}
+                )
+                candidate_project = (
+                    report_model.get("project")
+                    if isinstance(report_model.get("project"), dict)
+                    else {}
+                )
+                if (
+                    candidate_project.get("id") == normalized_project_id
+                    and matches_result_version(candidate_report)
+                ):
+                    return candidate_report
+        return {"ok": False, "dataState": "missing", "error": "report_artifact_version_mismatch"}
+    if input_hash or result_hash:
         for candidate in reversed(artifacts):
             report = read_selected(candidate)
             if matches_result_version(report):
                 return report
-    elif not selected and artifacts:
+    elif artifacts:
         selected = artifacts[-1]
     if not selected:
         return {"ok": False, "dataState": "missing", "error": "report_artifact_not_found"}
@@ -880,11 +1176,11 @@ def _persist_maturity_workbook_export(
         raise ValueError("generated workbook content is invalid") from exc
     directory = _user_export_project_directory(category, project)
     safe_name = _user_export_segment(business_name, "成熟度评估")
-    output_path = _available_user_export_path(
+    output_path = _write_unique_user_export(
         directory,
         f"{_user_export_timestamp()}_{safe_name}_{suffix_label}.xlsx",
+        workbook_bytes,
     )
-    output_path.write_bytes(workbook_bytes)
     export_result = _user_export_result(output_path, category=category)
     return {**result, **export_result, "export": export_result}
 
@@ -945,11 +1241,11 @@ def export_maturity_report_file(payload: dict[str, Any]) -> dict[str, Any]:
         raise ValueError(f"generated report is missing {report_format} content")
     directory = _user_export_project_directory("maturity-reports", normalized_project)
     project_name = _user_export_segment(normalized_project.get("name"), "成熟度评估项目")
-    output_path = _available_user_export_path(
+    output_path = _write_unique_user_export(
         directory,
         f"{_user_export_timestamp()}_{project_name}_评估报告.{extension}",
+        content,
     )
-    output_path.write_text(content, encoding="utf-8")
     persistence = report.get("persistence") if isinstance(report.get("persistence"), dict) else {}
     return _user_export_result(
         output_path,
@@ -2408,33 +2704,45 @@ def ensure_user_db() -> None:
                     uri=True,
                     check_same_thread=False,
                 )
-                _initialize_user_schema(connection)
-                connection.commit()
+                try:
+                    _initialize_user_schema(connection)
+                    connection.commit()
+                except Exception:
+                    connection.close()
+                    raise
                 _EPHEMERAL_USER_DB_KEEPER = connection
         return
     USER_DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    with sqlite3.connect(USER_DB_PATH) as connection:
+    with closing(sqlite3.connect(USER_DB_PATH)) as connection, connection:
         _initialize_user_schema(connection)
 
 
 def close_ephemeral_user_state() -> None:
-    global _EPHEMERAL_USER_DB_KEEPER
+    global _EPHEMERAL_USER_DB_KEEPER, _EPHEMERAL_USER_ARTIFACTS
     with _EPHEMERAL_USER_DB_LOCK:
         if _EPHEMERAL_USER_DB_KEEPER is not None:
             _EPHEMERAL_USER_DB_KEEPER.close()
             _EPHEMERAL_USER_DB_KEEPER = None
+        if _EPHEMERAL_USER_ARTIFACTS is not None:
+            _EPHEMERAL_USER_ARTIFACTS.cleanup()
+            _EPHEMERAL_USER_ARTIFACTS = None
 
 
-def user_db_connection() -> sqlite3.Connection:
+@contextmanager
+def user_db_connection():
     ensure_user_db()
     connection = (
         sqlite3.connect(_EPHEMERAL_USER_DB_URI, uri=True)
         if USER_STATE_EPHEMERAL
         else sqlite3.connect(USER_DB_PATH)
     )
-    connection.row_factory = sqlite3.Row
-    connection.execute("PRAGMA foreign_keys = ON")
-    return connection
+    try:
+        connection.row_factory = sqlite3.Row
+        connection.execute("PRAGMA foreign_keys = ON")
+        with connection:
+            yield connection
+    finally:
+        connection.close()
 
 
 def runtime_health_payload(*, mcp_runtime_id: str | None = None) -> dict[str, Any]:
@@ -2445,7 +2753,7 @@ def runtime_health_payload(*, mcp_runtime_id: str | None = None) -> dict[str, An
     else:
         try:
             if user_ready:
-                with sqlite3.connect(USER_DB_PATH) as connection:
+                with closing(sqlite3.connect(USER_DB_PATH)) as connection, connection:
                     row = connection.execute("SELECT value FROM user_meta WHERE key='schema_version'").fetchone()
                     schema_version = row[0] if row else None
         except sqlite3.Error:
@@ -2805,20 +3113,19 @@ def save_markdown_export(payload: dict[str, Any]) -> dict[str, Any]:
     if not content.strip():
         raise ValueError("content is required")
     raw_prefix = str(payload.get("filename_prefix") or "sapd-export").strip()
-    safe_prefix = re.sub(r"[^A-Za-z0-9._-]+", "-", raw_prefix).strip(".-")[:64] or "sapd-export"
     category = str(payload.get("category") or "issues").strip()
     directory = _user_export_project_directory(category)
     requested_name = str(payload.get("filename") or "").strip()
-    output_path = _available_user_export_path(
+    output_path = _write_unique_user_export(
         directory,
-        requested_name or f"{safe_prefix}-{time.strftime('%Y%m%d-%H%M%SZ', time.gmtime())}.md",
+        requested_name or f"{raw_prefix}-{time.strftime('%Y%m%d-%H%M%SZ', time.gmtime())}.md",
+        content,
     )
-    output_path.write_text(content, encoding="utf-8")
     return _user_export_result(output_path, category=category, extra={"export_type": "markdown"})
 
 
-def save_user_notes_export() -> dict[str, Any]:
-    payload = user_notes_export_payload()
+def save_user_notes_export(payload: dict[str, Any] | None = None) -> dict[str, Any]:
+    payload = payload or user_notes_export_payload()
     result = save_markdown_export(
         {
             "filename_prefix": "user-notes-export",
@@ -4473,10 +4780,10 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
         self._send_api_forbidden("invalid Host header")
         return False
 
-    def _require_user_write_boundary(self) -> bool:
+    def _require_user_write_boundary(self, *, require_json_content_type: bool = True) -> bool:
         if not self._require_api_host():
             return False
-        if not is_json_content_type(self.headers.get("Content-Type", "")):
+        if require_json_content_type and not is_json_content_type(self.headers.get("Content-Type", "")):
             self._send_json(
                 create_envelope({"error": "unsupported_media_type", "message": "writes require Content-Type: application/json"}),
                 status=415,
@@ -4594,13 +4901,15 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
                 self._send_json(create_envelope(list_user_favorites()))
                 return
             if path == "/api/v1/user/notes/export":
-                payload = user_notes_export_payload()
                 should_download = str((query.get("download") or [""])[0]).strip().lower() in {"1", "true", "yes"}
                 should_save = str((query.get("save") or [""])[0]).strip().lower() in {"1", "true", "yes"}
+                if should_save and not should_download and not self._require_user_write_boundary(require_json_content_type=False):
+                    return
+                payload = user_notes_export_payload()
                 if should_download:
                     self._send_text_download(user_notes_export_markdown(payload), user_notes_export_file_name(), "text/markdown; charset=utf-8")
                 elif should_save:
-                    self._send_json(create_envelope(save_user_notes_export()))
+                    self._send_json(create_envelope(save_user_notes_export(payload)))
                 else:
                     self._send_json(payload)
                 return

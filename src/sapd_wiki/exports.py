@@ -258,43 +258,68 @@ def _source_reference_map(conn: sqlite3.Connection, target_type: str) -> dict[st
     if target_type == "item":
         rows = conn.execute(
             """
-            SELECT refs.target_id, refs.source_sheet, refs.source_row, refs.source_column,
+            SELECT refs.target_id, refs.source_file_id, refs.source_hash,
+                   refs.source_sheet, refs.source_row, refs.source_column,
                    refs.source_cell, refs.raw_value
             FROM source_references AS refs
             JOIN knowledge_items AS item ON item.id = refs.target_id
+            JOIN source_files AS ref_source ON ref_source.id = refs.source_file_id
             WHERE refs.target_type = ?
-              AND (item.source_hash IS NULL OR refs.source_hash = item.source_hash)
-            ORDER BY refs.source_sheet, refs.source_row, refs.source_cell
+              AND refs.source_hash = ref_source.file_hash
+            ORDER BY refs.target_id, refs.source_sheet, refs.source_row,
+                     refs.source_cell, refs.source_column, refs.source_file_id,
+                     refs.source_hash, refs.raw_value
             """,
             (target_type,),
         ).fetchall()
     elif target_type == "relation":
         rows = conn.execute(
             """
-            SELECT refs.target_id, refs.source_sheet, refs.source_row, refs.source_column,
+            SELECT refs.target_id, refs.source_file_id, refs.source_hash,
+                   refs.source_sheet, refs.source_row, refs.source_column,
                    refs.source_cell, refs.raw_value
             FROM source_references AS refs
             JOIN knowledge_relations AS relation ON relation.id = refs.target_id
-            LEFT JOIN source_files AS source_file ON source_file.id = relation.source_file_id
+            JOIN source_files AS ref_source ON ref_source.id = refs.source_file_id
             WHERE refs.target_type = ?
-              AND (source_file.file_hash IS NULL OR refs.source_hash = source_file.file_hash)
-            ORDER BY refs.source_sheet, refs.source_row, refs.source_cell
+              AND refs.source_hash = ref_source.file_hash
+            ORDER BY refs.target_id, refs.source_sheet, refs.source_row,
+                     refs.source_cell, refs.source_column, refs.source_file_id,
+                     refs.source_hash, refs.raw_value
             """,
             (target_type,),
         ).fetchall()
     else:
         rows = conn.execute(
             """
-            SELECT target_id, source_sheet, source_row, source_column, source_cell, raw_value
+            SELECT target_id, source_file_id, source_hash, source_sheet,
+                   source_row, source_column, source_cell, raw_value
             FROM source_references
             WHERE target_type = ?
-            ORDER BY source_sheet, source_row, source_cell
+            ORDER BY target_id, source_sheet, source_row, source_cell,
+                     source_column, source_file_id, source_hash, raw_value
             """,
             (target_type,),
         ).fetchall()
+    seen_by_target: dict[str, set[tuple[Any, ...]]] = {}
     for row in rows:
+        evidence_key = (
+            row["source_file_id"],
+            row["source_hash"],
+            row["source_sheet"],
+            row["source_row"],
+            row["source_column"],
+            row["source_cell"],
+            row["raw_value"],
+        )
+        seen = seen_by_target.setdefault(row["target_id"], set())
+        if evidence_key in seen:
+            continue
+        seen.add(evidence_key)
         refs.setdefault(row["target_id"], []).append(
             {
+                "source_file_id": row["source_file_id"],
+                "source_hash": row["source_hash"],
                 "sheet": row["source_sheet"],
                 "row": row["source_row"],
                 "column": row["source_column"],
@@ -311,6 +336,8 @@ def _combine_sources(*source_lists: list[dict[str, Any]] | None, limit: int = 12
     for source_list in source_lists:
         for source in source_list or []:
             key = (
+                source.get("source_file_id"),
+                source.get("source_hash"),
                 source.get("sheet"),
                 source.get("row"),
                 source.get("column"),
@@ -361,7 +388,7 @@ def _brief_item_sources(item: dict[str, Any], source_refs: dict[str, list[dict[s
     preferred_sheets = (MODULE_CATALOG_SHEET,)
     sheet_rank = {sheet: index for index, sheet in enumerate(preferred_sheets)}
 
-    def sort_key(source: dict[str, Any]) -> tuple[int, int, int, str, str]:
+    def sort_key(source: dict[str, Any]) -> tuple[int, int, int, str, str, str, str, str]:
         sheet = str(source.get("sheet") or "")
         try:
             row = int(source.get("row"))
@@ -373,6 +400,9 @@ def _brief_item_sources(item: dict[str, Any], source_refs: dict[str, list[dict[s
             row,
             str(source.get("cell") or ""),
             str(source.get("column") or ""),
+            str(source.get("source_file_id") or ""),
+            str(source.get("source_hash") or ""),
+            str(source.get("raw_value") or ""),
         )
 
     return _combine_sources(sorted(sources, key=sort_key), limit=limit)

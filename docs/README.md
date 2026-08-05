@@ -81,6 +81,7 @@ implementation-source 的规格。Stitch 输出、截图和旧 brief 只是参�
 
 ### macOS / Windows 打包和发布
 
+- [`09-delivery/packaging-directory-map.md`](09-delivery/packaging-directory-map.md)
 - [`09-delivery/desktop-packaging-runbook.md`](09-delivery/desktop-packaging-runbook.md)
 - [`09-delivery/mac-dmg-browser-parity-contract.md`](09-delivery/mac-dmg-browser-parity-contract.md)
 - [`09-delivery/release-acceptance-matrix-0.1.md`](09-delivery/release-acceptance-matrix-0.1.md)

@@ -1,16 +1,27 @@
 from __future__ import annotations
 
 import hashlib
+import importlib.util
 import json
 import sqlite3
 import subprocess
 import sys
 import tempfile
 import unittest
+from contextlib import closing
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
+_BUILD_BUNDLE_SPEC = importlib.util.spec_from_file_location(
+    "sapd_test_build_zip_bundle",
+    ROOT / "scripts/build_zip_bundle.py",
+)
+if _BUILD_BUNDLE_SPEC is None or _BUILD_BUNDLE_SPEC.loader is None:
+    raise RuntimeError("failed to load build_zip_bundle.py")
+_BUILD_BUNDLE_MODULE = importlib.util.module_from_spec(_BUILD_BUNDLE_SPEC)
+_BUILD_BUNDLE_SPEC.loader.exec_module(_BUILD_BUNDLE_MODULE)
+copy_maturity_report_seed = _BUILD_BUNDLE_MODULE.copy_maturity_report_seed
+
 BUILD = ROOT / "scripts/build_zip_bundle.py"
 CHECK = ROOT / "scripts/check_bundle_runtime.py"
 
@@ -43,10 +54,20 @@ class ContentOfflineBundleT5Tests(unittest.TestCase):
         (self.frontend / "assets/guides/maturity-model-usage.html").write_bytes(
             original
         )
+        (self.frontend / "generated").mkdir()
+        (self.frontend / "generated/branch-office.drawio").write_text(
+            "editable source",
+            encoding="utf-8",
+        )
+        (self.frontend / "generated/source-deck.pptx").write_bytes(b"editable deck")
+        (self.frontend / "generated/branch-office.drawio.svg").write_text(
+            "<svg></svg>",
+            encoding="utf-8",
+        )
         self.base = self.root / "candidate-query.sqlite3"
         self.asset = self.root / "candidate-assets.sqlite3"
         self.base.write_bytes(b"query-database-test")
-        with sqlite3.connect(self.asset) as connection:
+        with closing(sqlite3.connect(self.asset)) as connection, connection:
             connection.executescript(
                 (ROOT / "config/sql/content-asset-schema-v1.sql").read_text(
                     encoding="utf-8"
@@ -122,6 +143,14 @@ class ContentOfflineBundleT5Tests(unittest.TestCase):
             manifest["content_asset_database"]["sha256"],
             r"^[0-9a-f]{64}$",
         )
+        self.assertRegex(manifest["frontend"]["source_sha256"], r"^[0-9a-f]{64}$")
+        self.assertRegex(manifest["frontend"]["runtime_sha256"], r"^[0-9a-f]{64}$")
+        self.assertEqual(manifest["frontend"]["source_file_count"], 5)
+        self.assertEqual(manifest["frontend"]["runtime_file_count"], 4)
+        self.assertNotEqual(
+            manifest["frontend"]["source_sha256"],
+            manifest["frontend"]["runtime_sha256"],
+        )
         config = json.loads(
             (bundle / "config/app-config.json").read_text(encoding="utf-8")
         )
@@ -148,6 +177,13 @@ class ContentOfflineBundleT5Tests(unittest.TestCase):
             manifest["package"]["frontend_original_assets_removed"],
             ["assets/guides/maturity-model-usage.html"],
         )
+        self.assertEqual(
+            manifest["package"]["frontend_source_artifacts_excluded"],
+            ["generated/branch-office.drawio", "generated/source-deck.pptx"],
+        )
+        self.assertFalse((bundle / "app/frontend-dist/generated/branch-office.drawio").exists())
+        self.assertFalse((bundle / "app/frontend-dist/generated/source-deck.pptx").exists())
+        self.assertTrue((bundle / "app/frontend-dist/generated/branch-office.drawio.svg").is_file())
 
         checked = subprocess.run(
             [sys.executable, str(CHECK), str(bundle), "--json"],
@@ -162,6 +198,31 @@ class ContentOfflineBundleT5Tests(unittest.TestCase):
         self.assertTrue(checks["content_asset_db_exists"])
         self.assertTrue(checks["content_asset_db_sha256_matches"])
         self.assertTrue(checks["config_content_asset_db_path_set"])
+
+    def test_bundle_rejects_an_unmatched_required_frontend_asset_rewrite(self) -> None:
+        (self.frontend / "components/AppShell.js").write_text(
+            'href: "./assets/guides/renamed-maturity-guide.html"',
+            encoding="utf-8",
+        )
+
+        with self.assertRaises(subprocess.CalledProcessError) as captured:
+            self.build()
+
+        self.assertIn(
+            "frontend asset rewrite expected one match",
+            captured.exception.stderr,
+        )
+
+    def test_bundle_rejects_a_missing_required_frontend_asset_rewrite_owner(self) -> None:
+        (self.frontend / "components/AppShell.js").unlink()
+
+        with self.assertRaises(subprocess.CalledProcessError) as captured:
+            self.build()
+
+        self.assertIn(
+            "required frontend asset rewrite owner is missing",
+            captured.exception.stderr,
+        )
 
     def test_bundle_check_rejects_tampered_asset_database(self) -> None:
         bundle = self.build()
@@ -182,6 +243,122 @@ class ContentOfflineBundleT5Tests(unittest.TestCase):
             if item["name"] == "content_asset_db_sha256_matches"
         )
         self.assertFalse(check["ok"])
+
+    def test_bundle_rejects_frontend_symbolic_links_before_copying(self) -> None:
+        external_file = self.root / "external.txt"
+        external_file.write_text("must stay outside", encoding="utf-8")
+        external_dir = self.root / "external-dir"
+        external_dir.mkdir()
+        (external_dir / "secret.txt").write_text("must stay outside", encoding="utf-8")
+        cases = {
+            "file": (self.frontend / "linked-file.txt", external_file),
+            "directory": (self.frontend / "linked-directory", external_dir),
+            "broken": (self.frontend / "broken-link", self.root / "missing-target"),
+        }
+        for label, (link_path, target) in cases.items():
+            with self.subTest(label=label):
+                link_path.symlink_to(target, target_is_directory=label == "directory")
+                with self.assertRaises(subprocess.CalledProcessError) as raised:
+                    self.build()
+                self.assertIn("must not contain symbolic links", raised.exception.stderr)
+                link_path.unlink()
+
+    def _report_seed(self) -> tuple[Path, Path, str, str]:
+        source = self.root / "report-seed"
+        target = self.root / "report-target"
+        project_id = "seed-project"
+        artifact_id = "seed-artifact"
+        artifact = source / project_id / "artifacts" / artifact_id
+        artifact.mkdir(parents=True)
+        persistence = {
+            "schemaVersion": "sapd-maturity-report-artifact-v1",
+            "projectId": project_id,
+            "reportId": "seed-report",
+            "artifactId": artifact_id,
+            "createdAt": "2026-08-05T00:00:00Z",
+            "relativePath": f"maturity-reports/{project_id}/artifacts/{artifact_id}",
+        }
+        (artifact / "report.json").write_text(
+            json.dumps({"id": "seed-report", "ok": True, "persistence": persistence}),
+            encoding="utf-8",
+        )
+        (artifact / "report.html").write_text("<p>seed</p>", encoding="utf-8")
+        (artifact / "report.md").write_text("seed", encoding="utf-8")
+        (source / project_id / "manifest.json").write_text(
+            json.dumps(
+                {
+                    "schemaVersion": "sapd-maturity-report-artifact-v1",
+                    "projectId": project_id,
+                    "artifacts": [persistence],
+                }
+            ),
+            encoding="utf-8",
+        )
+        return source, target, project_id, artifact_id
+
+    def test_report_seed_requires_closed_project_artifact_and_report_identity(self) -> None:
+        source, target, project_id, artifact_id = self._report_seed()
+        manifest_path = source / project_id / "manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        invalid_cases = (
+            {**manifest, "projectId": "another-project"},
+            {**manifest, "artifacts": [{**manifest["artifacts"][0], "reportId": "another-report"}]},
+            {**manifest, "artifacts": [{**manifest["artifacts"][0], "relativePath": "outside"}]},
+        )
+        for invalid in invalid_cases:
+            with self.subTest(invalid=invalid):
+                manifest_path.write_text(json.dumps(invalid), encoding="utf-8")
+                with self.assertRaises(ValueError):
+                    copy_maturity_report_seed(source, target, [f"{project_id}={artifact_id}"])
+                self.assertFalse((target / project_id / "manifest.json").exists())
+        manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+        report_path = source / project_id / "artifacts" / artifact_id / "report.json"
+        report = json.loads(report_path.read_text(encoding="utf-8"))
+        report["persistence"]["artifactId"] = "another-artifact"
+        report_path.write_text(json.dumps(report), encoding="utf-8")
+        with self.assertRaises(ValueError):
+            copy_maturity_report_seed(source, target, [f"{project_id}={artifact_id}"])
+
+    def test_report_seed_copies_one_valid_closed_identity(self) -> None:
+        source, target, project_id, artifact_id = self._report_seed()
+        copy_maturity_report_seed(source, target, [f"{project_id}={artifact_id}"])
+        copied_manifest = json.loads(
+            (target / project_id / "manifest.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(copied_manifest["projectId"], project_id)
+        self.assertEqual(len(copied_manifest["artifacts"]), 1)
+        self.assertEqual(copied_manifest["artifacts"][0]["artifactId"], artifact_id)
+        copied_report = json.loads(
+            (target / project_id / "artifacts" / artifact_id / "report.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(copied_report["persistence"], copied_manifest["artifacts"][0])
+
+    def test_whole_report_seed_validates_identity_before_copying(self) -> None:
+        source, target, project_id, _artifact_id = self._report_seed()
+        manifest_path = source / project_id / "manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest_path.write_text(
+            json.dumps({**manifest, "projectId": "another-project"}),
+            encoding="utf-8",
+        )
+        with self.assertRaises(ValueError):
+            copy_maturity_report_seed(source, target, [])
+        self.assertFalse(target.exists())
+
+        manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+        copy_maturity_report_seed(source, target, [])
+        self.assertTrue((target / project_id / "manifest.json").is_file())
+
+    def test_report_seed_rejects_symlink_in_artifact_read_chain(self) -> None:
+        source, target, project_id, artifact_id = self._report_seed()
+        report_path = source / project_id / "artifacts" / artifact_id / "report.json"
+        outside = self.root / "outside-report.json"
+        outside.write_bytes(report_path.read_bytes())
+        report_path.unlink()
+        report_path.symlink_to(outside)
+        with self.assertRaisesRegex(ValueError, "symbolic link"):
+            copy_maturity_report_seed(source, target, [f"{project_id}={artifact_id}"])
+        self.assertFalse((target / project_id / "manifest.json").exists())
 
 
 if __name__ == "__main__":

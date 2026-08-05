@@ -194,8 +194,13 @@
   };
 
   const cache = new Map();
-  let apiUnavailable = false;
+  const apiFailureBackoff = new Map();
+  const API_FAILURE_BACKOFF_MS = 1000;
+  const API_FAILURE_BACKOFF_MAX_ENTRIES = 64;
   let runtimeHealthCache = null;
+  let runtimeHealthPromise = null;
+  let runtimeHealthRefreshPromise = null;
+  let runtimeHealthGeneration = 0;
   const list = (value) => (Array.isArray(value) ? value : []);
   const text = (value) => (value == null ? "" : String(value));
   const TECHNICAL_MEASURES_FIELD = "security_technical_measures";
@@ -410,20 +415,42 @@
     return data;
   }
 
+  function apiRequestCoolingDown(path) {
+    const retryAt = Number(apiFailureBackoff.get(path) || 0);
+    if (!retryAt || retryAt <= Date.now()) {
+      apiFailureBackoff.delete(path);
+      return false;
+    }
+    return true;
+  }
+
+  function recordApiFailure(path) {
+    const now = Date.now();
+    for (const [key, retryAt] of apiFailureBackoff) {
+      if (Number(retryAt) <= now) apiFailureBackoff.delete(key);
+    }
+    apiFailureBackoff.delete(path);
+    while (apiFailureBackoff.size >= API_FAILURE_BACKOFF_MAX_ENTRIES) {
+      apiFailureBackoff.delete(apiFailureBackoff.keys().next().value);
+    }
+    apiFailureBackoff.set(path, now + API_FAILURE_BACKOFF_MS);
+  }
+
   async function fetchApiPackage(name) {
-    if (apiUnavailable) return null;
     const path = API_PACKAGE_PATHS[name];
+    if (apiRequestCoolingDown(path)) return null;
     const url = path ? apiUrl(path) : "";
     if (!url) return null;
     try {
       const response = await fetch(url, { cache: "no-store" });
       if (!response.ok) {
-        if (response.status === 404) apiUnavailable = true;
+        recordApiFailure(path);
         return null;
       }
+      apiFailureBackoff.delete(path);
       return unwrapEnvelope(await response.json());
     } catch {
-      apiUnavailable = true;
+      recordApiFailure(path);
       return null;
     }
   }
@@ -447,39 +474,65 @@
   }
 
   async function fetchApiData(path, options = {}) {
-    if (apiUnavailable) return null;
+    if (apiRequestCoolingDown(path)) return null;
     const url = path ? apiUrl(path) : "";
     if (!url) return null;
     try {
       const response = await fetchWithTimeout(url, { cache: "no-store" }, options.timeoutMs);
       if (!response.ok) {
-        if (response.status === 404) return null;
-        apiUnavailable = true;
+        recordApiFailure(path);
         return null;
       }
+      apiFailureBackoff.delete(path);
       return unwrapEnvelope(await response.json());
     } catch (error) {
-      if (error?.name === "AbortError") return null;
-      apiUnavailable = true;
+      recordApiFailure(path);
       return null;
     }
   }
 
   async function fetchRuntimeHealth() {
     if (runtimeHealthCache) return runtimeHealthCache;
+    if (runtimeHealthPromise) return runtimeHealthPromise;
     const url = apiUrl(API_PATHS.health);
     if (!url) {
-      runtimeHealthCache = { status: "offline", auth: { writes_require_token: false }, user_database: { ready: false } };
-      return runtimeHealthCache;
+      return { status: "offline", auth: { writes_require_token: false }, user_database: { ready: false } };
     }
+    const generation = runtimeHealthGeneration;
+    const request = (async () => {
+      try {
+        const response = await fetch(url, { cache: "no-store" });
+        if (!response.ok) throw new Error(`health ${response.status}`);
+        return normalizeUserPayload(await response.json());
+      } catch {
+        return { status: "offline", auth: { writes_require_token: false }, user_database: { ready: false }, data_state: "api_unavailable" };
+      }
+    })();
+    runtimeHealthPromise = request;
     try {
-      const response = await fetch(url, { cache: "no-store" });
-      if (!response.ok) throw new Error(`health ${response.status}`);
-      runtimeHealthCache = normalizeUserPayload(await response.json());
-      return runtimeHealthCache;
-    } catch {
-      runtimeHealthCache = { status: "offline", auth: { writes_require_token: false }, user_database: { ready: false }, data_state: "api_unavailable" };
-      return runtimeHealthCache;
+      const health = await request;
+      if (generation === runtimeHealthGeneration && health.data_state !== "api_unavailable") runtimeHealthCache = health;
+      return health;
+    } finally {
+      if (runtimeHealthPromise === request) runtimeHealthPromise = null;
+    }
+  }
+
+  function invalidateRuntimeHealth() {
+    runtimeHealthGeneration += 1;
+    runtimeHealthCache = null;
+    runtimeHealthPromise = null;
+  }
+
+  async function refreshRuntimeHealth() {
+    if (runtimeHealthRefreshPromise) return runtimeHealthRefreshPromise;
+    invalidateRuntimeHealth();
+    const refresh = fetchRuntimeHealth();
+    runtimeHealthRefreshPromise = refresh;
+    try {
+      return await refresh;
+    } finally {
+      if (runtimeHealthRefreshPromise === refresh) runtimeHealthRefreshPromise = null;
     }
   }
 
@@ -526,8 +579,8 @@
       const response = await fetch(url, { cache: "no-store", ...fetchOptions });
       const payload = response.headers.get("Content-Type")?.includes("application/json") ? await response.json() : {};
       const data = normalizeUserPayload(payload);
-      if (!response.ok && response.status === 403 && isUserWriteMethod(fetchOptions.method) && !sapdAuthRetry) {
-        runtimeHealthCache = null;
+      if (!response.ok && [401, 403].includes(response.status) && isUserWriteMethod(fetchOptions.method) && !sapdAuthRetry) {
+        await refreshRuntimeHealth();
         const retryHeaders = {
           ...headersToObject(fetchOptions.headers),
           ...(await userWriteHeaders()),
@@ -646,7 +699,7 @@
       const payload = response.headers.get("Content-Type")?.includes("application/json") ? await response.json() : null;
       assertMcpResponseFieldPolicy(payload);
       if (!response.ok && (response.status === 401 || response.status === 403) && !sapdAuthRetry) {
-        runtimeHealthCache = null;
+        await refreshRuntimeHealth();
         return fetchMcpControlApi(path, {
           ...requestOptions,
           method,
@@ -1628,7 +1681,8 @@
       const packageName = text(name).trim();
       if (!packageName || !Object.prototype.hasOwnProperty.call(DATA_PATHS, packageName)) return false;
       cache.delete(packageName);
-      apiUnavailable = false;
+      const apiPath = API_PACKAGE_PATHS[packageName];
+      if (apiPath) apiFailureBackoff.delete(apiPath);
       return true;
     },
 
@@ -1714,7 +1768,15 @@
       if (!url) return { ok: false, data_state: "api_unavailable", error: "当前运行模式未提供 Issue 导出服务" };
       try {
         const accept = shouldSave ? "application/json" : "text/markdown";
-        const response = await fetch(url, { cache: "no-store", headers: { Accept: accept } });
+        const headers = shouldSave ? await userWriteHeaders() : {};
+        headers.Accept = accept;
+        let response = await fetch(url, { cache: "no-store", headers });
+        if (shouldSave && [401, 403].includes(response.status)) {
+          await refreshRuntimeHealth();
+          const retryHeaders = await userWriteHeaders();
+          retryHeaders.Accept = accept;
+          response = await fetch(url, { cache: "no-store", headers: retryHeaders });
+        }
         if (!response.ok) return { ok: false, data_state: "api_error", error: `HTTP ${response.status}` };
         if (shouldSave) {
           return normalizeUserPayload(await response.json());

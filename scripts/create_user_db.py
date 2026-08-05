@@ -11,6 +11,7 @@ import argparse
 import json
 import sqlite3
 import uuid
+from contextlib import closing
 from pathlib import Path
 
 
@@ -293,7 +294,7 @@ def read_existing_schema_version(connection: sqlite3.Connection) -> str | None:
 
 def initialize_user_db(db_path: Path, schema_version: str, *, record_change_log: bool = True) -> None:
     db_path.parent.mkdir(parents=True, exist_ok=True)
-    with sqlite3.connect(db_path) as connection:
+    with closing(sqlite3.connect(db_path)) as connection, connection:
         previous_schema_version = read_existing_schema_version(connection)
         connection.executescript(SCHEMA_SQL)
         connection.executescript(SCHEMA_V03_SQL)

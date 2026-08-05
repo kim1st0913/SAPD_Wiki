@@ -25,9 +25,10 @@ import threading
 import time
 import uuid
 import webbrowser
+from contextlib import closing, contextmanager
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterator
 from urllib.parse import parse_qs, unquote, urlparse
 
 from check_bundle_runtime import check_bundle, is_loopback_host, load_json, safe_bundle_child, sha256_file
@@ -409,6 +410,13 @@ def is_allowed_host_header(value: str, port: int) -> bool:
     return parsed_port == port and is_loopback_host(parsed.hostname or "")
 
 
+def sanitize_user_export_file_name(value: Any, fallback: str = "sapd-export") -> str:
+    helper = getattr(projection_api, "sanitize_user_export_file_name", None)
+    if not callable(helper):
+        raise RuntimeError("shared user export filename sanitizer is unavailable")
+    return str(helper(value, fallback))
+
+
 class RuntimeLogger:
     def __init__(self, log_path: Path) -> None:
         self.log_path = log_path
@@ -478,7 +486,15 @@ class BundleRuntime:
         allowed = {"maturity-reports", "maturity-scores", "maturity-templates", "issues", "diagnostics"}
         if normalized not in allowed:
             raise ValueError("unsupported export category")
+        export_root = self.export_dir.resolve()
         directory = self.export_dir / normalized
+        resolved_directory = directory.resolve()
+        try:
+            resolved_directory.relative_to(export_root)
+        except ValueError as error:
+            raise RuntimeError(
+                f"export category path escapes configured export root: {resolved_directory}"
+            ) from error
         directory.mkdir(parents=True, exist_ok=True)
         return directory
 
@@ -495,7 +511,7 @@ class BundleRuntime:
 
     def ensure_user_schema_version(self) -> None:
         user_uri = self.user_db.resolve().as_uri() + "?mode=rwc"
-        with sqlite3.connect(user_uri, uri=True) as connection:
+        with closing(sqlite3.connect(user_uri, uri=True)) as connection, connection:
             connection.execute(
                 """
                 CREATE TABLE IF NOT EXISTS user_meta (
@@ -534,7 +550,7 @@ class BundleRuntime:
 
     def ensure_user_note_columns(self) -> None:
         user_uri = self.user_db.resolve().as_uri() + "?mode=rwc"
-        with sqlite3.connect(user_uri, uri=True) as connection:
+        with closing(sqlite3.connect(user_uri, uri=True)) as connection, connection:
             rows = connection.execute("PRAGMA table_info(user_notes)").fetchall()
             existing = {row[1] for row in rows}
             for column, definition in USER_NOTE_COLUMNS.items():
@@ -545,40 +561,50 @@ class BundleRuntime:
 
     def ensure_user_data_basket_tables(self) -> None:
         user_uri = self.user_db.resolve().as_uri() + "?mode=rwc"
-        with sqlite3.connect(user_uri, uri=True) as connection:
+        with closing(sqlite3.connect(user_uri, uri=True)) as connection, connection:
             connection.execute("PRAGMA foreign_keys = ON")
             for statement in USER_DATA_BASKET_TABLES:
                 connection.execute(statement)
 
     def ensure_user_workspace_tables(self) -> None:
         user_uri = self.user_db.resolve().as_uri() + "?mode=rwc"
-        with sqlite3.connect(user_uri, uri=True) as connection:
+        with closing(sqlite3.connect(user_uri, uri=True)) as connection, connection:
             connection.execute("PRAGMA foreign_keys = ON")
             for statement in USER_WORKSPACE_TABLES:
                 connection.execute(statement)
 
     def ensure_user_export_tables(self) -> None:
         user_uri = self.user_db.resolve().as_uri() + "?mode=rwc"
-        with sqlite3.connect(user_uri, uri=True) as connection:
+        with closing(sqlite3.connect(user_uri, uri=True)) as connection, connection:
             connection.execute("PRAGMA foreign_keys = ON")
             for statement in USER_EXPORT_TABLES:
                 connection.execute(statement)
 
-    def open_connection(self) -> sqlite3.Connection:
+    @contextmanager
+    def open_connection(self) -> Iterator[sqlite3.Connection]:
         user_uri = self.user_db.resolve().as_uri() + "?mode=rwc"
         base_uri = self.base_db.resolve().as_uri() + "?mode=ro&immutable=1"
         connection = sqlite3.connect(user_uri, uri=True)
-        connection.row_factory = sqlite3.Row
-        connection.execute("PRAGMA foreign_keys = ON")
-        connection.execute("ATTACH DATABASE ? AS base", (base_uri,))
-        return connection
+        try:
+            connection.row_factory = sqlite3.Row
+            connection.execute("PRAGMA foreign_keys = ON")
+            connection.execute("ATTACH DATABASE ? AS base", (base_uri,))
+            with connection:
+                yield connection
+        finally:
+            connection.close()
 
-    def open_user_connection(self) -> sqlite3.Connection:
+    @contextmanager
+    def open_user_connection(self) -> Iterator[sqlite3.Connection]:
         user_uri = self.user_db.resolve().as_uri() + "?mode=rwc"
         connection = sqlite3.connect(user_uri, uri=True)
-        connection.row_factory = sqlite3.Row
-        connection.execute("PRAGMA foreign_keys = ON")
-        return connection
+        try:
+            connection.row_factory = sqlite3.Row
+            connection.execute("PRAGMA foreign_keys = ON")
+            with connection:
+                yield connection
+        finally:
+            connection.close()
 
     def base_tables(self) -> list[str]:
         with self.open_connection() as connection:
@@ -787,16 +813,46 @@ class BundleRuntime:
     def user_notes_export_file_name(self) -> str:
         return f"user-notes-export-{time.strftime('%Y%m%d-%H%M%SZ', time.gmtime())}.md"
 
-    def export_user_notes_file(self) -> Path:
-        payload = self.user_notes_export_payload()
-        output_path = self.export_category_dir("issues") / self.user_notes_export_file_name()
-        output_path.write_text(user_notes_export_markdown(payload), encoding="utf-8")
+    @staticmethod
+    def write_unique_text_export(requested: Path, content: str) -> Path:
+        output_path = requested
+        for index in range(1, 10000):
+            if index > 1:
+                output_path = requested.with_name(f"{requested.stem}-{index}{requested.suffix}")
+            try:
+                with output_path.open("x", encoding="utf-8") as handle:
+                    handle.write(content)
+                break
+            except FileExistsError:
+                continue
+            except Exception:
+                output_path.unlink(missing_ok=True)
+                raise
+        else:
+            raise RuntimeError("unable to allocate a unique export file")
+        return output_path
+
+    @staticmethod
+    def write_text_atomically(output_path: Path, content: str) -> None:
+        temporary = output_path.with_name(f".{output_path.name}.{uuid.uuid4().hex}.tmp")
+        try:
+            temporary.write_text(content, encoding="utf-8")
+            temporary.replace(output_path)
+        finally:
+            temporary.unlink(missing_ok=True)
+
+    def export_user_notes_file(self, payload: dict[str, Any] | None = None) -> Path:
+        payload = payload or self.user_notes_export_payload()
+        output_dir = self.export_category_dir("issues")
+        requested = output_dir / self.user_notes_export_file_name()
+        content = user_notes_export_markdown(payload)
+        output_path = self.write_unique_text_export(requested, content)
         self.logger.write("info", "user notes exported", output_path=str(output_path), note_count=payload["summary"]["note_count"])
         return output_path
 
-    def export_user_notes_file_result(self) -> dict[str, Any]:
-        output_path = self.export_user_notes_file()
-        payload = self.user_notes_export_payload()
+    def export_user_notes_file_result(self, payload: dict[str, Any] | None = None) -> dict[str, Any]:
+        payload = payload or self.user_notes_export_payload()
+        output_path = self.export_user_notes_file(payload)
         return {
             "ok": True,
             "data_state": "ready",
@@ -814,14 +870,13 @@ class BundleRuntime:
         if not content.strip():
             raise ValueError("content is required")
         raw_prefix = str(payload.get("filename_prefix") or "sapd-export").strip()
-        safe_prefix = re.sub(r"[^A-Za-z0-9._-]+", "-", raw_prefix).strip(".-")[:64] or "sapd-export"
         category = str(payload.get("category") or "issues").strip()
-        requested_name = Path(str(payload.get("filename") or "").strip()).name
-        file_name = requested_name or f"{safe_prefix}-{time.strftime('%Y%m%d-%H%M%SZ', time.gmtime())}.md"
-        output_path = self.export_category_dir(category) / file_name
-        if output_path.exists():
-            output_path = output_path.with_name(f"{output_path.stem}-{uuid.uuid4().hex[:6]}{output_path.suffix}")
-        output_path.write_text(content, encoding="utf-8")
+        requested_name = str(payload.get("filename") or "").strip()
+        file_name = sanitize_user_export_file_name(
+            requested_name or f"{raw_prefix}-{time.strftime('%Y%m%d-%H%M%SZ', time.gmtime())}.md"
+        )
+        requested = self.export_category_dir(category) / file_name
+        output_path = self.write_unique_text_export(requested, content)
         self.logger.write("info", "markdown export saved", output_path=str(output_path), byte_count=output_path.stat().st_size)
         return {
             "ok": True,
@@ -1702,7 +1757,10 @@ class BundleRuntime:
             }
             file_name = f"user-export-{job_id}.json"
             output_path = self.export_dir / file_name
-            output_path.write_text(json.dumps(output, ensure_ascii=False, indent=2), encoding="utf-8")
+            self.write_text_atomically(
+                output_path,
+                json.dumps(output, ensure_ascii=False, indent=2),
+            )
             relative_output_path = f"data/exports/{file_name}"
             connection.execute(
                 """
@@ -2019,6 +2077,11 @@ def build_handler(
         def do_GET(self) -> None:
             parsed = urlparse(self.path)
             try:
+                if parsed.path.startswith("/api/v1/user/"):
+                    port = int(state["port"])
+                    if not is_allowed_host_header(self.headers.get("Host", ""), port):
+                        self.send_json(403, {"ok": False, "error": "invalid Host header"})
+                        return
                 if parsed.path.startswith("/api/v1/mcp/"):
                     self.handle_mcp_control("GET", parsed)
                     return
@@ -2130,6 +2193,8 @@ def build_handler(
                                     project_id=(params.get("project_id") or params.get("projectId") or [""])[0],
                                     artifact_id=(params.get("artifact_id") or params.get("artifactId") or [""])[0],
                                     report_id=(params.get("report_id") or params.get("reportId") or [""])[0],
+                                    input_hash=(params.get("input_hash") or params.get("inputHash") or [""])[0],
+                                    result_hash=(params.get("result_hash") or params.get("resultHash") or [""])[0],
                                 )
                             ),
                         )
@@ -2176,13 +2241,19 @@ def build_handler(
                         self.send_json(403, {"ok": False, "error": "invalid Host header"})
                         return
                     params = parse_qs(parsed.query)
-                    payload = runtime.user_notes_export_payload()
                     should_download = str((params.get("download") or [""])[0]).strip().lower() in {"1", "true", "yes"}
                     should_save = str((params.get("save") or [""])[0]).strip().lower() in {"1", "true", "yes"}
+                    if should_save and not should_download:
+                        auth_error = self.validate_write_request(require_json_content_type=False)
+                        if auth_error:
+                            status, message = auth_error
+                            self.send_json(status, {"ok": False, "error": message})
+                            return
+                    payload = runtime.user_notes_export_payload()
                     if should_download:
                         self.send_text_download(200, user_notes_export_markdown(payload), runtime.user_notes_export_file_name(), "text/markdown; charset=utf-8")
                     elif should_save:
-                        self.send_json(200, runtime.export_user_notes_file_result())
+                        self.send_json(200, runtime.export_user_notes_file_result(payload))
                     else:
                         self.send_json(200, payload)
                     return
@@ -2238,8 +2309,8 @@ def build_handler(
             self.send_header("Cache-Control", "no-store")
             self.end_headers()
 
-        def validate_write_request(self) -> tuple[int, str] | None:
-            if not is_json_content_type(self.headers.get("Content-Type", "")):
+        def validate_write_request(self, *, require_json_content_type: bool = True) -> tuple[int, str] | None:
+            if require_json_content_type and not is_json_content_type(self.headers.get("Content-Type", "")):
                 return 415, "writes require Content-Type: application/json"
             token = self.headers.get(AUTH_HEADER, "").strip()
             if not token or not secrets.compare_digest(token, session_token):

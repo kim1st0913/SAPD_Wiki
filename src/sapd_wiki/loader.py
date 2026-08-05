@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import hashlib
 import json
+import re
 import sqlite3
 import uuid
 from dataclasses import dataclass
@@ -49,6 +51,75 @@ def _dumps(value: Any) -> str:
     return json.dumps(value, ensure_ascii=False, sort_keys=True)
 
 
+def _stable_slug(raw: Any, fallback_prefix: str) -> str:
+    value = str(raw or "").strip()
+    if (
+        value
+        and re.match(r"^[A-Za-z0-9][A-Za-z0-9._:#/-]*$", value)
+        and not re.search(r"\s", value)
+    ):
+        return value
+    digest = hashlib.sha256((value or fallback_prefix).encode("utf-8")).hexdigest()[:16]
+    prefix = re.sub(
+        r"[^A-Za-z0-9._:#/-]+",
+        "-",
+        str(fallback_prefix or "object"),
+    ).strip("-") or "object"
+    return f"{prefix}:hash:{digest}"
+
+
+def _public_id(prefix: str, stable_ref: str) -> str:
+    digest = hashlib.sha256(stable_ref.encode("utf-8")).hexdigest()[:16]
+    return f"{prefix}_{digest}"
+
+
+def _stable_identity_enabled(conn: sqlite3.Connection, table: str) -> bool:
+    required = {"stable_key", "stable_ref", "public_id"}
+    columns = {
+        row["name"]
+        for row in conn.execute(f"PRAGMA table_info({table})").fetchall()
+    }
+    available = required & columns
+    if not available:
+        return False
+    if available != required:
+        missing = ", ".join(sorted(required - available))
+        raise ValueError(f"STABLE_IDENTITY_SCHEMA_INCOMPLETE: {table} missing {missing}")
+    return True
+
+
+def _item_stable_identity(row: sqlite3.Row, metadata: dict[str, Any]) -> tuple[str, str, str]:
+    item_type = row["type"] or "knowledge_item"
+    raw_key = (
+        metadata.get("stable_key")
+        or metadata.get("object_key")
+        or row["code"]
+        or row["title"]
+        or row["id"]
+    )
+    stable_key = _stable_slug(raw_key, item_type)
+    stable_ref = f"base:{item_type}:{stable_key}"
+    return stable_key, stable_ref, _public_id("ki", stable_ref)
+
+
+def _relation_stable_identity(
+    row: sqlite3.Row,
+    metadata: dict[str, Any],
+    *,
+    source_item_id: str,
+    target_item_id: str,
+) -> tuple[str, str, str]:
+    relation_type = row["relation_type"] or "relation"
+    raw_key = (
+        metadata.get("stable_key")
+        or metadata.get("relation_key")
+        or f"{source_item_id}:{relation_type}:{target_item_id}"
+    )
+    stable_key = _stable_slug(raw_key, relation_type)
+    stable_ref = f"base_relation:{relation_type}:{stable_key}"
+    return stable_key, stable_ref, _public_id("kr", stable_ref)
+
+
 def _item_key_from_row(row: sqlite3.Row) -> str:
     metadata = _loads(row["metadata_json"], {})
     return metadata.get("object_key") or "::".join([row["type"], row["code"] or "", row["title"]])
@@ -76,6 +147,19 @@ def _source_sheets_from_staging(rows: list[sqlite3.Row]) -> set[str]:
             sheet = source.get("source_sheet")
             if sheet:
                 sheets.add(sheet)
+    return sheets
+
+
+def _source_sheets_for_import(job: sqlite3.Row, rows: list[sqlite3.Row]) -> set[str]:
+    sheets = _source_sheets_from_staging(rows)
+    payload = _loads(job["summary_json"], {})
+    selected_sheets = payload.get("selected_sheets", [])
+    if isinstance(selected_sheets, list):
+        sheets.update(
+            sheet.strip()
+            for sheet in selected_sheets
+            if isinstance(sheet, str) and sheet.strip()
+        )
     return sheets
 
 
@@ -240,49 +324,75 @@ def _record_review_decision(
     )
 
 
+def _has_other_valid_source_reference(
+    conn: sqlite3.Connection,
+    *,
+    target_type: str,
+    target_id: str,
+    excluded_source_file_id: str,
+) -> bool:
+    return conn.execute(
+        """
+        SELECT 1
+        FROM source_references AS refs
+        JOIN source_files AS sources ON sources.id = refs.source_file_id
+        WHERE refs.target_type = ?
+          AND refs.target_id = ?
+          AND refs.source_file_id != ?
+          AND refs.source_hash = sources.file_hash
+        LIMIT 1
+        """,
+        (target_type, target_id, excluded_source_file_id),
+    ).fetchone() is not None
+
+
 def _deprecate_stale_items(
     conn: sqlite3.Connection,
     *,
     import_job_id: str,
+    source_file_id: str,
     source_file_path: str | None,
     current_item_keys: set[str],
     current_item_types: set[str],
     source_sheets: set[str],
 ) -> int:
-    if not source_file_path or not current_item_keys or not current_item_types or not source_sheets:
+    if not source_file_id or not source_file_path or not source_sheets:
         return 0
 
-    type_placeholders = ", ".join("?" for _ in current_item_types)
     sheet_placeholders = ", ".join("?" for _ in source_sheets)
     params = [
-        *sorted(current_item_types),
         *sorted(source_sheets),
-        source_file_path,
-        source_file_path,
-        source_file_path,
+        source_file_id,
+        source_file_id,
         *sorted(source_sheets),
     ]
     candidates = conn.execute(
         f"""
-        SELECT DISTINCT item.id, item.type, item.code, item.title, item.status, item.metadata_json
+        SELECT DISTINCT item.id, item.type, item.code, item.title, item.status,
+               item.source_file_id, item.source_hash, item.metadata_json
         FROM knowledge_items AS item
-        LEFT JOIN source_files AS item_source ON item_source.id = item.source_file_id
-        JOIN source_references AS refs
-          ON refs.target_type = 'item'
-         AND refs.target_id = item.id
-        JOIN source_files AS ref_source ON ref_source.id = refs.source_file_id
         WHERE item.status = 'active'
-          AND item.type IN ({type_placeholders})
-          AND refs.source_sheet IN ({sheet_placeholders})
-          AND (item_source.file_path = ? OR ref_source.file_path = ?)
+          AND EXISTS (
+              SELECT 1
+              FROM source_references AS current_refs
+              JOIN source_files AS current_ref_source
+                ON current_ref_source.id = current_refs.source_file_id
+              WHERE current_refs.target_type = 'item'
+                AND current_refs.target_id = item.id
+                AND current_refs.source_sheet IN ({sheet_placeholders})
+                AND current_ref_source.id = ?
+          )
           AND NOT EXISTS (
               SELECT 1
               FROM source_references AS other_refs
               JOIN source_files AS other_ref_source ON other_ref_source.id = other_refs.source_file_id
               WHERE other_refs.target_type = 'item'
                 AND other_refs.target_id = item.id
-                AND other_ref_source.file_path = ?
-                AND other_refs.source_sheet NOT IN ({sheet_placeholders})
+                AND other_ref_source.id = ?
+                AND (
+                    other_refs.source_sheet IS NULL
+                    OR other_refs.source_sheet NOT IN ({sheet_placeholders})
+                )
           )
         """,
         params,
@@ -295,6 +405,13 @@ def _deprecate_stale_items(
             continue
         metadata = _loads(row["metadata_json"], {})
         if _is_manual_protected(metadata):
+            continue
+        if _has_other_valid_source_reference(
+            conn,
+            target_type="item",
+            target_id=row["id"],
+            excluded_source_file_id=source_file_id,
+        ):
             continue
         conn.execute(
             """
@@ -340,42 +457,48 @@ def _delete_stale_relations(
     conn: sqlite3.Connection,
     *,
     import_job_id: str,
+    source_file_id: str,
     source_file_path: str | None,
     current_relation_keys: set[tuple[str, str, str]],
     source_sheets: set[str],
 ) -> int:
-    if not source_file_path or not current_relation_keys or not source_sheets:
+    if not source_file_id or not source_file_path or not source_sheets:
         return 0
 
     sheet_placeholders = ", ".join("?" for _ in source_sheets)
     params = [
         *sorted(source_sheets),
-        source_file_path,
-        source_file_path,
-        source_file_path,
+        source_file_id,
+        source_file_id,
         *sorted(source_sheets),
     ]
     candidates = conn.execute(
         f"""
         SELECT DISTINCT relation.id, relation.source_item_id, relation.target_item_id,
                relation.relation_type, relation.relation_label, relation.confidence,
-               relation.metadata_json
+               relation.source_file_id, relation.metadata_json
         FROM knowledge_relations AS relation
-        LEFT JOIN source_files AS relation_source ON relation_source.id = relation.source_file_id
-        JOIN source_references AS refs
-          ON refs.target_type = 'relation'
-         AND refs.target_id = relation.id
-        JOIN source_files AS ref_source ON ref_source.id = refs.source_file_id
-        WHERE refs.source_sheet IN ({sheet_placeholders})
-          AND (relation_source.file_path = ? OR ref_source.file_path = ?)
+        WHERE EXISTS (
+              SELECT 1
+              FROM source_references AS current_refs
+              JOIN source_files AS current_ref_source
+                ON current_ref_source.id = current_refs.source_file_id
+              WHERE current_refs.target_type = 'relation'
+                AND current_refs.target_id = relation.id
+                AND current_refs.source_sheet IN ({sheet_placeholders})
+                AND current_ref_source.id = ?
+          )
           AND NOT EXISTS (
               SELECT 1
               FROM source_references AS other_refs
               JOIN source_files AS other_ref_source ON other_ref_source.id = other_refs.source_file_id
               WHERE other_refs.target_type = 'relation'
                 AND other_refs.target_id = relation.id
-                AND other_ref_source.file_path = ?
-                AND other_refs.source_sheet NOT IN ({sheet_placeholders})
+                AND other_ref_source.id = ?
+                AND (
+                    other_refs.source_sheet IS NULL
+                    OR other_refs.source_sheet NOT IN ({sheet_placeholders})
+                )
           )
         """,
         params,
@@ -385,6 +508,13 @@ def _delete_stale_relations(
     for row in candidates:
         relation_key = (row["source_item_id"], row["relation_type"], row["target_item_id"])
         if relation_key in current_relation_keys:
+            continue
+        if _has_other_valid_source_reference(
+            conn,
+            target_type="relation",
+            target_id=row["id"],
+            excluded_source_file_id=source_file_id,
+        ):
             continue
         conn.execute("DELETE FROM source_references WHERE target_type = 'relation' AND target_id = ?", (row["id"],))
         conn.execute("DELETE FROM knowledge_relations WHERE id = ?", (row["id"],))
@@ -459,6 +589,8 @@ def _approve_import_locked(
     warnings: list[str] = []
     current_item_keys: set[str] = set()
     current_item_types: set[str] = set()
+    item_stable_identity_enabled = _stable_identity_enabled(conn, "knowledge_items")
+    relation_stable_identity_enabled = _stable_identity_enabled(conn, "knowledge_relations")
 
     staging_items = conn.execute(
         "SELECT * FROM staging_items WHERE import_job_id = ? AND validation_status != 'error'",
@@ -467,6 +599,11 @@ def _approve_import_locked(
 
     for row in staging_items:
         metadata = _loads(row["metadata_json"], {})
+        stable_identity = (
+            _item_stable_identity(row, metadata)
+            if item_stable_identity_enabled
+            else None
+        )
         item_key = _item_key_from_row(row)
         item_id = _validated_matched_item_id(conn, row["matched_item_id"], item_key) or _find_item_by_key(
             conn,
@@ -474,52 +611,88 @@ def _approve_import_locked(
             include_deprecated=True,
         )
         if item_id:
-            conn.execute(
-                """
-                UPDATE knowledge_items
-                SET code = COALESCE(?, code),
-                    title = ?, description = COALESCE(?, description), category = COALESCE(?, category),
-                    status = 'active',
-                    source_file_id = ?,
-                    source_hash = ?,
-                    metadata_json = ?, updated_at = datetime('now')
-                WHERE id = ?
-                """,
-                (
-                    row["code"],
-                    row["title"],
-                    row["description"],
-                    metadata.get("category"),
-                    job["source_file_id"],
-                    job["file_hash"],
-                    _dumps(metadata),
-                    item_id,
-                ),
-            )
+            if stable_identity:
+                conn.execute(
+                    """
+                    UPDATE knowledge_items
+                    SET code = COALESCE(?, code),
+                        title = ?, description = COALESCE(?, description), category = COALESCE(?, category),
+                        status = 'active', source_file_id = ?, source_hash = ?, metadata_json = ?,
+                        stable_key = COALESCE(stable_key, ?),
+                        stable_ref = COALESCE(stable_ref, ?),
+                        public_id = COALESCE(public_id, ?),
+                        updated_at = datetime('now')
+                    WHERE id = ?
+                    """,
+                    (
+                        row["code"], row["title"], row["description"], metadata.get("category"),
+                        job["source_file_id"], job["file_hash"], _dumps(metadata),
+                        *stable_identity, item_id,
+                    ),
+                )
+            else:
+                conn.execute(
+                    """
+                    UPDATE knowledge_items
+                    SET code = COALESCE(?, code),
+                        title = ?, description = COALESCE(?, description), category = COALESCE(?, category),
+                        status = 'active',
+                        source_file_id = ?,
+                        source_hash = ?,
+                        metadata_json = ?, updated_at = datetime('now')
+                    WHERE id = ?
+                    """,
+                    (
+                        row["code"],
+                        row["title"],
+                        row["description"],
+                        metadata.get("category"),
+                        job["source_file_id"],
+                        job["file_hash"],
+                        _dumps(metadata),
+                        item_id,
+                    ),
+                )
             items_updated += 1
             change_type = "update"
         else:
             item_id = str(uuid.uuid4())
-            conn.execute(
-                """
-                INSERT INTO knowledge_items (
-                  id, type, code, title, description, category, status, source_file_id,
-                  source_hash, metadata_json
+            if stable_identity:
+                conn.execute(
+                    """
+                    INSERT INTO knowledge_items (
+                      id, type, code, title, description, category, status, source_file_id,
+                      source_hash, metadata_json, stable_key, stable_ref, public_id
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        item_id, row["type"], row["code"], row["title"], row["description"],
+                        metadata.get("category"), job["source_file_id"], job["file_hash"],
+                        _dumps(metadata), *stable_identity,
+                    ),
                 )
-                VALUES (?, ?, ?, ?, ?, ?, 'active', ?, ?, ?)
-                """,
-                (
-                    item_id,
-                    row["type"],
-                    row["code"],
-                    row["title"],
-                    row["description"],
-                    metadata.get("category"),
-                    job["source_file_id"],
-                    job["file_hash"],
-                    _dumps(metadata),
-                ),
-            )
+            else:
+                conn.execute(
+                    """
+                    INSERT INTO knowledge_items (
+                      id, type, code, title, description, category, status, source_file_id,
+                      source_hash, metadata_json
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, 'active', ?, ?, ?)
+                    """,
+                    (
+                        item_id,
+                        row["type"],
+                        row["code"],
+                        row["title"],
+                        row["description"],
+                        metadata.get("category"),
+                        job["source_file_id"],
+                        job["file_hash"],
+                        _dumps(metadata),
+                    ),
+                )
             items_created += 1
             change_type = "create"
 
@@ -554,6 +727,7 @@ def _approve_import_locked(
 
     relations_created = 0
     current_relation_keys: set[tuple[str, str, str]] = set()
+    has_unresolved_relations = False
     staging_relations = conn.execute(
         "SELECT * FROM staging_relations WHERE import_job_id = ? AND validation_status != 'error'",
         (import_job_id,),
@@ -562,6 +736,7 @@ def _approve_import_locked(
         source_item_id = item_map.get(row["source_item_key"]) or _find_item_by_key(conn, row["source_item_key"])
         target_item_id = item_map.get(row["target_item_key"]) or _find_item_by_key(conn, row["target_item_key"])
         if not source_item_id or not target_item_id:
+            has_unresolved_relations = True
             warnings.append(f"关系端点未找到，跳过：{row['relation_type']} {row['source_item_key']} -> {row['target_item_key']}")
             _record_review_decision(
                 conn,
@@ -579,52 +754,98 @@ def _approve_import_locked(
             target_item_id=target_item_id,
             relation_type=row["relation_type"],
         )
+        metadata = _loads(row["metadata_json"], {})
+        stable_identity = (
+            _relation_stable_identity(
+                row,
+                metadata,
+                source_item_id=source_item_id,
+                target_item_id=target_item_id,
+            )
+            if relation_stable_identity_enabled
+            else None
+        )
         if existing_relation_id:
             relation_id = existing_relation_id
-            metadata = _loads(row["metadata_json"], {})
-            conn.execute(
-                """
-                UPDATE knowledge_relations
-                SET relation_label = COALESCE(?, relation_label),
-                    confidence = COALESCE(?, confidence),
-                    source_file_id = ?,
-                    import_job_id = ?,
-                    metadata_json = ?,
-                    updated_at = datetime('now')
-                WHERE id = ?
-                """,
-                (
-                    metadata.get("relation_label"),
-                    metadata.get("confidence", "exact"),
-                    job["source_file_id"],
-                    import_job_id,
-                    _dumps(metadata),
-                    relation_id,
-                ),
-            )
-        else:
-            metadata = _loads(row["metadata_json"], {})
-            relation_id = str(uuid.uuid4())
-            conn.execute(
-                """
-                INSERT INTO knowledge_relations (
-                  id, source_item_id, target_item_id, relation_type, relation_label,
-                  confidence, source_file_id, import_job_id, metadata_json
+            if stable_identity:
+                conn.execute(
+                    """
+                    UPDATE knowledge_relations
+                    SET relation_label = COALESCE(?, relation_label),
+                        confidence = COALESCE(?, confidence), source_file_id = ?,
+                        import_job_id = ?, metadata_json = ?,
+                        stable_key = COALESCE(stable_key, ?),
+                        stable_ref = COALESCE(stable_ref, ?),
+                        public_id = COALESCE(public_id, ?),
+                        updated_at = datetime('now')
+                    WHERE id = ?
+                    """,
+                    (
+                        metadata.get("relation_label"), metadata.get("confidence", "exact"),
+                        job["source_file_id"], import_job_id, _dumps(metadata),
+                        *stable_identity, relation_id,
+                    ),
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    relation_id,
-                    source_item_id,
-                    target_item_id,
-                    row["relation_type"],
-                    metadata.get("relation_label"),
-                    metadata.get("confidence", "exact"),
-                    job["source_file_id"],
-                    import_job_id,
-                    _dumps(metadata),
-                ),
-            )
+            else:
+                conn.execute(
+                    """
+                    UPDATE knowledge_relations
+                    SET relation_label = COALESCE(?, relation_label),
+                        confidence = COALESCE(?, confidence),
+                        source_file_id = ?,
+                        import_job_id = ?,
+                        metadata_json = ?,
+                        updated_at = datetime('now')
+                    WHERE id = ?
+                    """,
+                    (
+                        metadata.get("relation_label"),
+                        metadata.get("confidence", "exact"),
+                        job["source_file_id"],
+                        import_job_id,
+                        _dumps(metadata),
+                        relation_id,
+                    ),
+                )
+        else:
+            relation_id = str(uuid.uuid4())
+            if stable_identity:
+                conn.execute(
+                    """
+                    INSERT INTO knowledge_relations (
+                      id, source_item_id, target_item_id, relation_type, relation_label,
+                      confidence, source_file_id, import_job_id, metadata_json,
+                      stable_key, stable_ref, public_id
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        relation_id, source_item_id, target_item_id, row["relation_type"],
+                        metadata.get("relation_label"), metadata.get("confidence", "exact"),
+                        job["source_file_id"], import_job_id, _dumps(metadata), *stable_identity,
+                    ),
+                )
+            else:
+                conn.execute(
+                    """
+                    INSERT INTO knowledge_relations (
+                      id, source_item_id, target_item_id, relation_type, relation_label,
+                      confidence, source_file_id, import_job_id, metadata_json
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        relation_id,
+                        source_item_id,
+                        target_item_id,
+                        row["relation_type"],
+                        metadata.get("relation_label"),
+                        metadata.get("confidence", "exact"),
+                        job["source_file_id"],
+                        import_job_id,
+                        _dumps(metadata),
+                    ),
+                )
             relations_created += 1
             conn.execute(
                 """
@@ -657,17 +878,22 @@ def _approve_import_locked(
     if _has_blocking_validations(job):
         warnings.append("本次导入存在 error/blocking 校验信息，已跳过旧对象自动停用。")
     else:
-        source_sheets = _source_sheets_from_staging(staging_items)
-        relations_deleted = _delete_stale_relations(
-            conn,
-            import_job_id=import_job_id,
-            source_file_path=job["source_file_path"],
-            current_relation_keys=current_relation_keys,
-            source_sheets=source_sheets,
-        )
+        source_sheets = _source_sheets_for_import(job, staging_items)
+        if has_unresolved_relations:
+            warnings.append("本次导入存在未解析关系，已跳过旧关系自动删除。")
+        else:
+            relations_deleted = _delete_stale_relations(
+                conn,
+                import_job_id=import_job_id,
+                source_file_id=job["source_file_id"],
+                source_file_path=job["source_file_path"],
+                current_relation_keys=current_relation_keys,
+                source_sheets=source_sheets,
+            )
         items_deprecated = _deprecate_stale_items(
             conn,
             import_job_id=import_job_id,
+            source_file_id=job["source_file_id"],
             source_file_path=job["source_file_path"],
             current_item_keys=current_item_keys,
             current_item_types=current_item_types,

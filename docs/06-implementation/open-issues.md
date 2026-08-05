@@ -4,7 +4,7 @@
 
 ## 治理入口
 
-- 当前未关闭问题数：5
+- 当前未关闭问题数：4
 - 已关闭归档问题数：192
 - 全量索引：`docs/06-implementation/open-issues-index.md`
 - 已关闭问题归档：`docs/05-archive/open-issues-history/2026-06.md`
@@ -24,11 +24,16 @@
 
 | 编号 | 状态 | 标题 |
 |---|---|---|
-| OI-199 | 部分完成 / Web 与 Windows 构建链路通过，安装态矩阵待完成 | 本地 MCP 正式知识访问已接入，安装态与客户端矩阵仍待完成 |
+| OI-199 | 0.4.0 自动矩阵通过 / 人工安装态 UAT 非阻塞保留 | 本地 MCP 正式知识访问已接入，安装态与客户端矩阵仍待完成 |
 | OI-200 | 已规划 / 待用户明确启动，不进入当前开发 | MCP 2026-07-28 双时代协议与 Web/App 前端分流 |
-| OI-197 | 待业务确认 / 映射门禁阻断 | 成熟度评分依据与当前能力字典尚未全量映射 |
+| OI-197 | V3 提案已就绪 / 分批业务复核中 | 成熟度评分依据与当前能力字典尚未全量映射 |
 | OI-138 | 暂不修复 / 已回退 | 关注点关系图谱标签与节点 / 连线碰撞 |
-| OI-128 | 部分完成 | USER-WRITE-UI-1：批注 / 工作台用户写入入口 |
+
+## 最近关闭问题
+
+| 编号 | 状态 | 标题 |
+|---|---|---|
+| OI-128 | 已关闭 / 自动验收通过 | USER-WRITE-UI-1：批注 / 工作台用户写入入口 |
 
 ## 问题记录模板
 
@@ -52,19 +57,19 @@
 
 ## OI-199：本地 MCP 正式知识访问已接入，安装态与客户端矩阵仍待完成
 
-- 状态：部分完成 / Web 与 Windows 构建链路通过，安装态矩阵待完成
+- 状态：0.4.0 自动矩阵通过 / 人工安装态 UAT 非阻塞保留
 - 严重性：高
 - 类型：架构 / 本地 API / OAuth / TLS / 数据授权 / 审计 / macOS / Windows
 - 对象或页面：本地 MCP Sidecar、正式基础库只读 Runtime、Codex MCP 配置、系统设置 AI 集成页、独立 MCP 控制面、macOS / Windows CurrentUser 信任。
-- 现象：正式知识访问、OAuth/Streamable HTTP、固定 5 个 Tool、Web 控制面和隔离 Sidecar 已实现；macOS Web 开发入口已完成真实 CurrentUser 证书、Keychain 密钥、系统信任、MCP 启停和一个当前 Codex CLI 版本的五工具真实闭环。Windows 私有 Runner 已能生成包含 MCP backend 的完整 `Setup.exe`，但尚未完成真实 Windows 10/11 安装后的 DPAPI / CurrentUser 信任矩阵、当前源码 macOS DMG、目标客户端版本矩阵和双时代协议升级门禁。
+- 现象：正式知识访问、OAuth/Streamable HTTP、固定 5 个 Tool、Web 控制面和隔离 Sidecar 已实现；macOS Web 开发入口已完成真实 CurrentUser 证书、Keychain 密钥、系统信任、MCP 启停和一个当前 Codex CLI 版本的五工具真实闭环。Windows 私有 Runner 已能生成包含 MCP backend 的完整 `Setup.exe`。2026-08-01 已从当前工作树构建 0.4.0 license / no-license 双 DMG 并通过自动 release matrix；仍未完成 macOS 最新实包人工路径、Windows 10/11 安装态、目标客户端版本和双时代协议矩阵。
 - 影响：知识查询功能和 Windows 可重复构建链路已经可用，但在真实安装态与客户端矩阵完成前，不能宣称跨版本 Codex 或 macOS / Windows MCP 实包交付全部通过。
 - 建单理由：涉及跨平台 App、OAuth/TLS、本地 API、正式基础数据、来源许可、审计和用户隐私，且本轮只完成设计合同，无法自动关闭。
-- 当前处理：用户已明确裁定正式基础知识库全部业务内容可由 AI 调用，不再以 `public_summary / ai_summary` 作为二次门禁。正式 `MCP-BASE-KNOWLEDGE-ACCESS-v1`、只读 Runtime、固定参数化查询、系统设置说明和 Web Sidecar 已统一落地；macOS 服务只发送服务器 leaf。真实 Chrome 验证证明 hostname-scoped CurrentUser trust settings 不被 Chrome 证书验证器接受，现已改为 Chrome 可识别的 CurrentUser 根信任，同时强制 CA critical `nameConstraints=127.0.0.1/32`、leaf SAN 和 loopback 监听，并同时检查 SSL 链与基础根信任；旧条目会显示“信任缺失”并通过“修复安全连接”迁移。该变更不写入系统级或 LocalMachine 信任，也不允许 CA 用于其他地址。2026-07-28 用户通过交互式 `security unlock-keychain` 恢复 Web 证书生成，确认 `/usr/bin/security` 方案存在后台安全会话依赖。随后按用户要求回退 Swift / Python Native Security Broker、Data Protection Keychain、桌面 `app` profile 强制门禁及因本事件扩展的签名 / 公证实现，恢复 0.3.0 的 `/usr/bin/security` 登录钥匙串路径；当前只保留 `36 / 51` 临时错误分类、明确解锁提示、运行中 Sidecar 保持和解锁后手动重试。App MCP `28776` 的既有运行态已确认监听、授权和 Token 签发，但没有用当前最新源码重新打包，也未完成最新实包五工具调用审计。
-- 需要确认：用户要求新包时，需从同一当前源码重建 license / no-license 双 staging，并在最新 macOS 实包内完成首次建证、完全退出重开、锁屏 / 解锁后的明确恢复路径、App MCP `28776` 的 OAuth、五工具和 `TOOL_CALL` 审计；不能用现有安装包或 Web `28775` 代替。正式外部分发的 Developer ID、notarization、stapling 和 Gatekeeper 作为独立发布任务另行授权。还需在真实 Windows 10/11 和目标客户端版本上完成 CurrentUser 信任、Keychain / DPAPI、OAuth 和五工具矩阵。MCP `2026-07-28` 的双时代升级由 OI-200 单独管理，未获用户启动授权前不改变当前 canonical 版本。
+- 当前处理：用户已明确裁定正式基础知识库全部业务内容可由 AI 调用。正式 `MCP-BASE-KNOWLEDGE-ACCESS-v1`、只读 Runtime、固定参数化查询、系统设置说明和 Web Sidecar 已统一落地；Keychain 故障处理保持 `36 / 51` 临时错误分类、明确解锁提示、运行中 Sidecar 保持和解锁后手动重试。0.4.0 双 DMG 的 pre-DMG、签名、挂载、Runtime 和空用户库自动检查已通过。2026-08-03 App MCP `28776` 仍监听且 Token 持续刷新，但最新 `TOOL_CALL` 仍为 2026-07-28，不能作为 0.4.0 实包五工具证据。同日静态核对私有 GitHub workflow 发现 watcher 未向 builder 传递必填 `app_version`；手工 dispatch 可显式传值，自动触发在修复并成功运行前不得声明健康。
+- 需要确认：人工 UAT 作为持续保留的非阻塞项，条件允许时在现有 0.4.0 实包验证首次路径、完全退出重开、锁屏 / 解锁恢复，以及 App MCP `28776` 的 OAuth、五工具和新 `TOOL_CALL` 审计；不要求为完成该项立即重打包。未完成只阻止“最新实包完整 UAT”和正式外部分发声明，不阻塞当前内部开发。Developer ID、notarization、stapling、Gatekeeper、真实 Windows 10/11 和目标客户端矩阵仍需独立验收；OI-200 未获启动授权前不改变当前 canonical 版本。
 - 验收入口：`/settings/ai-integration`、`docs/01-architecture/contracts/mcp/base-knowledge/v1/`、`tests/mcp/test_base_query_service.py`、`tests/mcp_e2e/test_web_dev_mcp_e2e.py`。
 - 关闭条件：目标 Codex 版本在 macOS/Windows 最新实包中完成 HTTPS、发现、注册、PKCE、resource/audience、五工具调用、刷新、撤销、升级/回滚/卸载和负向安全矩阵；macOS 登录钥匙串临时不可访问时不误判为密钥永久丢失，不删除或重建健康证书，解锁后按明确路径恢复；真实 CurrentUser 信任与密钥保管验证通过；MCP 始终不创建、打开或修改用户库。OI-200 不阻塞当前 Legacy 交付关闭，且不得直接替换现有稳定协议。
 - 修复说明：新增正式基础知识库访问合同与 scope `sapd.base.knowledge.read`；Sidecar 改为只读打开正式基础库并通过 5 个固定工具返回全部业务对象内容、关系和脱敏来源证据。旧 synthetic 公开摘要合同保留为历史测试基线。系统设置明确显示“基础知识库全部业务内容，包括完整标准正文”，并继续排除用户数据、源文件本体、本地路径、系统配置与凭据、日志和非受控 SQL。
-- 验证结果：2026-07-26 隔离 MCP 完整套件 `170/170` 通过，覆盖 5 个只读工具、OAuth 注册/授权/刷新/复用/撤销、等价授权重试合并、超时与停服；同一 `client_id + redirect_uri + scopes + resource + policy_version` 的并发授权重试只展示一个请求，一次允许或拒绝同步完成该组等待流程，不同客户端或访问边界仍独立处理。重新授权后，指定真实 Codex 会话 `019f94f6-98aa-78e3-b2a5-f7a67ede0c29` 已完成 Web `28775` 五工具有效数据矩阵：搜索1条、对象1个、关系5条、脱敏来源证据8条、版本 `base-1c9d7c70574585df`，控制库记录连续5条 `TOOL_CALL / OK`。Windows `Setup.exe` 私有 Runner 构建和上传链路通过。2026-07-28 回退后的 MCP 完整套件 `218 PASS / 5 SKIP`、证书 / Sidecar 专项 `33/33`、前端 AI 集成合同和 SwiftPM 编译通过；正式基础库只读，真实用户库未修改。回退前 Native Broker 的构建与启动结果只是历史中间证据，不代表当前源码或当前交付方案。App `28776` 仅确认既有运行态监听、授权和 Token 签发；最新源码 DMG、实包五工具与 `TOOL_CALL` 审计、锁屏 / 解锁恢复路径、Windows 安装态和目标客户端版本矩阵仍未验证。
+- 验证结果：2026-07-26 Web `28775` 五工具和审计闭环通过；2026-07-28 回退后的 MCP 完整套件 `218 PASS / 5 SKIP`、证书 / Sidecar 专项 `33/33`、前端 AI 集成合同和 SwiftPM 编译通过。2026-08-01 0.4.0 双 DMG 自动 release matrix、`hdiutil verify`、只读挂载、Runtime `--check-only` 和隔离启动通过，正式双库只读且包内用户库为空模板。2026-08-03 `28776` 监听与 Token 刷新仍正常，但没有 0.4.0 实包产生的新五工具 `TOOL_CALL`；人工路径、Windows 安装态和目标客户端矩阵继续保留。
 ## OI-200：MCP 2026-07-28 双时代协议与 Web/App 前端分流
 
 - 状态：已规划 / 待用户明确启动，不进入当前开发
@@ -83,21 +88,21 @@
 - 回退方案：第一层把内部 `protocol_profile` 从 `dual` 恢复为 `legacy`，不改变 URL、证书和授权；第二层保留当前 `mcp==1.28.1` 依赖锁与 0.3.0 App 构建产物，在 SDK v2 本身回归时恢复已记录的依赖与适配层变更。回退不得删除控制库、token、Keychain 条目或用户数据。
 - 修复说明：本 Issue 仅固化后续开发方案和边界，当前未升级 MCP SDK、未实现 modern 协议、未修改前端、未改变运行中的 `28775` / `28776`。
 - 验证结果：计划建立时确认当前 `mcp-remote 0.1.38` 内置 `@modelcontextprotocol/sdk 1.25.3`，仍以 `2025-11-25 + initialize` 工作；当前代码依赖锁为 `mcp==1.28.1`。阶段 0 的 OAuth discovery issuer 精确匹配作为独立小修复实施，不视为 OI-200 已启动。
-## OI-197：成熟度评分依据与当前能力字典尚未全量映射
+## OI-197：成熟度评分依据 V3 提案业务复核
 
-- 状态：待业务确认 / 映射门禁阻断
+- 状态：V3 提案已就绪 / 分批业务复核中
 - 严重性：高
 - 类型：数据 / 成熟度 / 当前字典 / 源 Excel / 业务确认
 - 对象或页面：成熟度基础模板中的 3 个 L0、10 个 L1、32 个 L2、91 个关注点、160 条关注点—安全技术服务关系和 185 个评估点。
-- 现象：以工程当前字典为主表对 `assesment samples.xlsx` 的评分依据进行映射后，只有 76 个关注点的编码、父 L2 和名称同时对齐；8 个关注点编码和父级一致但名称语义不同，7 个当前关注点在源表中不存在。对应服务关系为 `125 已映射 / 27 待复核 / 8 无来源`，评估点为 `147 已映射 / 28 待复核 / 10 无来源`。
-- 影响：在对象身份和 rubric set 绑定未完成前，缺级、遗漏、业务不可评分和 KPI 未结构化分类都可能落到错误的当前对象，不能进入正式评分数据、API、页面或 XLSX 模板实现。
+- 现象：早期映射审计识别的 8 个名称漂移和 7 个无来源关注点已经纳入统一 V3 业务审阅提案。当前已形成指南 v1.4、91 个关注点评分基线主表、差异说明、185 个评估点 / 3,700 个等级维度单元的离线工作台和结构化提案，但尚未取得完整业务裁定和正式迁移授权。
+- 影响：V3 提案可以继续审阅和修订，但在业务裁定完成前不能替换正式 V2.1 Rubric 字典、评分规则、API、XLSX、正式数据或历史结果。
 - 建单理由：涉及源 Excel、受保护当前字典、成熟度评分对象粒度、导入 / 导出和业务判断，且本轮无法自动关闭。
-- 当前处理：已形成 `docs/08-maturity/assessment-rubric-dictionary-mapping-audit-2026-07-17.md`，逐项列出 91 个关注点、160 条服务关系和 185 个评估点；`assessment-rubric-source-appendix-2026-07-17.md` 已把问题分类改为映射门禁通过前冻结。源服务在 22 个关注点与当前字典漂移，固定以当前字典为准，不回写源服务。
-- 需要确认：一是确认 8 个同编码但名称不同的关注点是否仍使用候选 rubric set；二是为 7 个无来源关注点确认继承候选组还是新建专用组。候选组不得自动生效。
-- 验收入口：上述映射审计文档第 4、6、7—9 章。
-- 关闭条件：91 个关注点、160 条服务关系和 185 个评估点全部唯一绑定 rubric set，父 L2 和名称语义复核完成，映射门禁为 `PASS`；随后重新按当前字典生成问题分类。
-- 修复说明：本轮只完成只读对比与设计门禁，不修改运行代码、当前字典、源 Excel、正式 JSON / SQLite、模板、评分数据、用户库、ETL 或 DMG。
-- 验证结果：当前 maturity 基础模板校验错误 / 警告为 `0 / 0`；能力 / 关注点 / 服务编码重复为 `0 / 0 / 0`；源关注点孤立数和父 L2 冲突均为 `0`。工程字典和源 Excel 哈希保持不变。
+- 当前处理：采用分批复核，不要求用户一次人工逐格验收全部 3,700 个单元。第一批确认连续等级范围、自定义模板通用基线、T-IN.IP L2—L5、T-OF 条件适用与 L3 起评、L4 的受控运行 / 可比较结果 / 偏差纠正 / 效果验证，以及 L5 去 AI 必选化；第二批只处理工作台中被否决或标记争议的对象。早期 15 项映射裁定继续作为重点对象，不再单独维护另一套候选表。
+- 需要确认：用户先裁定上述全局规则和例外，再按争议对象复核拆分 / 补齐 Rubric、建议校准标题和具体评分文字；未标记争议的对象保留当前 V3 提案。指标库已经退出本轮正式提案，未来如立项必须另行确认来源、口径、数据质量和批准机制。
+- 验收入口：`docs/08-maturity/oi-197-maturity-rubric-review-workbench.html`、`docs/08-maturity/sapd-v3-scoring-baseline-master.md` 和结构化提案 JSON。
+- 关闭条件：91 个关注点、160 条服务关系和 185 个评估点全部唯一绑定评分依据，争议项有明确裁定，生成物与审阅结果一致；随后由用户另行决定是否授权正式迁移。
+- 修复说明：当前仅推进业务审阅提案、生成器和契约审计，不修改当前字典、源 Excel、正式 JSON / SQLite、正式评分数据、历史项目、用户库、ETL 或 DMG。
+- 验证结果：V3 提案保持 91 个关注点、160 条服务关系、185 个评估点和 3,700 个等级维度单元；2026-08-03 当前工作树成熟度合同 `236 / 236` 和相关 Python 语法检查通过，当前正式 V2.1 和保护数据未被替换。
 ## OI-138：关注点关系图谱标签与节点 / 连线碰撞
 
 - 状态：暂不修复 / 已回退
@@ -111,9 +116,9 @@
 - 关闭条件：用户明确接受旧版碰撞为长期限制并要求关闭，或未来独立方案通过全部 91 个关注点、UUID 禁显、控制语义、几何指标和人工可读性验收。不得用少量黄金样例关闭。
 - 修复说明：本轮恢复 `app.js`、`styles.css`、`LocalRelationNetworkGraph.js` 到冻结的实施前 SHA-256；`relationGraphModel.js` 未修改。删除 P0-3 控制器、视图策略、配置、专项审计，移除测试套件 / 脚本索引挂钩并恢复前端治理基线。2026-06-08 以前的星形图谱基线与轻量避让保留，P0-1、P0-2、P0-4 及其他活动改动不变。
 - 验证结果：回退后三项运行文件哈希分别为 `0d0e742642c17c5fd490fab737dfdba15d5573d6c4dd253e434f1ebec55f0c4b`、`9ccaedf89190bacc74fa1a37781047cb62e88b409b8ebb3d9a3462e6839ec31b`、`4726413d5504c76174b1783d6898c76c09838faf2237ca83a550d0dcfe316fee`，与冻结备份一致。完整 `static / frontend`、P0-1、P0-2、P0-4、能力 ViewModel、前端治理、capability HTTP/API smoke、5173 守护和定向 JS 语法通过；P0-3 专项已删除 / 停用，不计为通过。旧版图谱碰撞仍是已知限制。
-## OI-128：USER-WRITE-UI-1：批注 / 工作台用户写入入口
+## OI-128：USER-WRITE-UI-1：批注 / 工作台用户写入入口（已关闭）
 
-- 状态：部分完成
+- 状态：已关闭 / 自动验收通过（2026-08-03）
 - 类型：前端 / 用户数据 / Delivery Bundle
 - 对象或页面：ZIP alpha 桌面包、`sapd_wiki_user.sqlite3`、安全能力映射 / 知识库字典 / 标准框架 / 安全指南、右侧浮层批注抽屉与工作台。
 - 现象：ZIP alpha 后端已具备 `user_favorites` 写入 API 和 user DB 自动创建能力；`OI-128A / OI-128B` 已验证页面可写入用户库，但当前横向 `加入关注清单 / 收藏备注` 条语义较弱，不适合作为长期用户工作入口。
@@ -127,6 +132,6 @@
 - 最新验证：2026-06-05 带视觉断言和长条防回归的真实 Chrome 回归通过：`node scripts/audit_saved_user_annotations.mjs --url http://127.0.0.1:5173 --allow-system-chrome --debug-port 9410 --width 1800 --height 1200 --compact` 返回 `noteCount=24`、`passed=24`、`failed=0`、`failures=[]`、`consoleIssues=[]`。脚本已新增 `normalVisualHighlight` / `activeVisualHighlight` / `normalStripeOk`，第 6 安全技术措施、第 7 安全技术模块、第 8 安全技术服务、第 24 安全技术模块均满足常态与定位视觉高亮，截图对应的 `1.6 接收其他应用数据` 也满足 `normalStripeOk=true`。
 - 最新验证：2026-06-05 后续变更真实 Chrome 全量回归通过：`node scripts/audit_saved_user_annotations.mjs --url http://127.0.0.1:5173 --allow-system-chrome --debug-port 9433 --width 1800 --height 1200 --compact` 返回 `noteCount=28`、`auditedNoteCount=28`、`passed=28`、`failed=0`、`failures=[]`、`consoleIssues=[]`。单点与连续场景验证包括 `--only-ordinal 1` 的 ISO 标准框架值、`--only-ordinal 23` 的 `AT-6` 控制项，以及 `--from-ordinal 15 --to-ordinal 23 --debug-state` 的标准包加载后不覆盖 projection 场景，均通过。
 - 提交后补充验证：2026-06-05 checkpoint 提交后发现当前用户库已扩展到 33 条保存批注，首次补跑全量回归抓出 4 条指南 / 幻灯片缩略图批注缺少定位态视觉高亮。已只针对 `.guide-slide-stage` / `.guide-thumb` 定位态补齐琥珀下沿并推进 `styles.css` 缓存版本到 `annotation-global-20260605-8`。随后定点 4 条回归通过，全量真实 Chrome 回归 `node scripts/audit_saved_user_annotations.mjs --url http://127.0.0.1:5173 --allow-system-chrome --debug-port 9446 --width 1800 --height 1200 --compact` 返回 `noteCount=33`、`auditedNoteCount=33`、`passed=33`、`failed=0`、`failures=[]`、`consoleIssues=[]`。
-- 需要确认：后续是否进入导出格式扩展、能力重组、导入和 Skill 集成。
-- 修复说明：`OI-128A / OI-128B / OI-128C` 已实现，`OI-128C` 二次严格回归已通过，待最终人工抽查与 checkpoint。当前入口以 `user_notes` 承载正式批注，`user_favorites.note` 仅作为过渡收藏备注显示；收藏不再作为主业务动作，正式入口改为 `批注`、`待复核`、`数据篮` 和 `工作台`。2026-06-07 已补齐工作台总览和数据篮最小 API：`/api/v1/user/workspaces` 与 `/api/v1/user/data-baskets` 均支持创建、读取、删除容器，`/:id/items` 支持读取和 upsert 条目，`/items/:item_id` 支持删除条目，所有写入仍走本地 token 和 loopback 校验。新建行 / 字段 / 值批注使用带 route、view、目录 / 子页面、对象、tab 和表格坐标的 `v2` 锚点，旧缺上下文批注不再为了视觉反馈误高亮所有同名值。页面组件必须显式声明 `data-annotation-value`；普通业务 `td` 作为全局兜底值锚点；折叠目录定位必须先展开父级并恢复常驻标记；知识库对象行通过稳定 `data-annotation-target-ref` 暴露 overlay 锚点；批注层负责右键、抽屉、保存、状态、tooltip、常驻提示和定位高亮，原页面只暴露锚点，不承担批注业务逻辑。用户写入只影响 `sapd_wiki_user.sqlite3`，不回写基础库。
+- 后续范围：导出格式扩展、能力重组、导入和 Skill 集成不属于 OI-128 关闭条件；如用户启动，按独立需求或新 Issue 处理，不重新把已验收基线改回“部分完成”。
+- 修复说明：`OI-128A / OI-128B / OI-128C` 已实现并通过多轮 API、契约、页面和真实批注回归，当前范围已满足关闭条件。正式入口由 `user_notes` 承载批注，并提供 `待复核`、`数据篮` 和 `工作台`；用户写入只影响 `sapd_wiki_user.sqlite3`，不回写基础库。后续新增页面继续复用既有锚点和回归契约。
 - 验证结果：2026-06-03 通过本地 `5173` API 写入 / 读取 / 删除闭环验证：`POST /api/v1/user/favorites` 写入 `base:capability_focus:OI-128A-SMOKE` 成功，`GET` 可读，`DELETE` 后列表消失；`node scripts/frontend_smoke_check.mjs --page capability --url http://127.0.0.1:5173` 通过。2026-06-03 `OI-128B` 真实 Chrome 回归覆盖 `/knowledge/technical-services`、`/knowledge/capabilities`、`/standards/mlps-level-3`、`/guides/security-architecture-modeling-language`，均有 `userObjectActionsProbe.count=1`、`consoleIssues=0`。2026-06-04 `OI-128C` 通过 `POST /api/v1/user/notes`、`GET`、`PATCH`、`DELETE` 本地 API 闭环；真实 Chrome 回归覆盖 `/capability-mapping`、`/knowledge/technical-services`、`/standards/mlps-level-3`、`/guides/security-architecture-modeling-language`，均确认右侧批注抽屉存在、可展开、旧横向条数量为 0、`workspaceWidthDelta=0`、`consoleIssues=0`。2026-06-05 `node scripts/audit_user_annotation_contract.mjs` 通过，动态渲染样例确认 `LC-AP=14`、`LC-DT=11`、参考数据 `3` 个值级锚点。2026-06-05 全局版审计通过，覆盖能力映射技术 / 管理、信息化环境、技术服务、技术模块、技术措施、LC-AP 参考数据、详情面板、标准 / 框架和折叠目录定位契约。2026-06-05 overlay 修复后 `node --check frontend/capability-browser/app.js`、`node scripts/audit_user_annotation_contract.mjs`、`node scripts/audit_frontend_display_contract.mjs`、`node scripts/audit_frontend_lazy_load_contract.mjs`、`python3 scripts/dev_server_guard.py --status`、`git diff --check` 均通过；轻量 smoke 覆盖 `/capability-mapping`、`/environment-mapping`、`/development-security`、`/data-security`、`/knowledge/capabilities`、`/knowledge/technical-services`、`/knowledge/technical`、`/knowledge/technical-measures`、`/knowledge/functions`、`/knowledge/processes`、`/standards/nist-csf-2`、`/standards/mlps-level-3`、`/standards/iso-27001-2022`、`/standards/cis-csc-v8`、`/standards/crf`、`/standards/nist-800-53-rev5`、`/standards/dsp-level-2`、`/guides/security-architecture-modeling-language` 均通过；本轮未启动系统 Chrome，避免复现 Chrome 崩溃。2026-06-05 严格真实 Chrome 回归通过：`node scripts/audit_saved_user_annotations.mjs --url http://127.0.0.1:5173 --allow-system-chrome --debug-port 9397 --width 1800 --height 1200 --compact` 返回 `noteCount=24`、`passed=24`、`failed=0`、`consoleIssues=[]`，并逐条满足 `granularityOk=true`、`persistentAfterClick=true`、`unexpectedMarkedCount=0`。2026-06-05 二次严格真实 Chrome 回归通过：`node scripts/audit_saved_user_annotations.mjs --url http://127.0.0.1:5173 --allow-system-chrome --debug-port 9404 --width 1800 --height 1200 --compact` 返回 `noteCount=24`、`passed=24`、`failed=0`、`consoleIssues=[]`，并逐条满足 `normalMarkedBeforeLocate=true`、`activeAfterJump=true`、`granularityOk=true`、`persistentAfterClick=true`、`drawerPanelOk=true`、`currentNoteCardOk=true`、`drawerScrollPreserved=true`、`locateButtonClicked=true`、`unexpectedMarkedCount=0`。2026-06-07 数据篮最小 API smoke 通过：`node scripts/smoke_user_data_basket_api.mjs` 在临时 ZIP bundle / 临时 user DB 中验证 token 拒绝、创建数据篮、条目 upsert、读取、删除条目和删除数据篮闭环。2026-06-08 批注抽屉固定表单 / 独立列表滚动区验证通过：`node --check frontend/capability-browser/components/UserAnnotationDrawer.js`、`node --check frontend/capability-browser/app.js`、`node --check scripts/audit_user_annotation_contract.mjs`、`node scripts/audit_user_annotation_contract.mjs`、定向结构断言 `node -e ...`、定向 `git diff --check`、`python3 scripts/dev_server_guard.py --status`、`node scripts/frontend_smoke_check.mjs --page capability --route /capability-mapping --url http://127.0.0.1:5173` 均通过；内置 Browser 在 `/capability-mapping` 验证抽屉展开后固定区 bottom 为 `430`、保存按钮 bottom 为 `415`、列表滚动区 top 为 `430`、底部留白为 `48px`、保存按钮左侧文案仅剩 `保存批注`，滚动列表后固定区 top 保持 `152` 不变；本轮未启动系统 Chrome。

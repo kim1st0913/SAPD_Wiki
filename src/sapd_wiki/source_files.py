@@ -61,16 +61,11 @@ def register_source_file(
         conn.execute(
             """
             UPDATE source_files
-            SET file_name = ?, file_type = ?, file_path = ?, file_size = ?,
-                usage_policy = ?, sensitive_level = ?, status = 'active',
+            SET usage_policy = ?, sensitive_level = ?, status = 'active',
                 updated_at = datetime('now')
             WHERE id = ?
             """,
             (
-                file_name,
-                file_type,
-                stored_path,
-                file_size,
                 usage_policy,
                 sensitive_level,
                 existing["id"],
@@ -78,11 +73,11 @@ def register_source_file(
         )
         return SourceFileRecord(
             id=existing["id"],
-            file_name=file_name,
-            file_type=file_type,
-            file_path=stored_path,
-            file_hash=file_hash,
-            file_size=file_size,
+            file_name=existing["file_name"],
+            file_type=existing["file_type"],
+            file_path=existing["file_path"],
+            file_hash=existing["file_hash"],
+            file_size=existing["file_size"],
             created=False,
         )
 
@@ -155,4 +150,3 @@ def update_import_job_summary(
         """,
         (status, summary_json, error_json, status, import_job_id),
     )
-

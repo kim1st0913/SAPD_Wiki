@@ -2,269 +2,98 @@
 
 > 状态：`active / recent milestones`
 >
-> 更新日期：2026-07-31
+> 更新日期：2026-08-05
 
 本页只保留最近的重要结果。完整执行记录从 `docs/05-archive/progress-history/` 和各专题归档进入。
 
-## 2026-07-31
+## 2026-08-05
 
-- `自定义模板评估依据来源跟随原则 PASS`：自定义模板改为
-  `LATEST_BY_ASSESSMENT_POINT_ORIGIN`。保留基础评估点身份的记录每次加载使用当前基础
-  知识库同 ID 依据；模板新增、复制与 XLSX 自建评估点每次加载使用当前通用四维依据。
-  本地持久化仅保存来源策略和版本回执，不把旧 Rubric 文本作为模板真值；节点子树复制已
-  改为新评估点通用依据。实现规范、全局优化规范和 V2.1 业务设计已同步。专项契约
-  `54 / 54`、JS 语法、static suite、`git diff --check`、5173 stable 状态和应用内
-  Browser 运行态均通过，控制台无错误；浏览器验收只读，未点击保存或删除，未修改评分值、
-  正式报告、正式 SQLite、源 Excel、知识库正文或真实用户数据。
-- `成熟度首页可见性、保存稳定性与本地资产删除 READY FOR REVIEW`：API 只读核对确认
-  5 条标准测试项目仍在；首页本地叠加项目未被数据层删除。默认视图改为“全部”，首列同时
-  展示项目名和客户名，解决已完成项目与 `123 项目` 身份被隐藏的问题。项目 / 模板操作
-  列统一紧凑按钮层级，标准模板只显示导出，不再显示“不可删除”占位；项目删除仍采用两
-  阶段确认，自定义模板保留与 tombstone 规则不变。节点“保存修改”成功后关闭详情栏，
-  失败时保留表单；模板 Tab 改为项目页单一高度 owner，外层不可滚动，“校验并保存”、
-  画布工具栏和属性保存区均保持可见。专项契约更新为 `46 / 46`，JS 语法与
-  `git diff --check` 通过；应用内 Browser 在 `2048×1080` 与 `1440×900` 验证全部
-  6 项可见、项目操作组零越界、标准模板按钮仅“导出”、模板页
-  `scrollHeight === clientHeight`，两类保存入口可见。验收未点击保存或最终删除，未写
-  真实项目数据、正式 SQLite、报告工件、源 Excel 或保护字典。
-- `成熟度模板工作台权限与项目选模闭环 READY FOR REVIEW`：修复悬浮属性面板透明外层与
-  双重滚动槽造成的右侧空白，标准能力 / 关注点 / 服务定义在标准结构发生位置或下级调整
-  后仍可继承显示，显式修改只写模板覆盖；现有节点属性增加“确认并完成”。移除当前不参与
-  校验、评分、优先级或报告的“设为关键能力”，移除与脑图重复的目录浮层，顶部搜索改为
-  在模板页展开祖先、居中节点并打开属性。`校验并发布` 统一改为`校验并保存`。模板管理
-  将项目来源原件限定为“进入项目优化”，并提供“创建副本并调整”；导入模板副本也直接
-  进入独立模板工作区。新建评估项目按钮移入“项目进展”，第二步只保留固定 / 自定义两个
-  一级选项，自定义再从模板管理全部模板选择来源；任何来源均生成项目专属新模板 ID，并
-  清理原发布元数据。成熟度详情左上返回改回成熟度首页。专项契约 `41 / 41`、JS 语法、
-  `git diff --check` 和 5173 home / health 通过；标准定义动态检查为分类 `13 / 13`、
-  L2 `32 / 32`、关注点 `91 / 91`。成熟度 HTTP smoke 的报告端点曾生成 1 份
-  `demo-project-002` 测试报告工件；已精确移除该时间戳目录并从 manifest 删除对应末项，
-  恢复到原 26 项、末项 `20260729-134449Z-d4119b26`，清理前副本保存在
-  `/private/tmp/sapd-maturity-smoke-cleanup-20260731-YL2U3M/`。应用内 Browser 受当前
-  本地地址策略阻止，未绕过；
-  全量 V2.1 审计缺少系统 Python `cryptography`，XLSX / 报告历史审计另被既有基线和
-  历史报告版本阻断，均未作为本轮通过证据。未写正式 SQLite、源 Excel、保护字典、
-  评分规则、真实用户数据库或交付包。
-- `成熟度节点定义与共享模板资产闭环 READY FOR REVIEW`：标准来源 L0 / L1 / L2 /
-  关注点定义已从 `capability-workbench` 投影到成熟度基础模板；所有结构节点属性栏
-  增加定义编辑，标准来源修改只写当前自定义模板并进入“标准修改”，新增节点定义为
-  可选。新增属性栏改为内容驱动高度并限制在画布内滚动，确认按钮保持可达；临时节点
-  删除“在右侧完成”等方位文案。首页模板管理新增“新增模板”，默认复制当前基础模板
-  并复用项目图谱编辑器；独立模板工作区不进入项目列表或评分流程。项目模板只有校验
-  发布后进入模板管理，列表显示来源项目并可继续优化，再次修改后恢复草稿。三份成熟度
-  合同同步到 0.1.53 / 第四十四轮 / FE-R211—214。专项前端契约 `34 / 34`、JS /
-  Python 语法、定义投影和快照变更动态检查、`git diff --check` 均通过；标准定义动态
-  检查为 13 个分类、32 个 L2、91 个关注点全量非空。5173 守卫的 home、health、
-  workspace projection 和运行路径通过；应用内 Browser 因当前本地地址访问策略被
-  阻止，未绕过限制，因此实际页面人工复核留给用户。成熟度全量历史审计仍会先被既有
-  全局 `translateX` 断言阻断，与本轮专项结果无关。未写正式 SQLite、源 Excel、
-  保护字典、评分规则、Rubric、真实用户数据库或交付包。
-- `自定义模板节点属性与服务角色硬规则 PASS`：行内新增 / 复制编辑器按所属分支预留
-  `118px` 布局高度，真实页面测得与现有 13 个可见节点重叠数为 0；“标准 / 标准修改 /
-  新增”强化为中性实线、金棕实线、蓝色虚线三态。悬浮属性面板只维护当前节点自身属性，
-  安全技术服务仅保留名称、作用域和系统判定的只读角色，新增下级、移动、复制、移除与
-  服务角色选择控件全部退出属性面板。T 类服务固定为 `ASSESSMENT_POINT`，G / M 类
-  服务固定为 `PLATFORM_EVIDENCE_REFERENCE`；加载旧草稿、行内新增、自由节点吸附、
-  拖拽换父级、XLSX 导入和后端模板校验执行同一规则。当前基础模板验证仍为
-  160 条服务关系，154 条 T 类独立服务评估点、6 条 M 类平台参考、G 类 0 条。
-  自定义模板编辑契约 `26 / 26`、JS / Python 语法、后端正反例和导入冲突定向校验通过；
-  应用内 Browser 验证行内编辑器零覆盖、服务面板仅 2 个业务控件、M-PM.PR-00 只读显示
-  “平台工具参考”，页面 error / warning 为 0。成熟度全量审计运行到后段时被既有
-  “项目创建不得含 translateX”基线断言阻断，该断言与本轮变更无关。未写主工程字典、
-  正式 SQLite、Rubric、评分公式、真实用户数据库或交付包。
+- `G2 与 macOS Runtime 指纹收敛`：G2 稳定身份字段已通过正式 `006_stable_identity.sql` 接入 migration，并覆盖已有字段、并发和失败回滚。真实签名 App 复核发现新增启动全树 hash 会因 `codesign` 修改受控 Mach-O 而与签名前记录值不一致，同时产生约 `0.72—0.79s` 启动开销；已按最小原则回退启动全树重算和复制后强制复验，恢复原有构建指纹标记比较，保留内容资产数据库 hash、写路径软链接保护及既有签名流程。SwiftPM 编译、Runtime / DMG 定向 `16/16`、delivery `7/7`、文档治理和差异检查通过；本轮不构建 DMG、不启动 App、不修改正式数据或真实用户库。
+- `第八轮代码审计修复完成`：3 个 P1、9 个 P2 已按根因最小修复。stable maturity smoke 不再调用报告写端点；跨路由 `inert` 和事件绑定由显式 unmount 收尾；完成评估递增 revision 并同时保护后台成功 / 失败响应。项目名恢复为列表主身份和搜索字段；报告后端成功、本地保存失败时保留当前 receipt，同会话只重试本地保存，跨刷新按双 hash 获取最新匹配工件；同 hash 不同来源路径 fail closed，重导按来源路径与选中 sheet 清理消失类型并保留有效其他 owner；报告顶层与导出分类 symlink 写前拒绝。full / release-full 补入内容、导入、Electron 和 MCP，默认无 Chrome smoke 验证真实业务 API，runner 正常退出也清理 POSIX 后代进程。定向回归为导入 `19/19`、用户路径 `36/36`、交付控制 `19/19`、成熟度 `43/43 + 236/236`、Electron `14/14`；最终 9 个 suite、82 个非 DMG 命令全部通过，新增内容回归再以 `-W error::ResourceWarning` 验证 `25/25`。5173 PID 20739 保持 stable；正式用户库 `0e3db122...`、`demo-project-002` manifest `9192e778...`、27 个工件及全报告树摘要前后不变。未重启服务、未启动系统 Chrome、未构建 DMG、未测试最新实包 28776。
+- `第六至七轮代码审计与当时矩阵收敛`：修复 migration 原子性 / 并发与显式事务逃逸、导入来源 owner handoff / 权威空关系集及未解析关系误删、报告路径及 symlink 越界、成熟度 hydrate / restore / import / report 的异步竞态和 localStorage 失败、runner 进程树中断、完整矩阵缺 MCP、Bundle 必需 rewrite owner、文档日期门禁及 Runtime smoke 误写正式报告。后置三方二审发现的 2 个 P1 / 5 个 P2 均补回归；定向后端 `51/51`、交付 `21/21`、成熟度行为 `34/34`、V2.1 `236/236`、自定义模板 `58/58` 通过，最终 `static / boundaries / data / frontend / runtime / mcp / user / delivery` 80 个非 DMG 命令全部通过。该结果只表示当时已编排矩阵通过，已被第八轮发现的覆盖缺口降级，不再作为“无剩余 P1 / P2”证据。
 
-## 2026-07-30
+## 2026-08-04
 
-- `自定义模板通用成熟度基线 PASS`：在后端 / ViewModel 新增单一内容源
-  `sapd-maturity-custom-generic-rubric-v3-2026-07-30`，完整提供 L1—L5 通用描述和
-  4 个维度 × 5 个等级的精炼评分依据。自定义模板根属性区可展开查看五级定义；新建且
-  没有对象专用评分依据的评估点使用 `CUSTOM_GENERIC_FALLBACK`，从基础模板复制的
-  对象专用评分依据不变，固定模板缺失依据仍阻塞。XLSX 导入 / 导出同步保留版本和
-  20 条评分依据。三份成熟度设计合同、指南 v1.4、评分基线主表和差异说明已同步；
-  L4 不预设 KPI，L5 不以 AI 为必要条件。专项审计 `21 / 21`、XLSX 审计
-  `23 / 23`、Python 编译和 workspace 结构检查均通过；应用内 Browser 验证模板根
-  可展开显示全部五级描述，浏览器 error / warning 为 0。未写正式模板、Rubric
-  字典、SQLite、历史项目或真实用户数据库。
-- `自定义评估模板可视化编辑 PASS`：自定义模板项目创建按钮和落地页改为“创建并进入
-  评估模板”，修复路由重挂载覆盖 `template` 页签的问题；项目队列和模板管理区提供
-  “继续配置 / 继续优化”。评估模板页最终采用 Apple Shell 脑图工作台，而非三栏流程
-  页面。根据 2026-07-30 最终复核，完整模型保持 3 / 10 / 32 / 91，首次默认收起到 L1，
-  可见 1 个模板根、3 个 L0、10 个 L1、13 条关系线，L2 / 关注点 / 服务均为 0；14 个
-  可见非叶节点均有常驻收起 / 展开按钮。L1、L2、关注点逐层展开真实下一级，目录定位
-  深层对象时自动展开祖先路径；节点边缘新增“＋”移除，新增下级 / 同级统一使用右键。
-  画布支持空白拖动平移、5%—130%
-  缩放和“适配全图”；首次进入以模板根为中心，目录选择节点后恢复可读缩放并自动定位。
-  目录与属性为可收起悬浮面板。各级能力、关注点
-  和服务关系支持新增、改名、换父级、移除、上下移动、鼠标拖拽和右键菜单，并同步
-  `focusIds`、服务映射、评分项和排序。建模器继续补齐基础模板默认带出、模板根与各级
-  节点“复制全部下级”、空白处创建可改类型的自由节点、合法父级吸附，以及各级节点
-  收起 / 展开。第二阶段保留右键行内新增、临时关系线、
-  `Enter` 保存 / `Escape` 取消、右键新增同级、模板根 L0 / 根级 L1 入口、15 步会话级
-  撤销 / 重做和 `⌘/Ctrl+D` 子树复制快捷键；新增、同级和吸附共用有类型层级约束，
-  不开放任意边；能力、关注点和服务换父级时以完整子树移动。应用内 Browser 原全树
-  回归确认 1 / 3 / 10 / 32 / 91 节点、136 条关系线和
-  185 个评估点；含 6 条
-  服务的关注点复制后评分项为 191、展开可见 6 条服务，移除后恢复 185；自由关注点
-  吸附到 L2 后评分项为 186，清理后恢复 185。`1440×900` 与 `1280×720` 应用内 Browser
-  均无页面横向溢出；本轮再次在 1280×720 确认全图 DOM 计数、根节点默认选中、
-  适配全图 8%、目录定位回到 50%、页面横向溢出 0 和浏览器日志 0；平移、缩放、适配、
-  悬浮目录、悬浮属性、右键、关注点拖拽排序和
-  顺序恢复通过；行内新增关注点 185 → 186、撤销 → 185、重做 → 186、再撤销并刷新
-  保持 185，浏览器 error / warning 为 0。只写隔离验收浏览器的本地模板草稿，
-  未改正式 SQLite、主工程字典、固定模板、Rubric、评分公式、真实用户数据库或 DMG。
-- `V3 工作台显示、评分精炼与 Level 4 / Level 5 语义校正 PASS`：修复表格横向滚动容器内使用固定纵向
-  sticky 偏移导致的表头与评分内容叠压；表头改为随页面正常滚动，首列仍保持横向固定。
-  Level 4 保持“量化控制”名称，改为稳定运行、跨周期可比较结果、批准控制目标 /
-  质量要求 / 时限 / 容忍边界、偏差纠正和效果验证；不再预设通用或关注点专用指标。
-  Level 5 增加稳定 L4 基础、改进触发与目标、结果验证、前后比较和固化的最低门槛。
-  3,596 个范围内评分单元平均 45 字、最长 78 字，候选指标名称、泛化“技术机制”、
-  重复词和异常句尾均已清零。1280×720 应用内 Browser 确认五列表头与首列横向固定
-  无叠压，评分文本不含候选指标，人工复核状态可保存并在重载后恢复；回归记录已清理。
-  未改正式运行态或用户数据。
-- `SAPD 成熟度模型 V3 提案包 READY`：新增可重复生成脚本并完整产出
-  《SAPD 成熟度模型使用指南 v1.4》、评分基线主表、差异说明、离线评分依据复核
-  工作台和结构化 V3 proposal JSON；候选指标库已退出正式提案。91 个关注点均按最佳
-  实践、能力性质和证据可得性独立设计连续
-  评分范围，185 个评估点全部继承或明确说明覆盖，形成 3,700 个“等级 × 维度”单元；
-  范围外单元逐维说明不设置理由。T-IN.IP 为 L2—L5；T-OF 采用合法授权、边界隔离、
-  责任审批和全程审计的条件适用机制并从 L3 起评。ARS-001、ARS-007、ARS-023 已提出
-  拆分方案，ARS-019、ARS-027 已补齐。Level 4 不预设候选指标；Level 5 已去除 AI
-  必选条件并增加最低判定门槛。工作台删除“确认进度”末列，直接展示原文、优化文、
-  修改原因、来源、证据和人工复核区。
-- `V3 提案验收 PASS`：生成校验确认 91 / 185 / 3,700；逐项复核后的连续范围分布为
-  78 个 L1—L5、9 个 L2—L5、4 个 L3—L5，3,596 个范围内单元和 104 个范围外单元
-  均有完整正文或不设置理由。提案 JSON 与工作台不再包含候选指标字段或统一衡量说明，
-  优化文和修改原因无缺失，未发现把
-  AI/ML 作为 L5 必要条件的文本。自包含工作台和
-  指南 v1.4
-  已在应用内 Browser 实际加载；检索、连续范围投影、单元复核、本地状态更新及五列表格
-  均通过；复核意见改为输入时即时保存，重载验证后回归测试状态已清理。未修改 V2.1
-  正式字典、API、评分规则、源 Excel、正式 SQLite、历史项目、
-  用户数据库或 Web/App 运行入口。
+- `第五轮代码审计与 P1 / P2 故障回归收敛`：P1 已修复成熟度门禁误判、本地存储读取失败后误覆盖、全局 API 永久熔断、前端软链接越界、构建时间戳复验和 DMG Runtime API smoke 缺口；P2 已修复报告目录隔离与碰撞 / 异常清理、Web 与 Bundle 同名导出覆盖、导出任务 JSON 非原子覆盖、并发 Token 刷新竞态、动态查询失败缓存跨查询误阻断 / 无界增长、空用户库完整 DDL 对比、Runtime 可执行权限 / 软链接、DMG 与直接 build 中断不及时、dry-run 误报、成熟度交互测试空覆盖、Windows 文件锁分支和 SQLite 连接泄漏。成熟度行为 `22/22`、V2.1 合同 `236/236`、Windows 合同 `10/10`、用户态 `27/27`、Bundle / DMG 验收行为 `25/25` 通过；`static / boundaries / data / delivery` 共 38 个编排命令通过，离线前端治理 / 搜索 / 滚动 / 成熟度 9 组通过，文档治理新增未关闭 Issue 声明数与权威表一致性门禁。第五轮收口时 5173 被非项目 listener 占用且 HTTP 不可达，未重启或清理进程，因此 10 组依赖本机 HTTP 的前端壳层审计不声明通过；既有候选职能 ID 审计仍为 `138 warning / 0 error`。未启动系统 Chrome、未构建 DMG、未写真实用户库或正式数据。
 
-## 2026-07-29
+## 2026-08-03
 
-- `下一次 macOS DMG 拖拽安装合同已实现`：`package_dmg.sh` 会在每个 staging 根目录
-  创建 `Applications -> /Applications`，镜像同时显示 `SAPD Wiki.app` 和
-  `Applications` 安装入口；README 与交付手册明确要求用户拖动安装后从“应用程序”
-  启动，且该操作不改变 Runtime、import、export 或用户数据库位置。DMG parity 增加
-  静态门禁；本轮不重新构建或删除现有 `0.3.5` 产物。
-- `macOS 0.3.5 双版本 DMG 构建与自动验收 PASS`：从同一当前源码强制重建 license /
-  no-license 双 staging，最终产物分别为
-  `SAPD-Wiki-0.3.5-license-20260729-133600Z-mac-arm64.dmg`（347,204,368 bytes，
-  SHA-256 `f85d775aed29531613182acd58d1a037013ac428f3275bdfff2566f6d6417d49`）和
-  `SAPD-Wiki-0.3.5-no-license-20260729-133600Z-mac-arm64.dmg`（348,316,819 bytes，
-  SHA-256 `9afb563dbee87ef51d68681bad0d2d8c117c744305ab7896e53ebe03b6d2928c`），
-  no-license 为本轮主要测试包。包内 MCP 新 Runtime 默认端口保持 `28775`；启动时
-  `dev_supervisor.py` 优先读取本地 `control/control.sqlite3` 的持久配置，因此当前用户
-  已保存的 `28776` 会直接接管，无需重新构建。完整 pre-DMG、arm64 ad-hoc 签名、
-  正式双库哈希、空用户库模板、`hdiutil verify`、只读挂载和 Runtime 检查均通过。
-  未写 Keychain / 信任设置或真实用户库；真实用户库哈希保持不变。首次保存路径、
-  首次建证、完全退出重开、锁屏 / 解锁以及 OAuth / 五工具 / `TOOL_CALL` 审计保留
-  人工 UAT；当前包仍为 ad-hoc signing、未 notarize 的内测包。
-- `OI-197 离线裁定工作台 READY / 用户逐行确认待完成`：新增自包含 HTML 与可重复生成脚本，
-  按当前模板快照完整投影 3 个 L0、10 个 L1、32 个 L2、91 个关注点、160 条服务关系和
-  185 个评估点；L1—L5 使用 32 组对象专用 Rubric 来源附录，不采用当前运行模板重复的
-  通用 fallback。标准模板全部评估点默认适用，不再要求用户判断映射、模板适用性、总体
-  结论或内部 Rubric 状态。每个评估点分别确定一个连续的有效等级范围；逐级可选“合理 /
-  需要修改或补充 / 该级别不需要”，不需要的等级只能从最低或最高端连续删除，不能删除
-  中间等级。进攻反制能力与安全运行管理能力的空白属于已确认历史缺失，必须补充；其他
-  空白保持中性，由用户判断是范围外不需要，还是范围内需要补充。主矩阵按每个评估点一行、
-  横向四个维度，每个维度单元格内按 L1—L5 纵向展示完整评分描述；10 个无源评估点不再
-  显示同组候选内容。L1—L5 的原文仍只区分完整、不完整、空白和有完整原文四种内容事实，
-  `ARS-023` 原文不再作为用户分类。矩阵和侧栏使用“评分
-  标准”业务名称，并按关注点给出通俗审阅方向；L0 / L1 / L2、关注点和安全技术服务的
-  对象身份、名称与归属固定以当前字典为准，评分依据表只提供 L1—L5 标准文字，其中对象
-  信息冲突后续按字典修正。
-  保留备注、本地自动保存、JSON 备份和内嵌状态 HTML 导出。生成计数、评分标准结构、JS
-  语法、启动渲染、重点筛选、侧栏打开、五级快速选择、逐行确认和本地保存合同通过；应用
-  内 Browser 因 `file://` 安全策略不能由 Agent 接管视觉验收，保留为用户刷新后的人工
-  检查。未改源 Excel、当前字典、正式数据、评分规则、ETL、真实用户库或运行服务。
-- `OI-191 / OI-192 关闭`：用户确认 demo 成熟度页面不再作为正式交付阻塞；共享标题区三条代表路由完成 `1280×720` 应用内 Browser 验收，两项进入关闭归档。
-- `Keychain / macOS 交付权威文档冲突收口`：统一 `CURRENT_STATE.md`、`task_plan.md`、
-  OI-199 和桌面打包手册为 0.3.0 最小修复后的当前事实，删除回退前 Native Security
-  Broker、Data Protection Keychain、`app` profile 无 CLI 和正式签名门禁仍属现行
-  方案的表述。App MCP `28776` 的既有运行态只记录为监听、授权和 Token 签发；用户
-  裁定不单独验收，改为下一次从同一当前源码重建双 staging 后，在最新实包内完成
-  OAuth、五工具和 `TOOL_CALL` 审计。同步实际 HEAD `c5d83e0362c3`；本轮只修改文档，
-  未改源码、服务、Keychain、正式数据、用户库或构建产物。
+- 桌面打包目录与 GitHub owner 整理 PASS：GitHub connector 核对公开
+  `kim1st0913/SAPD_Wiki` 和私有 `SAPD_Wiki_Delivery_Private` 当前文件后，公开仓退役
+  backend-only workflow 归档到 `docs/05-archive/delivery-retired-2026-07/workflows/`，
+  六个 ZIP alpha 发布 / 启停文件归档到 `scripts/retired/zip-alpha/`；当前生产脚本路径保持
+  不变。未删除任何本地产物：Electron 0.3.0 Runtime 和 0.2.0—0.3.5 输出移入
+  `.build/archive/` / `dist/archive/`，macOS 旧 DMG 移入两个变体的 `archive/`，活动层只
+  保留 0.4.0 Setup 与双 DMG。活动 SHA-256 为 Windows `e2f62716...`、macOS license
+  `5ba1ed70...`、no-license `5bfe59d3...`。新增
+  `docs/09-delivery/packaging-directory-map.md`；Windows 目录合同 `10/10`、Electron
+  `14/14`、macOS 打包合同、Python / Bash 语法、文档治理、GitHub 数据边界和
+  `git diff --check` 均通过。静态核对另发现私有 watcher 未向必填 `app_version` 传值；
+  未改私有仓，也未把合同不一致误报为已观察运行失败，下一次自动构建前需修复并取证。
+- `data/exports` 第二批精确白名单清理 PASS：三套相同输入、未进入 accepted 的旧内容
+  release 仅删除 candidate 双库，原 `release-state`、输入 manifest 和 reports 原位保留；
+  T5 离线 bundle 的 README、配置和启动验收日志迁入 reports 后删除完整运行副本。总删除
+  `1,537,456 KiB`，扣除 `28 KiB` 保留证据后净释放 `1,537,428 KiB`（约
+  `1.47 GiB`），`data/exports` 从 `7,956,200 KiB` 降至 `6,418,772 KiB`。当前仅最新
+  `65f942...` release 保留 candidate 双库，候选库及正式基础库、内容资产库、用户库均
+  `integrity_check=ok / foreign_key_check=0`，三套正式库哈希不变。未清理当前 candidate、
+  最新 release、T6 recovery、`plan-env-md`、Windows 正式 ZIP、源 Excel 或用户导出。
+  报告为 `data/exports/cleanup-reports/exports-second-batch-cleanup-20260803T021733Z.json`。
 
-## 2026-07-28
+- `data/exports` 第一批精确白名单清理 PASS：删除三套已发布 Windows Delivery Data ZIP
+  分片、`.tmp-manual-swap` 字节重复副本、T6 restore-rehearsal 重复库、两份 2026-05
+  临时验证库，以及已过期的对象 / 关系批量导出和三个 `clean-*` 目录，共释放
+  `1,223,636 KiB`（约 `1.17 GiB`）；`data/exports` 从 `9,179,832 KiB` 降至
+  `7,956,196 KiB`。正式基础库、内容资产库和用户库哈希保持
+  `30d14679... / adaa19bf... / 0e3db122...`，三库 `integrity_check=ok`、外键异常为
+  `0`；保留的 Windows ZIP、环境正式备份和 T6 recovery 哈希复核通过。未清理
+  `plan-env-md`、当前内容 candidate、4 套 release、正式恢复包、源 Excel、用户导出或
+  其他 `worker-verify` 证据。报告为
+  `data/exports/cleanup-reports/exports-first-batch-cleanup-20260803T021256Z.json`。
 
-- `Keychain 最小修复回退`：按用户确认的事实恢复到 0.3.0 已验证可用路径，撤销
-  Swift / Python Native Security Broker、匿名管道、Data Protection Keychain 接线、
-  桌面 `app` profile 强制门禁，以及因本次故障扩展的 Developer ID / notarization
-  实现；未改 OAuth、证书生命周期和五个只读工具。保留 macOS `/usr/bin/security`
-  返回码 `36 / 51` 的 `SECRET_STORE_UNAVAILABLE` 分类、明确解锁提示、运行中 Sidecar
-  不因临时锁定退出，以及解锁后的用户手动重试。回退前完整 tracked binary patch和
-  四个新增文件已保存到
-  `/private/tmp/sapd-keychain-minimal-rollback-20260728-MTkRpM/`。未操作真实 Keychain、
-  现有 DMG、正式数据库或用户库。MCP 完整套件 `218 PASS / 5 SKIP`、最终证书 /
-  Sidecar 专项 `33/33`、离线 bundle `2/2`、前端 AI 集成合同和 SwiftPM 编译均通过；
-  DMG parity 的源码合同均通过，仍只被既有双 staging 前端不一致阻断。未检查 5173、
-  未启动系统 Chrome、未构建 DMG。回退前 Native Broker、正式 profile 和签名 / 公证
-  结果属于已撤销的中间状态，不再保留在当前近期进展页。
-- `Web Keychain 恢复确认`：用户在 Terminal 交互解锁 `login.keychain-db` 后，Web 证书可以重新生成。
-  `show-keychain-info` 恢复为 `no-timeout`，默认与搜索列表仍只有登录钥匙串；代码与
-  系统日志均未发现 `lock-keychain`、修改钥匙串密码 / 设置或切换默认钥匙串操作。
-  结论修订为后台 `/usr/bin/security` 安全会话认证丢失，而非钥匙串损坏。
-- `Web 证书重建错误分类修复 PASS / 系统解锁后已恢复`：重置后
-  `certificate_provision` 在 Keychain 写入口令阶段返回 `SECRET_WRITE_FAILED` 并完整
-  回滚，未留下 active 证书或半成品信任。进一步只读检查确认默认与搜索列表均为
-  `login.keychain-db`，但系统返回认证失败；一次性临时钥匙串写入 / 读取 / 删除成功，
-  排除命令语法错误，测试钥匙串随后已删除。源码现将 macOS Keychain 返回码 `36 / 51`
-  投影为可恢复 `SECRET_STORE_UNAVAILABLE / unlock_keychain`，控制面捕获该错误并显示
-  明确解锁提示。证书专项与错误处理 `6/6`、Sidecar `66 PASS / 1 SKIP`、E2E `2/2`
-  通过；5173 已重启到 PID `64172`，三项运行态检查通过。用户后续完成系统交互式
-  解锁并成功重新生成证书；真实用户库和正式数据库未修改。
-- `文档治理第五轮 PASS`：根 README、项目愿景和主架构说明已按当前安全能力、
-  信息化环境、生命周期、知识 / 标准、成熟度、用户工作区、桌面交付和 MCP 业务版图
-  重写；三份旧版完整归档。GitHub About 从空简介更新为本地优先、可追溯知识系统定位。
-- `5173 稳定运行态 PASS`：PID `8060` 经项目守卫确认属于正式主工作区；没有终止或
-  重启进程。home、health、workspace projection、stable runtime profile、正式基础库、
-  内容资产库、用户库、数据根目录和 CurrentUser 持久 MCP Runtime 全部通过。
-  `.venv-local-mcp-web` 保留端口单测 `13/13`，完整 runtime suite 通过；搜索、能力、
-  环境、LC-AP、标准和成熟度 HTTP/API smoke 全绿。系统 Chrome 未启动。
-- `文档治理第四轮 PASS`：早期导航、路线图、第一版数据模型、SQLite schema 草案、
-  5-Sheet MVP、剩余 Sheet 建模和第一至第三批 ETL 合同 / 复核已归档。项目路线图、
-  非开发者工作流和当前数据模型重写为现行口径；映射规则晋级为已实现合同。
-- `quick 工程门禁核对`：static 与数据 / GitHub 边界检查通过；delivery parity
-  仅因历史 license / no-license staging 前端不一致且最新 DMG staging 落后当前源码
-  未通过。本轮未重建 DMG；下次 macOS 打包必须从同一当前源码重建两个 staging。
-- `文档治理第三轮 PASS`：16 份旧实施、搜索、stable-key、ZIP 交付、前端基线和
-  MCP 安全评审材料归档；`CURRENT_STATE.md` 从 268 行收敛为短恢复页，技术选型、
-  用户指南和桌面交付口径更新为当前实现。
+- `权威状态冲突 P0 收敛`：当前状态、主线计划和 Open Issues 已统一为 macOS 0.4.0
+  双包已构建并通过自动矩阵；人工 UAT 持续保留但不阻塞内部开发，只限制最新实包完整
+  UAT 和正式外部分发声明。`task_plan.md` 不再要求重复执行已完成的 CSS P1 或重打现有包。
+- `OI-197 分批业务复核 READY`：业务复核改为先确认连续等级范围、通用基线、T-IN.IP、
+  T-OF、L4 / L5 等全局规则，再只处理离线工作台中的争议对象，不要求用户一次逐格验收
+  3,700 个单元。正式 Rubric、评分规则、源 Excel、SQLite 和历史结果未修改。
+- `OI-128 CLOSED`：批注 / 工作台用户写入入口已实现并通过多轮 API、契约、页面与真实
+  批注回归，按当前范围关闭。导出格式扩展、能力重组、导入和 Skill 集成作为未来独立
+  范围，不继续占用该 Issue。
+- `dirty 范围拆分`：收尾期间另有成熟度模板工作台前端改动进入同一工作树，最终按
+  macOS 0.4.0、模板工作台、OI-197 业务审阅和状态治理四组管理。定向验证通过 macOS
+  parity、模板工作台 `54 / 54`、成熟度合同 `236 / 236`、脚本语法、文档治理和
+  `git diff --check`。未 stage、commit、push，未触碰 `data/`、DMG、正式库或真实用户库。
 
-## 2026-07-27
+## 2026-08-01
 
-- `文档治理第一、二轮 PASS`：建立文档状态、权威顺序、场景导航、归档索引和自动
-  审计；退役交付 / 治理材料、完成计划、旧架构盘点和成熟度 V1 文档进入归档。
-- `Windows 交付迁移 PASS`：公开 `main` 为源码事实源，私有 Delivery Data 和
-  `windows-2022` Runner 生成、校验并上传完整 NSIS `Setup.exe`；旧
-  `codex/windows-electron` 分支和 Mac 手工组装链路已删除 / 退役。
-- `macOS 0.3.0 no-license DMG 历史构建快照`：该包此前通过后端、Swift App、DMG
-  校验和空用户库模板检查，但当前 staging 已落后源码；新包需重建 license /
-  no-license staging，证书、目标客户端 OAuth、首次保存路径、签名和 notarization
-  仍按发布范围执行人工验收。
-- `OI-198 PASS`：审批事务幂等、来源证据键复用、按 job finalize、恢复状态和
-  latest-approved 默认导出实现并验证。
-- `增量发布候选门禁 PASS`：release-id 驱动的
-  `prepare / build / verify / apply / accept / rollback` 已建立；真实基线完成重复
-  build 与 verify 并停在 `gated`，未执行新的正式 apply。
-- `OI-197 等待用户裁定`：8 个名称漂移和 7 个无来源 Rubric 对象保持
-  `PENDING_USER_DECISION`。
+- `成熟度评估依据文档分层治理 PASS`：业务设计维护 L1—L5 规范语义，V3 评分基线维护
+  91 个关注点、185 个评估点的具体提案，前端设计只维护实现合同；删除重复和过期矩阵，
+  未修改正式评分数据、Rubric 字典、SQLite、源 Excel、历史项目或真实用户数据。
+- `macOS 0.4.0 双版本 DMG 自动验收 PASS`：从当时的 main 分支 dirty 工作树强制重建
+  license / no-license 双 staging。产物分别为
+  `SAPD-Wiki-0.4.0-license-20260801-033335Z-mac-arm64.dmg`，SHA-256
+  `5ba1ed70c9b16baf72fdb97a32ad177fba04fdf8a8521033f67c6a62dd43843a`，以及
+  `SAPD-Wiki-0.4.0-no-license-20260801-033335Z-mac-arm64.dmg`，SHA-256
+  `5bfe59d3d5c02d5fa90155a910a32e794ae4eb8e7c4b865b11196cb18a44370b`。
+- `0.4.0 release matrix PASS`：完整 pre-DMG、`hdiutil verify`、只读挂载、arm64 ad-hoc
+  codesign、版本 / 模式、Runtime `--check-only`、隔离启动、正式双库和空用户库模板检查
+  通过；真实用户库未写入。双 staging 前端一致，源码与 staging 的两处内容资产 API
+  改写属于交付合同允许差异。
+- `0.4.0 人工 UAT 非阻塞保留`：拖拽安装、首次保存路径、license / no-license 入口、
+  首次建证、退出重开、锁屏 / 解锁和 App MCP `28776` 五工具 / 新 `TOOL_CALL` 条件允许
+  时继续验证；当前仍为 ad-hoc signing、未 notarize 的 arm64 内测包。
 
-## 2026-07-26
+## 历史入口
 
-- `基础内容统一查询 T0—T6 PASS`：正式双库、内容资产读取、MCP 五工具和恢复路径
-  已建立；Draw.io 空页不再生成内容对象。
-- `信息化环境主数据 P0—P8 Web PASS`：10 个环境、16 个子类类型、51 个对象，
-  77 条定义和 125 条关联使用；App / DMG 结论按交付矩阵单独验收。
-- `MCP Web 闭环 PASS`：TLS / OAuth、五工具、持久 Runtime、自动生命周期和
-  refresh-token resource 兼容完成。
+- 2026-07-29 至 2026-07-31：
+  `docs/05-archive/progress-history/progress-2026-07-29-to-2026-07-31.md`
+- 2026-07-28 以前：`docs/05-archive/progress-history/` 和
+  `docs/05-archive/progress-history/progress-before-round-4-2026-07-28.md`
 
 ## 保护边界
 
-- 上述文档治理和 5173 验收没有修改正式数据、源 Excel、真实用户业务数据或构建产物。
-- 本轮没有 stage、commit 或 push；完整旧记录保存在
-  `docs/05-archive/progress-history/progress-before-round-4-2026-07-28.md`。
+- 不修改正式 SQLite、源 Excel、保护字典、Rubric、用户库或已生成交付产物，除非用户
+  明确授权并提供恢复路径。
+- 不把 `data/`、DMG、Setup、恢复包、虚拟环境、`node_modules` 或构建物加入 Git。
+- 5173 通过不能替代 App、DMG 或 Windows 实包验收。

@@ -4,6 +4,7 @@ import hashlib
 import json
 import os
 import sqlite3
+from contextlib import closing
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -64,21 +65,33 @@ def _dumps(value: Any, *, indent: int | None = None) -> str:
 def _connect_readonly(db_path: Path) -> sqlite3.Connection:
     if not db_path.is_file():
         raise FileNotFoundError(f"Database not found: {db_path}")
-    connection = sqlite3.connect(f"{db_path.resolve().as_uri()}?mode=ro", uri=True)
-    connection.row_factory = sqlite3.Row
-    connection.execute("PRAGMA query_only = ON")
-    connection.execute("PRAGMA foreign_keys = ON")
-    return connection
+    connection: sqlite3.Connection | None = None
+    try:
+        connection = sqlite3.connect(f"{db_path.resolve().as_uri()}?mode=ro", uri=True)
+        connection.row_factory = sqlite3.Row
+        connection.execute("PRAGMA query_only = ON")
+        connection.execute("PRAGMA foreign_keys = ON")
+        return connection
+    except Exception:
+        if connection is not None:
+            connection.close()
+        raise
 
 
 def _connect_write(db_path: Path) -> sqlite3.Connection:
     if not db_path.is_file():
         raise FileNotFoundError(f"Database not found: {db_path}")
-    connection = sqlite3.connect(db_path, timeout=30.0)
-    connection.row_factory = sqlite3.Row
-    connection.execute("PRAGMA foreign_keys = ON")
-    connection.execute("PRAGMA busy_timeout = 30000")
-    return connection
+    connection: sqlite3.Connection | None = None
+    try:
+        connection = sqlite3.connect(db_path, timeout=30.0)
+        connection.row_factory = sqlite3.Row
+        connection.execute("PRAGMA foreign_keys = ON")
+        connection.execute("PRAGMA busy_timeout = 30000")
+        return connection
+    except Exception:
+        if connection is not None:
+            connection.close()
+        raise
 
 
 def _job_row(
@@ -265,7 +278,7 @@ def finalize_import(
 ) -> dict[str, Any]:
     resolved_db = resolve_project_path(db_path).resolve()
     if not apply:
-        with _connect_readonly(resolved_db) as connection:
+        with closing(_connect_readonly(resolved_db)) as connection, connection:
             plan = _finalize_plan(connection, import_job_id)
         return {
             "schema_version": "import-finalize-v1",
@@ -282,7 +295,7 @@ def finalize_import(
     ).resolve()
     generated = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     run_dir = root / import_job_id / generated
-    with _connect_write(resolved_db) as connection:
+    with closing(_connect_write(resolved_db)) as connection, connection:
         try:
             connection.execute("BEGIN IMMEDIATE")
             plan = _finalize_plan(connection, import_job_id)

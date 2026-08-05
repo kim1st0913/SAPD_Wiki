@@ -7,6 +7,7 @@ import json
 import sqlite3
 import tempfile
 import unittest
+from contextlib import closing
 from pathlib import Path
 from unittest import mock
 
@@ -37,7 +38,7 @@ class ContentReleasePipelineTests(unittest.TestCase):
         self.temp.cleanup()
 
     def sqlite_file(self, path: Path, statements: list[str]) -> Path:
-        with sqlite3.connect(path) as connection:
+        with closing(sqlite3.connect(path)) as connection, connection:
             for statement in statements:
                 connection.execute(statement)
         return path
@@ -188,12 +189,12 @@ class ContentReleasePipelineTests(unittest.TestCase):
                 """,
             ],
         )
-        with sqlite3.connect(formal_asset) as connection:
+        with closing(sqlite3.connect(formal_asset)) as connection, connection:
             connection.execute(
                 "INSERT INTO content_assets VALUES (?, ?)",
                 (parent_hash, parent_payload),
             )
-        with sqlite3.connect(candidate_asset) as connection:
+        with closing(sqlite3.connect(candidate_asset)) as connection, connection:
             connection.execute(
                 "INSERT INTO content_assets VALUES (?, ?)",
                 (candidate_hash, candidate_payload),

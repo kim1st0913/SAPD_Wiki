@@ -5,6 +5,7 @@ import json
 import shutil
 import subprocess
 import sys
+from contextlib import closing
 from datetime import datetime
 
 from .db import connect, run_migrations
@@ -133,7 +134,7 @@ def cmd_inspect_excel(args: argparse.Namespace) -> int:
     summary = inspect_workbook(excel_path)
     summary_dict = workbook_summary_to_dict(summary)
 
-    with connect(db_path) as conn:
+    with closing(connect(db_path)) as conn, conn:
         source_file = register_source_file(
             conn,
             excel_path,
@@ -236,7 +237,7 @@ def cmd_stage_excel(args: argparse.Namespace) -> int:
     selected_sheets = _selected_sheets(args.sheets)
     parse_result = _parse_selected_excel(excel_path, selected_sheets)
 
-    with connect(db_path) as conn:
+    with closing(connect(db_path)) as conn, conn:
         source_file = register_source_file(
             conn,
             excel_path,
@@ -300,7 +301,7 @@ def cmd_approve_import(args: argparse.Namespace) -> int:
         allowed=args.allow_project_db_write,
     )
     run_migrations(db_path)
-    with connect(db_path) as conn:
+    with closing(connect(db_path)) as conn, conn:
         summary = approve_import(conn, args.import_job_id)
     if args.json:
         print(json.dumps(summary.to_dict(), ensure_ascii=False, indent=2))
@@ -345,7 +346,7 @@ def cmd_finalize_import(args: argparse.Namespace) -> int:
 def cmd_summary(args: argparse.Namespace) -> int:
     db_path = resolve_project_path(args.db)
     run_migrations(db_path)
-    with connect(db_path) as conn:
+    with closing(connect(db_path)) as conn, conn:
         payload = {
             "tables": table_counts(conn),
             "items_by_type": item_counts_by_type(conn),
@@ -369,7 +370,7 @@ def cmd_summary(args: argparse.Namespace) -> int:
 def cmd_list_items(args: argparse.Namespace) -> int:
     db_path = resolve_project_path(args.db)
     run_migrations(db_path)
-    with connect(db_path) as conn:
+    with closing(connect(db_path)) as conn, conn:
         rows = list_items(conn, args.type, args.limit)
     if args.json:
         print(json.dumps(rows, ensure_ascii=False, indent=2))
@@ -383,7 +384,7 @@ def cmd_list_items(args: argparse.Namespace) -> int:
 def cmd_imports(args: argparse.Namespace) -> int:
     db_path = resolve_project_path(args.db)
     run_migrations(db_path)
-    with connect(db_path) as conn:
+    with closing(connect(db_path)) as conn, conn:
         rows = latest_import_jobs(conn, args.limit)
     if args.json:
         print(json.dumps(rows, ensure_ascii=False, indent=2))
@@ -440,7 +441,7 @@ def _protected_baseline_db_counts(db_path) -> dict[str, int]:
         return {}
     placeholders = ",".join("?" for _ in PROTECTED_BASELINE_ITEM_TYPES)
     try:
-        with connect(db_path) as conn:
+        with closing(connect(db_path)) as conn, conn:
             rows = conn.execute(
                 f"""
                 SELECT type, COUNT(*) AS count
@@ -564,7 +565,7 @@ def _stage_and_approve_bootstrap_sheet_set(
     selected_sheets = _selected_sheets(sheet_set)
     parse_result = _parse_selected_excel(workbook_path, selected_sheets)
 
-    with connect(db_path) as conn:
+    with closing(connect(db_path)) as conn, conn:
         source_file = register_source_file(
             conn,
             workbook_path,
@@ -622,7 +623,7 @@ def _stage_and_approve_bootstrap_sheet_set(
 
 
 def _export_bootstrap_outputs(db_path, latest_import_job_id: str | None) -> None:
-    with connect(db_path) as conn:
+    with closing(connect(db_path)) as conn, conn:
         export_steps = [
             export_maintenance_knowledge(conn, output_path="frontend/capability-browser/public/data/maintenance-knowledge.json"),
             export_shared_lookups(conn, output_path="frontend/capability-browser/public/data/shared-lookups.json"),
@@ -693,7 +694,7 @@ def cmd_bootstrap_local_data(args: argparse.Namespace) -> int:
             if audit_result != 0:
                 return audit_result
 
-    with connect(db_path) as conn:
+    with closing(connect(db_path)) as conn, conn:
         payload = {
             "tables": table_counts(conn),
             "items_by_type": item_counts_by_type(conn),
@@ -727,7 +728,7 @@ def _print_export_result(result: dict) -> None:
 def cmd_export_items(args: argparse.Namespace) -> int:
     db_path = resolve_project_path(args.db)
     run_migrations(db_path)
-    with connect(db_path) as conn:
+    with closing(connect(db_path)) as conn, conn:
         result = export_items(conn, output_dir=args.output_dir, item_type=args.type, fmt=args.format)
     _print_export_result(result)
     return 0
@@ -736,7 +737,7 @@ def cmd_export_items(args: argparse.Namespace) -> int:
 def cmd_export_relations(args: argparse.Namespace) -> int:
     db_path = resolve_project_path(args.db)
     run_migrations(db_path)
-    with connect(db_path) as conn:
+    with closing(connect(db_path)) as conn, conn:
         result = export_relations(
             conn,
             output_dir=args.output_dir,
@@ -751,7 +752,7 @@ def cmd_export_relations(args: argparse.Namespace) -> int:
 def cmd_export_import_summary(args: argparse.Namespace) -> int:
     db_path = resolve_project_path(args.db)
     run_migrations(db_path)
-    with connect(db_path) as conn:
+    with closing(connect(db_path)) as conn, conn:
         import_job_id = _target_import_job_id(conn, args.import_job_id)
         result = export_import_summary(conn, import_job_id, output_dir=args.output_dir)
     print(f"import_job_id: {import_job_id}")
@@ -762,7 +763,7 @@ def cmd_export_import_summary(args: argparse.Namespace) -> int:
 def cmd_export_report(args: argparse.Namespace) -> int:
     db_path = resolve_project_path(args.db)
     run_migrations(db_path)
-    with connect(db_path) as conn:
+    with closing(connect(db_path)) as conn, conn:
         import_job_id = _target_import_job_id(conn, args.import_job_id)
         report = write_import_result_report(
             conn,
@@ -781,7 +782,7 @@ def cmd_export_report(args: argparse.Namespace) -> int:
 def cmd_export_capability_tree(args: argparse.Namespace) -> int:
     db_path = resolve_project_path(args.db)
     run_migrations(db_path)
-    with connect(db_path) as conn:
+    with closing(connect(db_path)) as conn, conn:
         result = export_capability_tree(conn, output_path=args.output)
     _print_export_result(result)
     print("stats:")
@@ -793,7 +794,7 @@ def cmd_export_capability_tree(args: argparse.Namespace) -> int:
 def cmd_export_maintenance_knowledge(args: argparse.Namespace) -> int:
     db_path = resolve_project_path(args.db)
     run_migrations(db_path)
-    with connect(db_path) as conn:
+    with closing(connect(db_path)) as conn, conn:
         result = export_maintenance_knowledge(conn, output_path=args.output)
     _print_export_result(result)
     print("stats:")
@@ -805,7 +806,7 @@ def cmd_export_maintenance_knowledge(args: argparse.Namespace) -> int:
 def cmd_export_shared_lookups(args: argparse.Namespace) -> int:
     db_path = resolve_project_path(args.db)
     run_migrations(db_path)
-    with connect(db_path) as conn:
+    with closing(connect(db_path)) as conn, conn:
         result = export_shared_lookups(conn, output_path=args.output)
     _print_export_result(result)
     print("stats:")
@@ -817,7 +818,7 @@ def cmd_export_shared_lookups(args: argparse.Namespace) -> int:
 def cmd_export_lifecycle_knowledge(args: argparse.Namespace) -> int:
     db_path = resolve_project_path(args.db)
     run_migrations(db_path)
-    with connect(db_path) as conn:
+    with closing(connect(db_path)) as conn, conn:
         result = export_lifecycle_knowledge(conn, output_path=args.output)
     _print_export_result(result)
     print("stats:")
@@ -829,7 +830,7 @@ def cmd_export_lifecycle_knowledge(args: argparse.Namespace) -> int:
 def cmd_export_content_views(args: argparse.Namespace) -> int:
     db_path = resolve_project_path(args.db)
     run_migrations(db_path)
-    with connect(db_path) as conn:
+    with closing(connect(db_path)) as conn, conn:
         result = export_content_views(conn, output_path=args.output)
     _print_export_result(result)
     print("stats:")
@@ -841,7 +842,7 @@ def cmd_export_content_views(args: argparse.Namespace) -> int:
 def cmd_export_capability_workbench(args: argparse.Namespace) -> int:
     db_path = resolve_project_path(args.db)
     run_migrations(db_path)
-    with connect(db_path) as conn:
+    with closing(connect(db_path)) as conn, conn:
         result = export_capability_workbench(conn, output_path=args.output)
     _print_export_result(result)
     print("stats:")
@@ -853,7 +854,7 @@ def cmd_export_capability_workbench(args: argparse.Namespace) -> int:
 def cmd_export_environment_workbench(args: argparse.Namespace) -> int:
     db_path = resolve_project_path(args.db)
     run_migrations(db_path)
-    with connect(db_path) as conn:
+    with closing(connect(db_path)) as conn, conn:
         result = export_environment_workbench(conn, output_path=args.output)
     _print_export_result(result)
     print("stats:")
@@ -865,7 +866,7 @@ def cmd_export_environment_workbench(args: argparse.Namespace) -> int:
 def cmd_export_lifecycle_workbench(args: argparse.Namespace) -> int:
     db_path = resolve_project_path(args.db)
     run_migrations(db_path)
-    with connect(db_path) as conn:
+    with closing(connect(db_path)) as conn, conn:
         result = export_lifecycle_workbench(conn, output_path=args.output)
     _print_export_result(result)
     print("stats:")
@@ -877,7 +878,7 @@ def cmd_export_lifecycle_workbench(args: argparse.Namespace) -> int:
 def cmd_export_frontend_workbenches(args: argparse.Namespace) -> int:
     db_path = resolve_project_path(args.db)
     run_migrations(db_path)
-    with connect(db_path) as conn:
+    with closing(connect(db_path)) as conn, conn:
         result = export_frontend_workbenches(conn, output_dir=args.output_dir)
     _print_export_result(result)
     print("stats:")
@@ -889,7 +890,7 @@ def cmd_export_frontend_workbenches(args: argparse.Namespace) -> int:
 def cmd_export_standard_frameworks_data(args: argparse.Namespace) -> int:
     db_path = resolve_project_path(args.db)
     run_migrations(db_path)
-    with connect(db_path) as conn:
+    with closing(connect(db_path)) as conn, conn:
         result = export_standard_frameworks_data(conn, output_path=args.output)
     _print_export_result(result)
     print("stats:")
@@ -901,7 +902,7 @@ def cmd_export_standard_frameworks_data(args: argparse.Namespace) -> int:
 def cmd_export_second_batch_summary(args: argparse.Namespace) -> int:
     db_path = resolve_project_path(args.db)
     run_migrations(db_path)
-    with connect(db_path) as conn:
+    with closing(connect(db_path)) as conn, conn:
         result = export_second_batch_summary(
             conn,
             output_path=args.output,

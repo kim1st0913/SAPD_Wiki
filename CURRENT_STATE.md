@@ -2,16 +2,19 @@
 
 > 状态：`active / primary recovery entry`
 >
-> 更新日期：2026-08-05
+> 更新日期：2026-08-12
 
 本页只保留恢复工作所需的当前事实、保护边界、风险和下一步。详细过程从 `progress.md`
 和 `docs/05-archive/README.md` 进入。
 
 ## 1. Git 与工作区
 
-- 当前分支 `main`，HEAD `9f4cae28c357`；2026-08-03 核对与 `origin/main` 为 `0 / 0`。
-- 工作树 dirty 分为六个待收口范围：macOS 0.4.0 交付、成熟度模板工作台前端、OI-197
-  业务审阅、桌面打包目录治理、第一至八轮 P1 / P2 代码审计修复、当前状态治理；未跟踪 `data/` 和生成底图继续保留。
+- 当前分支 `main`，HEAD `4ea0223326817d5b180c21b928460ab24f1b1382`；2026-08-11
+  核对与 `origin/main` 为 `0 / 0`。Phase 2 专用 worktree 处于同一 HEAD，但两边 dirty / untracked
+  快照不同，不能只凭 HEAD 相同视为同一发布输入。
+- 工作树 dirty 分为七个待收口范围：macOS 0.4.0 交付、成熟度模板工作台前端、OI-197
+  业务审阅、桌面打包目录治理、第一至八轮 P1 / P2 代码审计修复、Phase 2 Batch 1
+  投影 / API、当前状态治理；未跟踪 `data/` 和生成底图继续保留。
 - 上述改动未 stage、commit 或 push。后续必须分范围 checkpoint，不混入 `data/`、SQLite、
   DMG、Setup、恢复包、虚拟环境、`node_modules` 或构建产物。
 - 旧 `codex/windows-electron` 本地和远端分支已删除，不得恢复为日常生产分支。
@@ -28,6 +31,46 @@
   并发执行和失败回滚均由定向测试覆盖，未修改正式数据库。
 - 信息化环境主数据 P0—P8 已完成 Web 验收：10 个环境、16 个子类类型、51 个对象、
   77 条定义和 125 条关联使用。
+- 2026-08-11 经用户明确授权，Phase 2 Batch 1 relation-only 候选已原子应用并通过主控独立验收：
+  正式基础库 artifact SHA 从 `30d14679...f54c9e` 变为 `188f20ef...cf3680`，4694 个对象及
+  owner 全行不变，关系从 7786 变为 7788，仅新增 `I-AP&T-AS.IA-02`、`I-US&T-AS.IA-02`
+  到“应用系统自身认证模块”的两条 `uses_measure`；F/G provenance 为 `16 / 6`，projection
+  `has_measure=53`。
+- apply 前完整回退包位于
+  `data/exports/worker-verify/phase2-batch1-formal-apply/phase2-batch1-20260811T090151Z/rollback-bundle`；
+  rollback manifest SHA 为 `5044be68...d5df6`。专用任务完成临时与持久化两次恢复演练，主控
+  又从持久化包独立完成逐文件库存校验和第三次候选→旧 SHA 恢复演练，均为
+  `integrity_check=ok / FK=0`。
+- 2026-08-11 经用户授权，专用任务把 Phase 2 Batch 1 已验收实现按 18 个文件的封闭清单安全
+  整合到主工作区，主控独立验收通过。新增能力 / 维护 / shared lookups 的 SQLite-backed
+  projection/API、relation-only candidate/apply 门和发布身份校验均为 additive。
+- 2026-08-11 经用户授权，专用任务完成 Phase 2 Batch 1 页面 / `dataClient` owner switch，
+  主控在空 `data-root`、只读正式库副本、有效临时 manifest 和 ephemeral user state 的隔离
+  Runtime 独立验收通过。能力、维护和 shared lookups 只请求 `/api/v1/projections/*`，无
+  `public/data` fallback；搜索不自动选择首项，错误 ID 为 404。TC-010 的 L0 / L1 / L2 /
+  focus 明确身份、黄金焦点 6 服务、`has_measure=53`、维护服务 160 及两条新增措施关系的可见
+  DOM 均通过。正式 base、content asset、源 Excel 和真实用户库保持不变。
+- owner switch 验收中发现并最小修复两处真实合同缺口：L0 / L1 聚合投影对完全相同的稳定关系
+  去重、冲突重复 fail closed；catalog 只在 dataClient 适配为 `initial_projection`，同时保留
+  `sourceMode=sqlite_projection`、identity、contract 与 digest。未修改未迁移的 environment、
+  lifecycle、standards、content/search/maturity/user-state owner。
+- 2026-08-11 同候选发布门已完成至 Windows 权限边界：packaged Web Runtime 的 Batch 1 owner /
+  TC-010 通过；0.4.0 license / no-license 双 DMG 已生成并通过 TC-023—027；Windows Delivery
+  Data 候选已生成并通过完整性、外键和空用户库边界校验。两份 DMG 与 Windows Delivery Data
+  均绑定正式 base `188f20ef...cf3680` 和 content asset `adaa19bf...5bce6`。本轮没有执行真实
+  回退；既有回退包仅保留为恢复路径。
+- 2026-08-12 用户真实截图否决了对 active 5173 的错误外推：旧 PID 20739 自 7 月 30 日运行，
+  对新 projection 路由返回 404；受控重启为 PID 89268 后又因正式库同目录缺
+  `base-manifest.json` 返回 503。现已用共享 identity builder 新增开发环境 manifest，三条
+  Batch 1 projection 均为 200；真实 `dataClient` 调用链确认能力目录 3 / 10 / 32 / 91、
+  workbench 136 对象 / 133 关系、维护 8 sections、NIST CSF Core 106 行完成加载。
+- `dev_server_guard.py` 已补三条 Batch 1 projection 健康门；任一 404 / 503 会令状态为 warn
+  和非零退出，不能再以旧 workspace API 的 200 掩盖页面失败。当前 guard 为 PASS。应用内
+  浏览器因策略拒绝 localhost，三个页面的主控可见 DOM / 控制台验收仍未完成，不能声称该项通过。
+- Windows Runtime / Setup 尚未生成：当前 dirty snapshot 没有对应的原生 Windows x64 backend，
+  且 Delivery manifest 只能绑定公开 HEAD `4ea02233...b1382`，不能冒充精确源码候选。下一权限门
+  是将已验收源码收口为精确 commit / push，再发布私有不可变 Delivery Data，由私有 Windows
+  Runner 构建 backend 后完成 Runtime / Setup 验收。Batch 2 未授权。
 - 正式数据、源 Excel、真实用户库、Rubric、评分规则和 ETL 只有在明确授权及具备恢复
   路径后才能修改。
 
@@ -67,6 +110,10 @@
 
 ### macOS / Windows 交付
 
+- 2026-08-10 已修复 DMG staging 遗留目录软链接：镜像 staging 现在只在仓库 / Obsidian
+  Vault 外的系统临时目录创建，`Applications -> /Applications` 不再进入工程；脚本在正常、
+  失败和中断退出路径清理临时目录，成功后仅把已移除安装链接的 staged App 留给前端 parity
+  审计。现有两个遗留链接已移出工程。未重打 DMG，历史镜像内容及哈希未修改。
 - 2026-08-01 从当时的 main 分支 dirty 工作树构建 0.4.0 license / no-license 双 DMG，
   时间戳 `20260801-033335Z`；两包实物和记录的 SHA-256 已于 2026-08-03 再次核对一致。
 - 双包通过完整 pre-DMG、arm64 ad-hoc codesign、`hdiutil verify`、只读挂载、版本 / 模式、
@@ -75,11 +122,11 @@
 - 0.4.0 人工 UAT 持续保留但不阻塞内部开发：条件允许时验证首次路径、license /
   no-license 入口、首次建证、退出重开、锁屏 / 解锁和 App MCP `28776` 五工具及新
   `TOOL_CALL`。未完成只限制“最新实包完整 UAT”和正式外部分发声明。
-- 当前 dirty 源码已收紧下一轮 `release-full`：双变体复用同一当前源码 backend，并在挂载后
-  核对源码 stamp、完整前端树、Runtime 版本 / 平台、App 架构、严格空用户库和合法的
-  Runtime 构建标记；新增临时 Runtime API / 核心页面 smoke、完整用户库 DDL、Runtime
-  可执行权限 / 软链接及同轮构建锁检查。该批源码尚未重打 DMG，现有 0.4.0 包只能作为
-  历史实包证据。
+- 2026-08-11 新同候选双 DMG（stamp `20260811-143546Z`）已通过完整 `release-full` /
+  TC-023—027：license SHA `29ff90cf...b620`，no-license SHA `4973bb7c...485`；两包
+  stable App code identity 均为 `9cf0dc10...d3e8`，Runtime core 均为 `8d5b3f84...02ab2`。
+  跨变体比较排除各自 `LC_CODE_SIGNATURE` blob，但仍分别强制 `codesign --verify --deep
+  --strict`、架构、Info.plist、空用户库、manifest、Runtime `--check-only` 和 API smoke。
 - 2026-08-05 已回退新增的 macOS 启动 Runtime 全树重算与复制后强制复验：该方案会把
   `codesign` 的正常修改误判为篡改，并为每次启动增加约 `0.72—0.79s`。当前恢复为原有
   构建指纹标记比较；内容资产数据库 hash 与 Runtime 写路径软链接保护继续保留。
@@ -98,14 +145,18 @@
 
 ## 3. 当前未完成主线
 
-1. 分批完成 OI-197 V3 业务复核，争议项裁定后再决定是否正式迁移。
-2. 将 dirty 工作树按 macOS 0.4.0、成熟度模板工作台、OI-197 业务审阅、桌面打包目录、
+1. Phase 2 Batch 1 data apply、代码整合、页面 / `dataClient` owner switch、packaged Web 和
+   macOS 双 DMG 均已验收；Windows Delivery Data 也已本地验收。下一门需另行授权 commit / push
+   精确源码、发布私有不可变 Delivery Data，并由私有 Windows Runner 完成原生 backend、Runtime
+   和 Setup 验收。此前不进入 Batch 2 `environment`，也不声称 Windows 或跨平台迁移完成。
+2. 分批完成 OI-197 V3 业务复核，争议项裁定后再决定是否正式迁移。
+3. 将 dirty 工作树按 macOS 0.4.0、成熟度模板工作台、OI-197 业务审阅、桌面打包目录、
    P1 / P2 代码审计修复和状态治理分别收口；未获明确指令前不 stage、commit 或 push。
-3. 新知识发布时执行 apply → immutable runtime restart → MCP 五工具验收 → accept。
-4. 0.4.0 人工 UAT、外部分发签名和 Windows 实机矩阵作为持续保留项，不阻塞内部开发，
+4. 新知识发布时执行 apply → immutable runtime restart → MCP 五工具验收 → accept。
+5. 0.4.0 人工 UAT、外部分发签名和 Windows 实机矩阵作为持续保留项，不阻塞内部开发，
    但未通过前不得扩大验收声明；下一次自动 Windows 构建前先修复私有 watcher 的
    `app_version` 输入并取得成功 Actions 证据。
-5. OI-200 只有用户明确启动后才进入开发；OI-138 保持暂停。OI-128 已关闭，未来扩展另立
+6. OI-200 只有用户明确启动后才进入开发；OI-138 保持暂停。OI-128 已关闭，未来扩展另立
    范围。
 
 ## 4. 权威入口与停止条件

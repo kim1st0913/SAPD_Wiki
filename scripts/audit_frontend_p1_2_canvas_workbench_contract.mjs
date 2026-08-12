@@ -54,6 +54,24 @@ async function main() {
   assert(includesAll(directoryShellSource, ["shell-directory-head", "shell-directory-title", "shell-directory-action", "shell-directory-tree", "shell-directory-resizer"]), "共享目录框架缺少统一外框、头部、操作、滚动体或拖动条 owner", issues);
   assert(!stylesSource.includes("grid-template-columns: 320px 6px minmax(0, 1fr) !important"), "宽屏能力目录仍以 !important 固定 320px，阻塞分隔条调整", issues);
   assert(includesAll(cssSource, ["grid-template-columns: 304px 6px minmax(760px, 1fr)", "calc(100dvh - 258px)"]), "能力目录 / resizer / 主画布轨道或可用高度不完整", issues);
+  assert(
+    includesAll(cssSource, [
+      ".capability-tree-pane {\n  container-type: inline-size;",
+      "@container (max-width: 280px)",
+      ".capability-tree-pane .tree-row.tree-level-1",
+      "padding-left: 16px",
+      ".capability-tree-pane .tree-row.tree-level-2",
+      "padding-left: 26px",
+      ".capability-tree-pane .tree-row.tree-level-3",
+      "padding-left: 36px",
+      ".capability-tree-pane .node-copy",
+      "grid-template-columns: minmax(0, 1fr)",
+      ".capability-tree-pane .node-code",
+      "max-width: 100%",
+    ]),
+    "能力目录缺少窄目录容器下的分级缩进收敛和代码 / 标题纵向排布保护",
+    issues,
+  );
   assert(config.capability.visualAuthority.includes("Figure 2") && config.capability.objectHeaderPlacement.startsWith("above-canvas-surface") && config.capability.surfaceRadius === 26 && config.capability.canvasRadius === 18, "P1-2 未记录图 2 的对象标题层级与 OI-159 视觉真值", issues);
   assert(includesAll(oi159Source, ["border-radius: 26px", "display: flex", "border-radius: 25px 25px 0 0", "border-radius: 18px", "padding: 14px"]), "能力页成熟 OI-159 单行控制头或两级圆角基线缺失", issues);
   assert(!cssSource.includes(".capability-workspace-surface {") && !cssSource.includes(".capability-workbench-head.capability-workspace-control") && !cssSource.includes(".preview-relation-stage"), "P1-2 再次越界覆盖能力页成熟视觉基线", issues);

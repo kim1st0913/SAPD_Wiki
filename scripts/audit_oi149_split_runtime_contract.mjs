@@ -250,6 +250,73 @@ async function scenarioEnvironmentProjectionWorkbenchFallback() {
   };
 }
 
+async function scenarioLifecycleSplitPreferredWhenLegacyPackagesAreMissing() {
+  const calls = [];
+  const runtimeManifest = readJson("oi149-split-manifest.json");
+  const lifecycleIndex = readJson("lifecycle/index.json");
+  const evidence = readJson("lifecycle/evidence.json");
+  const domainRows = lifecycleIndex.projections.filter((row) => row.type === "lifecycle_domain");
+  const projectionsByPath = new Map(domainRows.map((row) => [row.path, readJson(row.path)]));
+  const client = await loadDataClientWithFetch(async (url) => {
+    calls.push(String(url));
+    if (url === "./public/data/oi149-split-manifest.json") return jsonResponse(runtimeManifest);
+    if (url === "./public/data/lifecycle/index.json") return jsonResponse(lifecycleIndex);
+    if (url === "./public/data/lifecycle/evidence.json") return jsonResponse(evidence);
+    for (const [projectionPath, projection] of projectionsByPath) {
+      if (url === `./public/data/${projectionPath}`) return jsonResponse(projection);
+    }
+    return jsonResponse({}, 404);
+  });
+  const envelope = await client.getLifecycleWorkbench();
+  const data = envelope?.data || {};
+  const stages = Object.values(data.objects?.lifecycle_stage || {});
+  const applicationStages = stages.filter((stage) => stage.lifecycleType === "application_security_development");
+  const dataStages = stages.filter((stage) => stage.lifecycleType === "data");
+  const viewModelContext = {
+    window: {
+      sapdDisplay: {
+        label: (_key, fallback) => fallback,
+        relationLabel: () => "",
+        state: (_key, fallback) => fallback,
+      },
+    },
+  };
+  vm.runInNewContext(
+    fs.readFileSync(path.join(ROOT, "frontend/capability-browser/viewModels.js"), "utf8"),
+    viewModelContext,
+    { filename: "viewModels.js" },
+  );
+  const lifecycleWorkbenchViewModel = viewModelContext.window.sapdViewModels.buildLifecycleWorkbenchViewModel({ workbench: data });
+  const applicationModel = viewModelContext.window.sapdViewModels.buildApplicationSecurityLifecycleViewModel({
+    lifecycleWorkbench: data,
+    lifecycleWorkbenchViewModel,
+    lifecycle: {},
+    selectedProcessId: applicationStages[0]?.id,
+    search: "",
+  });
+  return {
+    id: "lifecycle_split_preferred_when_legacy_packages_are_missing",
+    ok:
+      data?.meta?.dataSource === "oi149-split-lifecycle" &&
+      data?.compatibility?.splitContract === "oi149-p4-split-v1" &&
+      applicationStages.length === 8 &&
+      dataStages.length === 7 &&
+      applicationModel.stageOverview?.code === "AP-01" &&
+      applicationModel.relationRows?.length > 0 &&
+      data.relations?.length === lifecycleIndex.stats.relations &&
+      data.evidenceRefs?.length === lifecycleIndex.stats.evidenceRefs &&
+      !calls.includes("./public/data/lifecycle-workbench.json") &&
+      !calls.includes("./public/data/lifecycle-knowledge.json"),
+    calls,
+    dataSource: data?.meta?.dataSource,
+    applicationStageCount: applicationStages.length,
+    dataStageCount: dataStages.length,
+    applicationRelationRowCount: applicationModel.relationRows?.length || 0,
+    relationCount: data.relations?.length || 0,
+    evidenceRefCount: data.evidenceRefs?.length || 0,
+  };
+}
+
 const checks = [
   await scenarioSplitPreferred(),
   await scenarioApiFallback(),
@@ -257,6 +324,7 @@ const checks = [
   await scenarioEnvironmentSplitProjection(),
   await scenarioEnvironmentWorkbenchFallback(),
   await scenarioEnvironmentProjectionWorkbenchFallback(),
+  await scenarioLifecycleSplitPreferredWhenLegacyPackagesAreMissing(),
 ];
 const failures = checks.filter((check) => !check.ok);
 const result = {

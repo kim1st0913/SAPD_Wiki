@@ -8,6 +8,8 @@ const DEFAULT_BASE_URL = "http://127.0.0.1:5173";
 const cases = [
   { code: "T", objectType: "capability_category", expectedLocalRelationMapSource: "viewmodel_fallback" },
   { code: "T-AS", objectType: "capability_domain", expectedLocalRelationMapSource: "viewmodel_fallback" },
+  { code: "T-AS.IA", objectType: "capability", expectedLocalRelationMapSource: "viewmodel_fallback" },
+  { code: "T-AS.IA-03", objectType: "capability_focus", expectedLocalRelationMapSource: "backend_projection" },
   { code: "T-AS.AD", objectType: "capability", expectedLocalRelationMapSource: "viewmodel_fallback" },
   { code: "T-AS.AD-01", objectType: "capability_focus", expectedLocalRelationMapSource: "backend_projection", minStandardControls: 1 },
   { code: "T-PD.PP", objectType: "capability", expectedLocalRelationMapSource: "viewmodel_fallback", expectedSecurityWorkByFocus: { "T-PD.PP-01": "边界防护策略持续管理", "T-PD.PP-02": "边界防护策略持续管理", "T-PD.PP-03": "边界防护策略持续管理" } },
@@ -36,6 +38,7 @@ const forbiddenMainKeys = new Set([
   "intermediate",
   "generated_at",
 ]);
+const requestLog = [];
 
 function argValue(name, fallback) {
   const index = process.argv.indexOf(name);
@@ -164,12 +167,6 @@ function mergeSharedLookups(maintenance, sharedLookups) {
   };
 }
 
-async function fetchData(baseUrl, path) {
-  const response = await fetch(new URL(path, baseUrl));
-  assert(response.ok, `${path}: HTTP ${response.status}`);
-  return unwrapEnvelope(await response.json());
-}
-
 async function loadViewModels() {
   const source = await readFile("frontend/capability-browser/viewModels.js", "utf8");
   const context = { window: {}, console };
@@ -178,8 +175,39 @@ async function loadViewModels() {
   return context.window.sapdViewModels;
 }
 
+async function loadDataClient(baseUrl, requestLog) {
+  const source = await readFile("frontend/capability-browser/dataClient.js", "utf8");
+  const loggedFetch = async (input, options = {}) => {
+    const url = new URL(text(input), `${baseUrl}/`);
+    requestLog.push({
+      method: text(options?.method || "GET").toUpperCase(),
+      path: `${url.pathname}${url.search}`,
+    });
+    return fetch(url, options);
+  };
+  const context = {
+    window: {
+      location: { protocol: "http:" },
+      SAPD_API_BASE: baseUrl,
+    },
+    fetch: loggedFetch,
+    AbortController,
+    URLSearchParams,
+    Date,
+    Map,
+    Set,
+    console,
+    setTimeout,
+    clearTimeout,
+  };
+  vm.runInNewContext(source, context, { filename: "frontend/capability-browser/dataClient.js" });
+  assert(context.window.sapdDataClient, "window.sapdDataClient is unavailable");
+  return context.window.sapdDataClient;
+}
+
 async function loadCapabilityRelationComponent() {
   const source = await readFile("frontend/capability-browser/components/CapabilityLocalRelationMap.js", "utf8");
+  const graphSpy = { build: 0, render: 0 };
   const escapeHtml = (value) =>
     text(value)
       .replaceAll("&", "&amp;")
@@ -196,11 +224,17 @@ async function loadCapabilityRelationComponent() {
           escapeHtml,
         },
         LocalRelationNetworkGraph: {
-          render: () => '<section class="local-relation-network-graph"><div class="network-graph-canvas"><div class="network-legend"></div><div class="network-graph-actions"></div></div></section>',
+          render: () => {
+            graphSpy.render += 1;
+            return '<section class="local-relation-network-graph"><div class="network-graph-canvas"><div class="network-legend"></div><div class="network-graph-actions"></div></div></section>';
+          },
         },
       },
       sapdModels: {
-        buildLocalRelationGraphModel: () => ({ nodes: [], edges: [] }),
+        buildLocalRelationGraphModel: () => {
+          graphSpy.build += 1;
+          return { nodes: [], edges: [] };
+        },
       },
     },
     console,
@@ -208,6 +242,7 @@ async function loadCapabilityRelationComponent() {
   vm.runInNewContext(source, context, { filename: "frontend/capability-browser/components/CapabilityLocalRelationMap.js" });
   assert(context.window.sapdComponents?.CapabilityLocalRelationMap?.render, "CapabilityLocalRelationMap.render is unavailable");
   assert(context.window.sapdComponents?.CapabilityLocalRelationMap?.renderTabControls, "CapabilityLocalRelationMap.renderTabControls is unavailable");
+  context.window.sapdComponents.CapabilityLocalRelationMap.graphSpy = graphSpy;
   return context.window.sapdComponents.CapabilityLocalRelationMap;
 }
 
@@ -437,40 +472,46 @@ function validateOverviewRender(item, component, viewModel, management) {
       standardMappingRows: [],
     });
   const renderTitleTabs = (activeTab) => component.renderTabControls(viewModel.localRelationMap, viewModel.capabilityOverview, activeTab);
-  const html = renderOverview("summary");
-  const summaryActiveHtml = renderOverview("technical");
+  component.graphSpy.build = 0;
+  component.graphSpy.render = 0;
+  const html = renderOverview("overview");
+  assert(component.graphSpy.build === 0 && component.graphSpy.render === 0, `${item.code}: default overview must not build or render the graph`);
+  const graphHtml = renderOverview("summary");
+  assert(component.graphSpy.build === 1 && component.graphSpy.render === 1, `${item.code}: explicit graph activation must build and render exactly once`);
   const staleTabHtml = renderOverview("management");
-  const titleTabsHtml = renderTitleTabs("summary");
-  const titleTabsSummaryHtml = renderTitleTabs("technical");
+  const titleTabsHtml = renderTitleTabs("overview");
+  const titleTabsSummaryHtml = renderTitleTabs("summary");
   const focusStripHtml = component.renderFocusStrip(viewModel.localRelationMap, viewModel.focusOverview, viewModel.capabilityOverview);
-  assert(/id="capability-relation-tab-summary"[^>]*value="summary"[^>]*checked/.test(html), `${item.code}: relation graph tab should be default active`);
-  assert(/id="capability-relation-tab-technical"[^>]*value="technical"[^>]*checked/.test(summaryActiveHtml), `${item.code}: overview summary tab cannot be activated`);
-  assert(/id="capability-relation-tab-summary"[^>]*value="summary"[^>]*checked/.test(staleTabHtml), `${item.code}: stale L0/L1 tab state should fall back to relation graph`);
-  assert(!summaryActiveHtml.includes('id="capability-relation-tab-management"'), `${item.code}: switched L0/L1/L2 render should still only render two tabs`);
-  assert(!summaryActiveHtml.includes('id="capability-relation-tab-standard"'), `${item.code}: switched L0/L1/L2 render should still only render two tabs`);
-  assert(summaryActiveHtml.includes("capability-overview-row-list"), `${item.code}: activated overview summary content missing`);
-  assert(!summaryActiveHtml.includes("capability-overview-hero"), `${item.code}: activated overview summary should not duplicate the page header hero`);
-  assert(!summaryActiveHtml.includes("capability-overview-metrics"), `${item.code}: activated overview summary should not duplicate top-level metric cards`);
+  assert(/id="capability-relation-tab-overview"[^>]*value="overview"[^>]*checked/.test(html), `${item.code}: overview tab should be default active`);
+  assert(/id="capability-relation-tab-summary"[^>]*value="summary"[^>]*checked/.test(graphHtml), `${item.code}: relation graph tab cannot be activated`);
+  assert(/id="capability-relation-tab-overview"[^>]*value="overview"[^>]*checked/.test(staleTabHtml), `${item.code}: stale L0/L1/L2 tab state should fall back to overview`);
+  assert(!graphHtml.includes('id="capability-relation-tab-management"'), `${item.code}: switched L0/L1/L2 render should still only render two tabs`);
+  assert(!graphHtml.includes('id="capability-relation-tab-standard"'), `${item.code}: switched L0/L1/L2 render should still only render two tabs`);
+  assert(html.includes("capability-overview-row-list"), `${item.code}: activated overview summary content missing`);
+  assert(!html.includes("capability-overview-hero"), `${item.code}: activated overview summary should not duplicate the page header hero`);
+  assert(!html.includes("capability-overview-metrics"), `${item.code}: activated overview summary should not duplicate top-level metric cards`);
   assert(!staleTabHtml.includes('id="capability-relation-tab-management"'), `${item.code}: stale L0/L1/L2 render should not restore management tab`);
   assert(!staleTabHtml.includes('id="capability-relation-tab-standard"'), `${item.code}: stale L0/L1/L2 render should not restore standard tab`);
   assert(!staleTabHtml.includes("original-matrix-panel"), `${item.code}: stale L0/L1/L2 render should not render original matrix panel`);
   assert(html.includes("capability-overview-shell"), `${item.code}: overview shell missing`);
   assert(titleTabsHtml.includes("capability-title-tabs"), `${item.code}: workspace control relation tabs missing`);
-  assert(titleTabsHtml.includes(">关系图谱<"), `${item.code}: relation graph tab label missing`);
+  assert(titleTabsHtml.includes(">能力关系图谱<"), `${item.code}: relation graph tab label missing`);
   assert(titleTabsHtml.includes(">摘要总览<"), `${item.code}: overview summary tab label missing`);
-  assert(titleTabsHtml.includes('class="relation-view-tab is-active"') && titleTabsSummaryHtml.includes('for="capability-relation-tab-technical" class="relation-view-tab is-active"'), `${item.code}: workspace control tab active state missing`);
+  assert(/>摘要总览<[\s\S]*>能力关系图谱</.test(titleTabsHtml), `${item.code}: hierarchy tab order must place graph last`);
+  assert(titleTabsHtml.includes('for="capability-relation-tab-overview" class="relation-view-tab is-active"') && titleTabsSummaryHtml.includes('for="capability-relation-tab-summary" class="relation-view-tab is-active"'), `${item.code}: workspace control tab active state missing`);
   assert(!focusStripHtml.includes("preview-focus-stats"), `${item.code}: capability title strip should not render ambiguous metric cards`);
   assert(!html.includes("relation-view-tabs preview-tabs"), `${item.code}: relation tabs should not render inside the canvas stage`);
   assert(!html.includes(">覆盖统计<"), `${item.code}: legacy coverage tab label should not render on L0/L1`);
   assert(!html.includes(">下级索引<"), `${item.code}: legacy child index tab label should not render on L0/L1`);
   assert(!html.includes('id="capability-relation-tab-management"'), `${item.code}: L0/L1/L2 should only render two tabs`);
   assert(!html.includes('id="capability-relation-tab-standard"'), `${item.code}: L0/L1/L2 should only render two tabs`);
-  assert(html.includes("local-relation-network-graph"), `${item.code}: L0/L1/L2 relation graph tab missing original relation graph`);
-  assert(html.includes("network-graph-canvas"), `${item.code}: relation graph canvas missing`);
-  assert(/network-graph-canvas[\s\S]*network-legend[\s\S]*network-graph-actions/.test(html), `${item.code}: legend and zoom controls should live inside relation graph canvas`);
-  assert(!html.includes("network-graph-head"), `${item.code}: relation graph legend should not occupy a separate header row`);
-  assert(/summary-panel[\s\S]*local-relation-network-graph/.test(html), `${item.code}: L0/L1/L2 relation graph is not inside the default summary-panel tab`);
-  assert(/technical-panel[\s\S]*capability-overview-shell/.test(html), `${item.code}: L0/L1/L2 overview summary is not inside the second tab`);
+  assert(!html.includes("local-relation-network-graph"), `${item.code}: default overview must not contain relation graph HTML`);
+  assert(graphHtml.includes("local-relation-network-graph"), `${item.code}: L0/L1/L2 relation graph tab missing original relation graph`);
+  assert(graphHtml.includes("network-graph-canvas"), `${item.code}: relation graph canvas missing`);
+  assert(/network-graph-canvas[\s\S]*network-legend[\s\S]*network-graph-actions/.test(graphHtml), `${item.code}: legend and zoom controls should live inside relation graph canvas`);
+  assert(!graphHtml.includes("network-graph-head"), `${item.code}: relation graph legend should not occupy a separate header row`);
+  assert(/summary-panel[\s\S]*local-relation-network-graph/.test(graphHtml), `${item.code}: L0/L1/L2 relation graph is not inside the summary graph tab`);
+  assert(/overview-panel[\s\S]*capability-overview-shell/.test(html), `${item.code}: L0/L1/L2 overview summary is not inside the overview tab`);
   assert(html.includes("capability-overview-brief"), `${item.code}: redesigned overview summary brief missing`);
   assert(html.includes("capability-overview-definition"), `${item.code}: overview selected definition missing`);
   assert(text(viewModel.capabilityOverview?.selected?.description).trim(), `${item.code}: overview selected definition should not be empty`);
@@ -566,22 +607,97 @@ function validateOverviewRender(item, component, viewModel, management) {
   assert(!html.includes("semantic-mapping-table"), `${item.code}: L0/L1/L2 overview rendered semantic mapping table`);
   assert(!html.includes("preview-mapping-table"), `${item.code}: L0/L1/L2 overview rendered preview mapping table`);
   assert(!html.includes("original-matrix-panel"), `${item.code}: L0/L1/L2 overview rendered original matrix panel`);
-  return "overview_two_tab_relation_graph_and_summary";
+  return "hierarchy_overview_lazy_graph";
+}
+
+function validateFocusRender(item, component, viewModel) {
+  if (item.objectType !== "capability_focus") return null;
+  const renderFocus = (activeTab) =>
+    component.render({
+      localRelationMap: viewModel.localRelationMap,
+      focusOverview: viewModel.focusOverview,
+      capabilityOverview: viewModel.capabilityOverview,
+      activeTab,
+      technicalMappingRows: viewModel.technicalMappingRows,
+      managementMappingRows: viewModel.managementMappingRows,
+      standardMappingRows: viewModel.standardMappingRows,
+    });
+  const renderTitleTabs = (activeTab) =>
+    component.renderTabControls(viewModel.localRelationMap, viewModel.capabilityOverview, activeTab);
+
+  component.graphSpy.build = 0;
+  component.graphSpy.render = 0;
+  const overviewHtml = renderFocus("overview");
+  assert(component.graphSpy.build === 0 && component.graphSpy.render === 0, `${item.code}: focus overview must not build or render the graph`);
+  assert(/id="capability-relation-tab-overview"[^>]*checked/.test(overviewHtml), `${item.code}: focus overview should be default active`);
+  assert(overviewHtml.includes("capability-overview-definition"), `${item.code}: focus overview definition missing`);
+  assert(overviewHtml.includes("capability-overview-coverage"), `${item.code}: focus overview coverage missing`);
+  assert(!overviewHtml.includes("local-relation-network-graph"), `${item.code}: focus overview contains graph HTML`);
+
+  for (const tab of ["technical", "management", "standard"]) {
+    const panelHtml = renderFocus(tab);
+    assert(component.graphSpy.build === 0 && component.graphSpy.render === 0, `${item.code}: ${tab} tab must not build or render the graph`);
+    assert(new RegExp(`id="capability-relation-panel-${tab}"[^>]*class="[^"]*${tab}-panel`).test(panelHtml), `${item.code}: active ${tab} panel missing`);
+  }
+
+  const graphHtml = renderFocus("summary");
+  assert(component.graphSpy.build === 1 && component.graphSpy.render === 1, `${item.code}: focus graph activation must build and render exactly once`);
+  assert(/id="capability-relation-tab-summary"[^>]*checked/.test(graphHtml), `${item.code}: focus graph tab cannot be activated`);
+  assert(graphHtml.includes("local-relation-network-graph"), `${item.code}: focus graph HTML missing`);
+
+  component.graphSpy.build = 0;
+  component.graphSpy.render = 0;
+  const invalidHtml = renderFocus("invalid-tab");
+  assert(/id="capability-relation-tab-overview"[^>]*checked/.test(invalidHtml), `${item.code}: invalid focus tab must fall back to overview`);
+  assert(component.graphSpy.build === 0 && component.graphSpy.render === 0, `${item.code}: invalid focus tab fallback must not build or render the graph`);
+
+  const tabsHtml = renderTitleTabs("overview");
+  assert(
+    />摘要总览<[\s\S]*>技术视角<[\s\S]*>管理视角<[\s\S]*>标准 \/ 框架映射<[\s\S]*>能力关系图谱</.test(tabsHtml),
+    `${item.code}: focus tab order is incorrect`,
+  );
+  for (const tab of ["overview", "technical", "management", "standard", "summary"]) {
+    assert(new RegExp(`for="capability-relation-tab-${tab}"[\\s\\S]*role="tab"[\\s\\S]*aria-controls="capability-relation-panel-${tab}"`).test(tabsHtml), `${item.code}: ${tab} tab ARIA contract missing`);
+  }
+  assert(tabsHtml.includes('for="capability-relation-tab-overview" class="relation-view-tab is-active"'), `${item.code}: overview tab active state missing`);
+  return "focus_overview_lazy_graph";
+}
+
+async function validateCapabilityTabInteractionContract() {
+  const source = await readFile("frontend/capability-browser/app.js", "utf8");
+  assert(source.includes('activeCapabilityRelationTab: "overview"'), "capability tab state should initialize to overview");
+  assert(source.includes('state.activeCapabilityRelationTab = "overview";'), "ordinary capability selection changes should reset to overview");
+  assert(source.includes("state.lastCapabilityRelationSelectionId = snapshot.selectedCapabilityId;"), "same-node workspace state should preserve its explicit tab");
+  assert(source.includes("state.lastCapabilityRelationSelectionId = result.selectedCapabilityId;"), "explicit capability search deep links should preserve their target tab");
+  assert(source.includes("state.lastCapabilityRelationSelectionId = capabilityId;"), "explicit capability context deep links should preserve their target tab");
+  assert(source.includes('state.activeCapabilityRelationTab = tab.value || "overview";'), "tab changes should fall back to overview");
+  assert(/addEventListener\("change"[\s\S]*state\.activeCapabilityRelationTab = tab\.value \|\| "overview";[\s\S]*renderCapabilities\(\);[\s\S]*requestAnimationFrame/.test(source), "tab activation should rerender lazily and restore focus");
+  for (const key of ["ArrowLeft", "ArrowRight", "Home", "End", "Enter"]) {
+    assert(source.includes(`event.key === "${key}"`) || source.includes(`event.key !== "${key}"`), `capability tab keyboard contract missing ${key}`);
+  }
+  assert(source.includes('event.key !== " "'), "capability tab keyboard contract missing Space");
+  return "overview_default_explicit_deep_link_preserved";
 }
 
 async function main() {
   const baseUrl = argValue("--url", DEFAULT_BASE_URL).replace(/\/$/, "");
+  const dataClient = await loadDataClient(baseUrl, requestLog);
   const viewModels = await loadViewModels();
   const relationComponent = await loadCapabilityRelationComponent();
   await validateNetworkGraphOverlayContract();
   await validateCapabilityRuntimeStatsContract();
   const progressiveLoadContract = await validateProgressiveCapabilityLoadContract();
-  const [capabilityTree, maintenance, sharedLookups, capabilityInitial] = await Promise.all([
-    fetchData(baseUrl, "/api/v1/data-packages/capability"),
-    fetchData(baseUrl, "/api/v1/data-packages/maintenance"),
-    fetchData(baseUrl, "/api/v1/data-packages/shared-lookups"),
-    fetchData(baseUrl, "/api/v1/capabilities/workspace-initial"),
+  const capabilityTabInteractionContract = await validateCapabilityTabInteractionContract();
+  const [capabilityTreeEnvelope, maintenanceEnvelope, sharedLookupsEnvelope, capabilityInitialEnvelope] = await Promise.all([
+    dataClient.getCapabilityTree(),
+    dataClient.getMaintenanceIndex(),
+    dataClient.getSharedLookups(),
+    dataClient.getCapabilityWorkspaceInitial(),
   ]);
+  const capabilityTree = unwrapEnvelope(capabilityTreeEnvelope);
+  const maintenance = unwrapEnvelope(maintenanceEnvelope);
+  const sharedLookups = unwrapEnvelope(sharedLookupsEnvelope);
+  const capabilityInitial = unwrapEnvelope(capabilityInitialEnvelope);
   const management = mergeSharedLookups(maintenance, sharedLookups);
   const capabilityWorkbenchViewModel = viewModels.buildCapabilityWorkbenchViewModel({ workbench: capabilityInitial });
   const checked = [];
@@ -590,7 +706,16 @@ async function main() {
   for (const item of cases) {
     const target = findCapabilityItem(capabilityTree, item);
     assert(target, `${item.code}: capability tree item not found`);
-    const projection = await fetchData(baseUrl, `/api/v1/capabilities/workspace-view?object_type=${encodeURIComponent(item.objectType)}&object_id=${encodeURIComponent(item.code)}`);
+    assert(target.type === item.objectType, `${item.code}: catalog object type=${target.type}`);
+    assert(text(target.id).trim(), `${item.code}: catalog object ID is missing`);
+    const projection = unwrapEnvelope(
+      await dataClient.getCapabilityWorkspaceView({
+        objectType: target.type,
+        objectId: target.id,
+      }),
+    );
+    assert(projection?.selected?.id === target.id, `${item.code}: projection selected ID does not match catalog object ID`);
+    assert(projection?.selected?.type === target.type, `${item.code}: projection selected type does not match catalog object type`);
     const viewModel = viewModels.buildCapabilityWorkspaceViewModel({
       capabilityWorkbench: capabilityInitial,
       capabilityWorkbenchViewModel,
@@ -611,7 +736,10 @@ async function main() {
     }
     assert(!l0Rows.some((row) => / [TGM]$/.test(text(row.title))), `${item.code}: L0 navigation title should not keep trailing code`);
     const result = validateViewModel(item, target, projection, viewModel, new Set(focusIdsForItem(capabilityTree, target)));
-    result.renderPolicy = validateOverviewRender(item, relationComponent, viewModel, management) || "";
+    result.renderPolicy =
+      validateOverviewRender(item, relationComponent, viewModel, management) ||
+      validateFocusRender(item, relationComponent, viewModel) ||
+      "";
     checked.push(result);
     const fallbackResult = validateFallbackViewModel(item, target, viewModels, {
       capabilityInitial,
@@ -623,12 +751,37 @@ async function main() {
     if (fallbackResult) fallbackChecked.push(fallbackResult);
   }
 
+  const missingObjectId = "00000000-0000-4000-8000-000000000000";
+  let missingObjectError = null;
+  try {
+    await dataClient.getCapabilityWorkspaceView({
+      objectType: "capability_focus",
+      objectId: missingObjectId,
+    });
+  } catch (error) {
+    missingObjectError = error;
+  }
+  assert(missingObjectError?.name === "ProjectionApiError", "missing capability ID must fail through the projection dataClient owner");
+  assert(missingObjectError?.status === 404, `missing capability ID status=${missingObjectError?.status || 0}`);
+
+  const businessOwnerRequests = requestLog.filter((request) => request.path.startsWith("/api/v1/"));
+  const nonProjectionBusinessOwnerRequests = businessOwnerRequests.filter((request) => !request.path.startsWith("/api/v1/projections/"));
+  assert(nonProjectionBusinessOwnerRequests.length === 0, `TC-010 used non-projection business owners: ${nonProjectionBusinessOwnerRequests.map((request) => request.path).join(", ")}`);
+
   console.log(
     JSON.stringify(
       {
         result: "pass",
         baseUrl,
         progressiveLoadContract,
+        capabilityTabInteractionContract,
+        businessOwnerRequests,
+        nonProjectionBusinessOwnerRequestCount: nonProjectionBusinessOwnerRequests.length,
+        missingObject: {
+          id: missingObjectId,
+          status: missingObjectError.status,
+          fallback: false,
+        },
         checked,
         fallbackChecked,
       },
@@ -639,6 +792,13 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error(JSON.stringify({ result: "fail", error: error.message }, null, 2));
+  const businessOwnerRequests = requestLog.filter((request) => request.path.startsWith("/api/v1/"));
+  const nonProjectionBusinessOwnerRequests = businessOwnerRequests.filter((request) => !request.path.startsWith("/api/v1/projections/"));
+  console.error(JSON.stringify({
+    result: "fail",
+    error: error.message,
+    businessOwnerRequests,
+    nonProjectionBusinessOwnerRequestCount: nonProjectionBusinessOwnerRequests.length,
+  }, null, 2));
   process.exit(1);
 });

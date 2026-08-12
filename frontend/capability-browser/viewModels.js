@@ -166,10 +166,6 @@
     return { focusOrder, capabilityOrder };
   }
 
-  function defaultCapabilitySelection(capabilityTree) {
-    return list(capabilityTree?.categories)[0] || focusRows(capabilityTree)[0]?.item || null;
-  }
-
   function findCapabilityItemAndFocuses(capabilityTree, targetId) {
     let selected = null;
     let focuses = [];
@@ -1621,7 +1617,6 @@
       fallbackName: "capability-tree.json + maintenance-knowledge.json + shared-lookups.json",
     });
     const navigationTree = buildNavigationTree(capabilityTree, search);
-    const fallbackSelection = defaultCapabilitySelection(capabilityTree);
     const requestedCapabilityId = text(selectedCapabilityId).trim();
     const selectedResult = requestedCapabilityId ? findCapabilityItemAndFocuses(capabilityTree, requestedCapabilityId) : { selected: null, focuses: [] };
     const selection = requestedCapabilityId
@@ -1631,13 +1626,16 @@
           grain: "capability_object",
           label: "安全能力对象",
         })
-      : resolveCurrentObjectSelection({
-          rows: fallbackSelection ? [fallbackSelection] : [],
-          selectedId: "",
+      : {
+          id: null,
+          row: null,
+          status: flattenCapabilities(capabilityTree).length ? "no_selection" : "empty",
+          source: "none",
           grain: "capability_object",
-          label: "安全能力对象",
-        });
-    const selectedRaw = requestedCapabilityId ? selectedResult.selected : fallbackSelection;
+          requestedId: "",
+          message: flattenCapabilities(capabilityTree).length ? "请选择安全能力对象" : "暂无安全能力对象数据",
+        };
+    const selectedRaw = selectedResult.selected;
     const selectedCapability = compactEntity(selectedRaw);
     const selectedDetail = selectedCapability;
     const selectedId = selectedCapability?.id || null;
@@ -4226,6 +4224,7 @@
                   : { rows: [], summary: {}, emptyState: pageMeta.description };
     const selectableRows =
       normalizedSection === "references" ? (normalizedReferenceTab === "gartner" ? sectionViewModel.roleRows || [] : sectionViewModel.standardRows || []) : sectionViewModel.rows;
+    const requestedMaintenanceId = text(selectedId).trim();
     const selection =
       normalizedSection === "environment-objects" && !text(selectedId).trim()
         ? {
@@ -4237,12 +4236,22 @@
             requestedId: "",
             message: selectableRows.length ? "" : "暂无信息化环境对象目录数据",
           }
-        : resolveCurrentObjectSelection({
+        : requestedMaintenanceId
+        ? resolveCurrentObjectSelection({
             rows: selectableRows,
-            selectedId,
+            selectedId: requestedMaintenanceId,
             grain: "maintenance_object",
             label: "知识库对象",
-          });
+          })
+        : {
+            id: null,
+            row: null,
+            status: selectableRows.length ? "no_selection" : "empty",
+            source: "none",
+            grain: "maintenance_object",
+            requestedId: "",
+            message: selectableRows.length ? "请选择知识库对象" : "暂无知识库对象数据",
+          };
     const selectedRow = selection.row;
     const sidecarSourceEvidence = selectedRow ? list(maintenanceKnowledge?.source_evidence_by_id?.[selectedRow.id]) : [];
     const sourceEvidence = sidecarSourceEvidence.length

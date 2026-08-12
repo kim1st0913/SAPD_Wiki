@@ -4,6 +4,10 @@
   grid-template-columns: 304px 6px minmax(760px, 1fr);
 }
 
+.app-shell-integrated .capability-tree-pane {
+  container-type: inline-size;
+}
+
 .app-shell-integrated .capability-relation-pane {
   grid-template-rows: auto minmax(0, 1fr);
 }
@@ -189,6 +193,40 @@
   padding: 0;
   overflow: hidden;
   border: 0;
+}
+
+@container (max-width: 280px) {
+  .app-shell-integrated .capability-tree-pane .tree-row.tree-level-1 {
+    padding-left: 16px;
+  }
+
+  .app-shell-integrated .capability-tree-pane .tree-row.tree-level-2 {
+    padding-left: 26px;
+  }
+
+  .app-shell-integrated .capability-tree-pane .tree-row.tree-level-3 {
+    padding-left: 36px;
+  }
+
+  .app-shell-integrated .capability-tree-pane .node-copy {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    gap: 2px;
+  }
+
+  .app-shell-integrated .capability-tree-pane .node-code {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .app-shell-integrated .capability-tree-pane .node-title {
+    width: auto;
+  }
+
+  .app-shell-integrated .capability-tree-pane .tree-level-3 .node-title {
+    flex-basis: auto;
+  }
 }
 
 @media (max-width: 1099px) {

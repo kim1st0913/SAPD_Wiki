@@ -44,6 +44,7 @@ async function main() {
   const guideSource = read("frontend/capability-browser/assets/guides/maturity-model-usage.html");
   const cssSource = read("frontend/capability-browser/p1-guide-reading.css");
   const indexSource = read("frontend/capability-browser/index.html");
+  const scrollFrameSource = functionSlice(appSource, "scrollMaturityModelGuideFrameToSection", "handleMaturityModelGuideMessage");
   const prepareFrameSource = functionSlice(appSource, "prepareMaturityModelGuideFrame", "renderMaturityModelGuide");
   const toolSection = sectionSlice(guideSource, "tool", "scoring");
   const coverMatch = guideSource.match(/\.hero\s*\{([\s\S]*?)\n\s*\}/);
@@ -54,6 +55,7 @@ async function main() {
   assert(appSource.includes('routeItem.label || "成熟度模型使用指南"') && !appSource.includes('routeItem.label || "SAPD成熟度模型使用指南"') && !appSource.includes('routeItem.label || "成熟度模型使用方法"'), "指南页面标题回退名称未统一", issues);
   assert(appSource.includes("maturity-model-usage.html?embed=1&v=p1-6-guide-navigation-20260721-1"), "指南 iframe 未使用最新导航版本", issues);
   assert(includesAll(appSource, ["sapd:maturity-guide:navigate", "sapd:maturity-guide:navigated", "handleMaturityModelGuideMessage", "postMessage"]), "App 指南目录缺少 iframe 双向导航协议", issues);
+  assert(includesAll(scrollFrameSource, ['section.scrollIntoView({ block: "start" })', "scrollOwner.scrollTop", "postMessage"]), "App 指南目录未使用 WebKit 可执行的原生章节滚动并保留消息兼容路径", issues);
   assert(!prepareFrameSource.includes("createElement(\"style\")") && !prepareFrameSource.includes("sapd-wiki-maturity-embed-style"), "App 仍在外层强行改写 iframe 正文样式", issues);
   assert(includesAll(guideSource, ["document-cover", "document-meta", "document-entry-links", 'data-embed="true"', "URLSearchParams"]), "文档式封面或源文档嵌入模式不完整", issues);
   assert(includesAll(guideSource, config.chapterAnchors.map((anchor) => `id=\"${anchor}\"`)), "指南章节锚点不完整", issues);

@@ -62,7 +62,7 @@ const state = {
   activeStandardTableId: "",
   activeContentPage: "html",
   selectedCapabilityId: null,
-  activeCapabilityRelationTab: "summary",
+  activeCapabilityRelationTab: "overview",
   lastCapabilityRelationSelectionId: "",
   selectedEnvironmentId: null,
   selectedEnvironmentSegmentId: null,
@@ -96,10 +96,6 @@ const state = {
   capabilityProjectionRequests: new Map(),
   capabilityProjectionLoadResults: new Map(),
   annotationContextLoads: new Map(),
-  annotationCapabilityProjectionIndex: null,
-  annotationCapabilityProjectionIndexPromise: null,
-  annotationCapabilityProjectionValueCache: new Map(),
-  annotationCapabilityProjectionDataCache: new Map(),
   userFavorites: [],
   userFavoritesByRef: new Map(),
   userFavoritesLoaded: false,
@@ -2735,6 +2731,7 @@ function activateGlobalSearchResult(result) {
     queuePageSearchReveal(activationQuery, searchScopeForCurrentState(), globalSearchPageRevealOptions(result));
   }
   if (result.selectedCapabilityId) {
+    const capabilitySelectionChanged = state.selectedCapabilityId !== result.selectedCapabilityId;
     state.selectedCapabilityId = result.selectedCapabilityId;
     expandCapabilityAncestors(result.selectedCapabilityId);
     ensureCapabilityWorkspaceViewForSelection(result.selectedCapabilityId);
@@ -2742,6 +2739,8 @@ function activateGlobalSearchResult(result) {
     if (capabilityRelationTab) {
       state.activeCapabilityRelationTab = capabilityRelationTab;
       state.lastCapabilityRelationSelectionId = result.selectedCapabilityId;
+    } else if (capabilitySelectionChanged) {
+      state.activeCapabilityRelationTab = "overview";
     }
     renderCapabilities();
   }
@@ -3081,6 +3080,9 @@ function applyWorkspaceState(snapshot) {
   if (!snapshot || typeof snapshot !== "object") return;
   state.selectedCapabilityId = snapshot.selectedCapabilityId || state.selectedCapabilityId;
   state.activeCapabilityRelationTab = snapshot.activeCapabilityRelationTab || state.activeCapabilityRelationTab;
+  if (snapshot.selectedCapabilityId && snapshot.activeCapabilityRelationTab) {
+    state.lastCapabilityRelationSelectionId = snapshot.selectedCapabilityId;
+  }
   state.expandedCapabilityIds = new Set(list(snapshot.expandedCapabilityIds));
   state.capabilityCatalogCollapsed = Boolean(snapshot.capabilityCatalogCollapsed);
   state.capabilityCatalogWidth = clampCapabilityCatalogWidth(snapshot.capabilityCatalogWidth);
@@ -3148,6 +3150,8 @@ function assignPackageData(name, data) {
     state.capabilityWorkbench = data;
     if (!state.loadedPackages.has("capability")) state.capability = capabilityTreeFromWorkbench(data);
     state.capabilityProjection = data;
+    const explicitSelected = data?.selected;
+    if (!state.selectedCapabilityId && explicitSelected?.id && explicitSelected?.type) state.selectedCapabilityId = explicitSelected.id;
   }
   if (name === "capabilityWorkbench") {
     state.capabilityWorkbench = data;
@@ -5244,6 +5248,7 @@ function restoreAnnotationContextFromNote(note) {
     const item = capabilityItemById(capabilityId);
     if (item?.id && capabilityId !== state.selectedCapabilityId) {
       state.selectedCapabilityId = capabilityId;
+      state.activeCapabilityRelationTab = "overview";
       state.capabilityCatalogCollapsed = false;
       capabilityAncestorIds(capabilityId).forEach((id) => state.expandedCapabilityIds.add(id));
       state.expandedSelectionId = capabilityId;
@@ -5254,6 +5259,7 @@ function restoreAnnotationContextFromNote(note) {
     }
     if (tab && tab !== state.activeCapabilityRelationTab) {
       state.activeCapabilityRelationTab = tab;
+      state.lastCapabilityRelationSelectionId = capabilityId;
       changed = true;
     }
   } else if (view === "maintenance") {
@@ -5367,27 +5373,6 @@ function ensureStandardFrameworkLoadedForAnnotationNote(note) {
   return load;
 }
 
-async function capabilityProjectionRowsForAnnotation() {
-  if (Array.isArray(state.annotationCapabilityProjectionIndex)) return state.annotationCapabilityProjectionIndex;
-  if (state.annotationCapabilityProjectionIndexPromise) return state.annotationCapabilityProjectionIndexPromise;
-  state.annotationCapabilityProjectionIndexPromise = fetch("./public/data/capability/index.json", { cache: "no-store" })
-    .then((response) => (response.ok ? response.json() : null))
-    .then((index) => {
-      const rows = list(index?.projections).filter((row) => row?.id && row?.path);
-      state.annotationCapabilityProjectionIndex = rows;
-      return rows;
-    })
-    .catch((error) => {
-      console.warn("能力 Issue projection 索引加载失败", error);
-      state.annotationCapabilityProjectionIndex = [];
-      return [];
-    })
-    .finally(() => {
-      state.annotationCapabilityProjectionIndexPromise = null;
-    });
-  return state.annotationCapabilityProjectionIndexPromise;
-}
-
 function annotationCapabilityValueNeedles(note = {}) {
   const values = [note.object_title, note.object_code, note.object_name, note.field_value]
     .map((value) => text(value).trim())
@@ -5415,68 +5400,9 @@ function relatedCapabilityAnnotationValueNotes(note = {}) {
   });
 }
 
-function capabilityProjectionContainsAnnotationValue(projection, note) {
-  const needles = annotationCapabilityValueNeedles(note);
-  if (!needles.length || !projection) return false;
-  const haystack = compactAnnotationLookupText(
-    JSON.stringify({
-      selected: projection.selected,
-      objects: projection.objects,
-      technicalMappingRows: projection.technicalMappingRows || projection.technical_mapping_rows,
-      managementMappingRows: projection.managementMappingRows || projection.management_mapping_rows,
-      standardMappingRows: projection.standardMappingRows || projection.standard_mapping_rows,
-      localRelationMapsByFocusId: projection.localRelationMapsByFocusId || projection.local_relation_maps_by_focus_id,
-    }),
-  );
-  return needles.some((needle) => haystack.includes(needle));
-}
-
-function applyCapabilityAnnotationProjection(projection, row, note) {
-  const selected = projection?.selected || {};
-  const item = capabilityItemById(selected.id) || capabilityItemById(row?.id);
-  if (!item?.id) return false;
-  state.selectedCapabilityId = item.id;
-  state.capabilityCatalogCollapsed = false;
-  capabilityAncestorIds(item.id).forEach((id) => state.expandedCapabilityIds.add(id));
-  state.expandedSelectionId = item.id;
-  state.capabilityWorkspaceView = projection;
-  if (item.type === "capability_focus") mergeCapabilityProjection(projection);
-  const tab = decodeLegacyAnchorPart(legacyAnnotationTargetMeta(note?.target_ref)?.context?.[3] || "");
-  if (tab && tab !== "_") state.activeCapabilityRelationTab = tab;
-  return true;
-}
-
-async function findCapabilityProjectionForAnnotationValue(note) {
-  const cacheKey = annotationCapabilityValueNeedles(note).join("|");
-  if (!cacheKey) return null;
-  const cached = state.annotationCapabilityProjectionValueCache.get(cacheKey);
-  if (cached) return cached;
-  const rows = await capabilityProjectionRowsForAnnotation();
-  const orderedRows = [
-    ...rows.filter((row) => row.id === state.selectedCapabilityId),
-    ...rows.filter((row) => row.detailMode === "detail" && row.id !== state.selectedCapabilityId),
-    ...rows.filter((row) => row.detailMode !== "detail" && row.id !== state.selectedCapabilityId),
-  ];
-  for (const row of orderedRows) {
-    const path = `./public/data/${text(row.path).replace(/^\/+/, "")}`;
-    let projection = state.annotationCapabilityProjectionDataCache.get(row.id);
-    if (!projection) {
-      projection = await fetch(path, { cache: "no-store" })
-        .then((response) => (response.ok ? response.json() : null))
-        .catch(() => null);
-      if (projection) state.annotationCapabilityProjectionDataCache.set(row.id, projection);
-    }
-    if (!capabilityProjectionContainsAnnotationValue(projection, note)) continue;
-    const result = { row, projection };
-    state.annotationCapabilityProjectionValueCache.set(cacheKey, result);
-    return result;
-  }
-  state.annotationCapabilityProjectionValueCache.set(cacheKey, null);
-  return null;
-}
-
 function ensureCapabilityProjectionForAnnotationItem(item) {
   if (!item?.id) return Promise.resolve(false);
+  if (state.selectedCapabilityId !== item.id) state.activeCapabilityRelationTab = "overview";
   state.selectedCapabilityId = item.id;
   state.capabilityCatalogCollapsed = false;
   capabilityAncestorIds(item.id).forEach((id) => state.expandedCapabilityIds.add(id));
@@ -5497,10 +5423,12 @@ function ensureCapabilityAnnotationProjectionForNote(note) {
     const legacyCapabilityId = decodeLegacyAnchorPart(meta.context?.[2] || "");
     const directItem = capabilityItemById(legacyCapabilityId);
     if (directItem?.id) return ensureCapabilityProjectionForAnnotationItem(directItem);
-    for (const lookupNote of lookupNotes) {
-      const match = await findCapabilityProjectionForAnnotationValue(lookupNote);
-      if (!match?.projection) continue;
-      return applyCapabilityAnnotationProjection(match.projection, match.row, note);
+    try {
+      const located = await window.sapdDataClient?.locateCapability?.({ targetRef: note?.target_ref });
+      const locatedItem = capabilityItemById(located?.data?.selected?.id);
+      if (locatedItem?.id) return ensureCapabilityProjectionForAnnotationItem(locatedItem);
+    } catch (error) {
+      console.warn("能力 Issue 精确定位失败", error);
     }
     return false;
   };
@@ -8386,9 +8314,9 @@ function scrollMaturityModelGuideFrameToSection(sectionId) {
   const section = normalized ? frameDocument?.getElementById(normalized) : null;
   const scrollOwner = frameDocument?.scrollingElement || frameDocument?.documentElement;
   let didScroll = false;
-  if (section && scrollOwner) {
-    const targetTop = section.getBoundingClientRect().top + scrollOwner.scrollTop - 20;
-    scrollOwner.scrollTop = Math.max(0, targetTop);
+  if (section) {
+    section.scrollIntoView({ block: "start" });
+    if (scrollOwner) scrollOwner.scrollTop = Math.max(0, scrollOwner.scrollTop - 20);
     didScroll = true;
   }
   if (normalized && frame?.contentWindow) {
@@ -10432,20 +10360,6 @@ function environmentSearchObjectMatches(viewModel, query = state.search) {
 
 function resolveCapabilitySelection(viewModel) {
   const hadSelectedCapability = Boolean(state.selectedCapabilityId);
-  const query = normalizeSearchText(state.search);
-  const navigationRows = list(viewModel.navigationTree);
-  const currentNavigationRow = navigationRows.find((row) => row.id === state.selectedCapabilityId);
-  const rowMatchesDirectly = (row) => {
-    if (!query || !row) return false;
-    return normalizeSearchText([row.level, row.code, row.title].filter(Boolean).join(" ")).includes(query);
-  };
-  if (query && navigationRows.length && !rowMatchesDirectly(currentNavigationRow)) {
-    const nextRow = navigationRows.find(rowMatchesDirectly) || navigationRows[0];
-    if (nextRow?.id && nextRow.id !== state.selectedCapabilityId) {
-      state.selectedCapabilityId = nextRow.id;
-      state.activeCapabilityRelationTab = "summary";
-    }
-  }
   if (!state.selectedCapabilityId) state.selectedCapabilityId = viewModel.selectedCapability?.id || null;
   if (!hadSelectedCapability && viewModel.selectedCapability?.type === "capability_category" && state.selectedCapabilityId) {
     capabilityCategoryIds().forEach((id) => state.expandedCapabilityIds.add(id));
@@ -10493,7 +10407,7 @@ function moveCapabilityPageSearchMatch(delta = 1, query = state.search) {
   const nextId = matchSet.matches[nextIndex]?.id;
   if (!nextId) return false;
   state.selectedCapabilityId = nextId;
-  state.activeCapabilityRelationTab = "summary";
+  state.activeCapabilityRelationTab = "overview";
   capabilityAncestorIds(nextId).forEach((id) => state.expandedCapabilityIds.add(id));
   state.pageSearchNavigation = { scope, query: text(query).trim(), index: nextIndex, count };
   state.pendingPageSearchReveal = {
@@ -10599,13 +10513,13 @@ function renderCapabilityDetail(components, viewModel) {
   const selectedCapabilityId = viewModel.selectedCapability?.id || "";
   if (selectedCapabilityId && state.lastCapabilityRelationSelectionId !== selectedCapabilityId) {
     state.lastCapabilityRelationSelectionId = selectedCapabilityId;
-    if (state.activeCapabilityRelationTab !== "summary") {
-      state.activeCapabilityRelationTab = "summary";
+    if (state.activeCapabilityRelationTab !== "overview") {
+      state.activeCapabilityRelationTab = "overview";
       persistWorkspaceState();
     }
   }
-  const availableRelationTabs = capabilityOverview.detailPolicy === "overview" ? ["summary", "technical"] : ["summary", "technical", "management", "standard"];
-  if (!availableRelationTabs.includes(state.activeCapabilityRelationTab)) state.activeCapabilityRelationTab = "summary";
+  const availableRelationTabs = capabilityOverview.detailPolicy === "overview" ? ["overview", "summary"] : ["overview", "technical", "management", "standard", "summary"];
+  if (!availableRelationTabs.includes(state.activeCapabilityRelationTab)) state.activeCapabilityRelationTab = "overview";
   const shouldRenderDetailMatrices = capabilityOverview.detailPolicy !== "overview" && capabilityOverview.detailPolicy !== "mixed_summary";
   setCurrentAnnotationTarget(userTarget);
   setHtml(
@@ -13459,7 +13373,7 @@ function bindEvents() {
   if (!row) return;
   const previousCapabilityId = state.selectedCapabilityId;
   state.selectedCapabilityId = row.dataset.capabilityId;
-  if (previousCapabilityId !== state.selectedCapabilityId) state.activeCapabilityRelationTab = "summary";
+  if (previousCapabilityId !== state.selectedCapabilityId) state.activeCapabilityRelationTab = "overview";
   const selectedType = capabilityItemTypeById(state.selectedCapabilityId);
   if (selectedType === "capability_focus") {
     ensureCapabilityProjectionForFocus(state.selectedCapabilityId);
@@ -13485,7 +13399,7 @@ function bindEvents() {
   if (!row) return;
   const previousCapabilityId = state.selectedCapabilityId;
   state.selectedCapabilityId = row.dataset.capabilityId;
-  if (previousCapabilityId !== state.selectedCapabilityId) state.activeCapabilityRelationTab = "summary";
+  if (previousCapabilityId !== state.selectedCapabilityId) state.activeCapabilityRelationTab = "overview";
   if (capabilityItemTypeById(state.selectedCapabilityId) === "capability_focus") ensureCapabilityProjectionForFocus(state.selectedCapabilityId);
   renderCapabilities();
   announceCapabilitySelection(state.selectedCapabilityId);
@@ -13509,16 +13423,15 @@ function bindEvents() {
   $("detail")?.addEventListener("change", (event) => {
     const tab = event.target.closest(".relation-view-radio");
     if (!tab) return;
-    state.activeCapabilityRelationTab = tab.value || "summary";
-    document.querySelectorAll("#capabilityViewControls .relation-view-tab").forEach((label) => {
-      const active = label.getAttribute("for") === `capability-relation-tab-${state.activeCapabilityRelationTab}`;
-      label.classList.toggle("is-active", active);
-      label.setAttribute("aria-selected", active ? "true" : "false");
-      label.tabIndex = active ? 0 : -1;
-    });
-    const activeLabel = document.querySelector("#capabilityViewControls .relation-view-tab[aria-selected='true']")?.textContent?.trim();
-    if (activeLabel) announceAppStatus(`已切换到${activeLabel}`);
+    state.activeCapabilityRelationTab = tab.value || "overview";
+    const activeLabel = document.querySelector(`#capabilityViewControls [for="capability-relation-tab-${state.activeCapabilityRelationTab}"]`)?.textContent?.trim();
     persistWorkspaceState();
+    renderCapabilities();
+    requestAnimationFrame(() => {
+      const nextTab = document.querySelector(`#capabilityViewControls [for="capability-relation-tab-${state.activeCapabilityRelationTab}"]`);
+      nextTab?.focus({ preventScroll: true });
+      if (activeLabel) announceAppStatus(`已切换到${activeLabel}`);
+    });
   });
   $("detail")?.addEventListener("input", (event) => {
     const input = event.target.closest("[data-relation-filter]");

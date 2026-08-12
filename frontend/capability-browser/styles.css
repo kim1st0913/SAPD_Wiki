@@ -14881,6 +14881,7 @@ summary:focus-visible {
   overflow: auto;
 }
 
+#capability-relation-tab-overview:checked ~ .capability-map-v3-grid .overview-panel,
 #capability-relation-tab-summary:checked ~ .capability-map-v3-grid .summary-panel,
 #capability-relation-tab-technical:checked ~ .capability-map-v3-grid .technical-panel,
 #capability-relation-tab-management:checked ~ .capability-map-v3-grid .management-panel,
@@ -17516,6 +17517,7 @@ th[data-user-note-anchor-cell-active="true"] {
   gap: 0;
 }
 
+#capability-relation-tab-overview:checked ~ .preview-workbench-grid .overview-panel,
 #capability-relation-tab-summary:checked ~ .preview-workbench-grid .summary-panel,
 #capability-relation-tab-technical:checked ~ .preview-workbench-grid .technical-panel,
 #capability-relation-tab-management:checked ~ .preview-workbench-grid .management-panel,

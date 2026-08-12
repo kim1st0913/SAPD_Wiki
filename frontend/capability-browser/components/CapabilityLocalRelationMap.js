@@ -597,7 +597,7 @@
     `;
   }
 
-  function renderOverviewHomePanel(overview = {}, panelClass = "summary-panel") {
+  function renderOverviewHomePanel(overview = {}, panelClass = "overview-panel") {
     const children = list(overview.children);
     const isL2 = overview.selectedType === "capability" || overview.levelLabel === "L2 能力";
     const childTitle = isL2 ? "关注点入口" : "下级能力入口";
@@ -605,7 +605,7 @@
     const showSlidingScale = shouldRenderSlidingScaleReference(overview, children);
     const rowListClass = `capability-overview-row-list${showSlidingScale ? " is-five-up" : ""}`;
     return `
-      <div id="capability-relation-panel-technical" class="preview-tab-panel ${escape(panelClass)}" role="tabpanel" aria-labelledby="capability-relation-tab-label-technical">
+      <div id="capability-relation-panel-overview" class="preview-tab-panel ${escape(panelClass)}" role="tabpanel" aria-labelledby="capability-relation-tab-label-overview">
         <section class="capability-overview-shell capability-overview-summary-shell">
           ${renderOverviewBrief(overview)}
           <div class="capability-overview-summary-grid">
@@ -1059,27 +1059,26 @@
     `;
   }
 
-  function renderTabControls(map = {}, capabilityOverview = {}, activeTab = "summary") {
+  function renderTabControls(map = {}, capabilityOverview = {}, activeTab = "overview") {
     const policy = capabilityOverview.detailPolicy || "full_detail";
-    const tabLabel = (id, label) => `<label id="capability-relation-tab-label-${escape(id)}" for="capability-relation-tab-${escape(id)}" class="relation-view-tab ${activeTab === id ? "is-active" : ""}" role="tab" aria-selected="${activeTab === id ? "true" : "false"}" aria-controls="capability-relation-panel-${escape(id)}" tabindex="${activeTab === id ? "0" : "-1"}">${escape(label)}</label>`;
-    if (policy === "overview") {
-      return `
-        <div class="relation-view-tabs preview-tabs capability-title-tabs" role="tablist" aria-label="安全能力映射视角">
-          ${tabLabel("summary", "关系图谱")}
-          ${tabLabel("technical", "摘要总览")}
-        </div>
-      `;
-    }
-    const overviewLabels =
-      policy === "mixed_summary"
-        ? ["总览", "技术摘要", "管理摘要", "标准摘要"]
-        : ["能力关系图谱", "技术视角", "管理视角", "标准 / 框架映射"];
+    const tabs =
+      policy === "overview"
+        ? [
+            { id: "overview", label: "摘要总览" },
+            { id: "summary", label: "能力关系图谱" },
+          ]
+        : [
+            { id: "overview", label: "摘要总览" },
+            { id: "technical", label: "技术视角" },
+            { id: "management", label: "管理视角" },
+            { id: "standard", label: "标准 / 框架映射" },
+            { id: "summary", label: "能力关系图谱" },
+          ];
+    const normalizedActiveTab = tabs.some((tab) => tab.id === activeTab) ? activeTab : "overview";
+    const tabLabel = (tab) => `<label id="capability-relation-tab-label-${escape(tab.id)}" for="capability-relation-tab-${escape(tab.id)}" class="relation-view-tab ${normalizedActiveTab === tab.id ? "is-active" : ""}" role="tab" aria-selected="${normalizedActiveTab === tab.id ? "true" : "false"}" aria-controls="capability-relation-panel-${escape(tab.id)}" tabindex="${normalizedActiveTab === tab.id ? "0" : "-1"}">${escape(tab.label)}</label>`;
     return `
       <div class="relation-view-tabs preview-tabs capability-title-tabs" role="tablist" aria-label="安全能力映射视角">
-        ${tabLabel("summary", overviewLabels[0])}
-        ${tabLabel("technical", overviewLabels[1])}
-        ${tabLabel("management", overviewLabels[2])}
-        ${tabLabel("standard", overviewLabels[3])}
+        ${tabs.map(tabLabel).join("")}
       </div>
     `;
   }
@@ -1091,43 +1090,36 @@
     const capabilityOverview = args.capabilityOverview || {};
     const overviewOnly = capabilityOverview.detailPolicy === "overview";
     const condensedDetail = capabilityOverview.detailPolicy === "mixed_summary";
-    const availableTabs = overviewOnly ? ["summary", "technical"] : ["summary", "technical", "management", "standard"];
-    const activeTab = availableTabs.includes(args.activeTab) ? args.activeTab : "summary";
+    const availableTabs = overviewOnly ? ["overview", "summary"] : ["overview", "technical", "management", "standard", "summary"];
+    const activeTab = availableTabs.includes(args.activeTab) ? args.activeTab : "overview";
     const checked = (tab) => (activeTab === tab ? " checked" : "");
     const matrices = {
       technicalMappingRows: list(args.technicalMappingRows),
       managementMappingRows: list(args.managementMappingRows),
       standardMappingRows: list(args.standardMappingRows),
     };
-    if (overviewOnly) {
-      return `
-        <section class="capability-local-relation-map capability-map-v3 capability-map-preview-r2">
-          <input class="relation-view-radio" type="radio" name="capability-relation-view" id="capability-relation-tab-summary" value="summary" tabindex="-1"${checked("summary")} />
-          <input class="relation-view-radio" type="radio" name="capability-relation-view" id="capability-relation-tab-technical" value="technical" tabindex="-1"${checked("technical")} />
-          <div class="capability-map-v3-grid preview-workbench-grid">
-            <main class="capability-relation-stage preview-relation-stage">
-              <section class="preview-stage-scroll">
-                ${renderSummaryPanel(map, focusOverview, matrices, "summary-panel")}
-                ${renderOverviewHomePanel(capabilityOverview, "technical-panel")}
-              </section>
-            </main>
-          </div>
-        </section>
-      `;
-    }
+    const activePanel =
+      activeTab === "overview"
+        ? renderOverviewHomePanel(capabilityOverview)
+        : activeTab === "summary"
+          ? renderSummaryPanel(map, focusOverview, matrices)
+          : condensedDetail
+            ? renderCondensedDetailPanel(capabilityOverview, activeTab)
+            : renderViewPanel(map, focusOverview, activeTab, matrices);
+    const panels = availableTabs
+      .map((tab) =>
+        tab === activeTab
+          ? activePanel
+          : `<div id="capability-relation-panel-${escape(tab)}" class="preview-tab-panel" role="tabpanel" aria-labelledby="capability-relation-tab-label-${escape(tab)}" hidden></div>`,
+      )
+      .join("");
     return `
       <section class="capability-local-relation-map capability-map-v3 capability-map-preview-r2">
-        <input class="relation-view-radio" type="radio" name="capability-relation-view" id="capability-relation-tab-summary" value="summary" tabindex="-1"${checked("summary")} />
-        <input class="relation-view-radio" type="radio" name="capability-relation-view" id="capability-relation-tab-technical" value="technical" tabindex="-1"${checked("technical")} />
-        <input class="relation-view-radio" type="radio" name="capability-relation-view" id="capability-relation-tab-management" value="management" tabindex="-1"${checked("management")} />
-        <input class="relation-view-radio" type="radio" name="capability-relation-view" id="capability-relation-tab-standard" value="standard" tabindex="-1"${checked("standard")} />
+        ${availableTabs.map((tab) => `<input class="relation-view-radio" type="radio" name="capability-relation-view" id="capability-relation-tab-${escape(tab)}" value="${escape(tab)}" tabindex="-1"${checked(tab)} />`).join("")}
         <div class="capability-map-v3-grid preview-workbench-grid">
           <main class="capability-relation-stage preview-relation-stage">
             <section class="preview-stage-scroll">
-              ${renderSummaryPanel(map, focusOverview, matrices)}
-              ${condensedDetail ? renderCondensedDetailPanel(capabilityOverview, "technical") : renderViewPanel(map, focusOverview, "technical", matrices)}
-              ${condensedDetail ? renderCondensedDetailPanel(capabilityOverview, "management") : renderViewPanel(map, focusOverview, "management", matrices)}
-              ${condensedDetail ? renderCondensedDetailPanel(capabilityOverview, "standard") : renderViewPanel(map, focusOverview, "standard", matrices)}
+              ${panels}
             </section>
           </main>
         </div>

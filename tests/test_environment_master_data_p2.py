@@ -5,10 +5,11 @@ import sqlite3
 import unittest
 
 from openpyxl import Workbook
+from openpyxl.styles import Color, PatternFill
 
 from sapd_wiki.candidates import ObjectCandidate
 from sapd_wiki.loader import _existing_relation_for_upsert
-from sapd_wiki.parsers import parse_scene_sheet
+from sapd_wiki.parsers import parse_data_lifecycle_mapping_sheet, parse_scene_sheet
 from sapd_wiki.staging import _match_item
 
 
@@ -212,6 +213,85 @@ class SceneParserParentResetTests(unittest.TestCase):
                 (relation.source_key, relation.relation_type, relation.target_key)
                 for relation in result.relations
             },
+        )
+
+    @staticmethod
+    def _measure_fill() -> PatternFill:
+        return PatternFill(
+            fill_type="solid",
+            fgColor=Color(
+                type="theme",
+                theme=6,
+                tint=0.5999938962981048,
+            ),
+        )
+
+    def test_measure_relations_use_local_merged_anchor_and_both_endpoint_sources(self) -> None:
+        workbook = Workbook()
+        sheet = workbook.active
+        sheet.title = "作用域-安全技术服务-安全技术模块映射"
+        sheet.append(["", "", "", "", "", "", "", ""])
+        sheet.append(["", "", "", "", "", "", "", ""])
+        sheet.append(["", "园区网", "网络", "认证场景", "I-AP 应用系统", "I-AP&T-AS.IA-02 应用身份认证", "应用系统自身认证模块", ""])
+        sheet.append(["", "", "", "", "", "I-US&T-AS.IA-02 用户认证", "", ""])
+        sheet.append(["", "", "", "另一个场景", "I-DI 数据", "I-DI&T-AS.IA-03 数据资源授权", "", ""])
+        sheet.merge_cells("D3:D4")
+        sheet.merge_cells("E3:E4")
+        sheet.merge_cells("G3:G4")
+        sheet["G3"].fill = self._measure_fill()
+
+        result = parse_scene_sheet(workbook)
+        relations = [
+            relation
+            for relation in result.relations
+            if relation.relation_type == "uses_measure"
+        ]
+
+        self.assertEqual(
+            {(relation.source_key, relation.target_key) for relation in relations},
+            {
+                (
+                    "security_technical_service::I-AP&T-AS.IA-02",
+                    "security_technical_measure::::应用系统自身认证模块",
+                ),
+                (
+                    "security_technical_service::I-US&T-AS.IA-02",
+                    "security_technical_measure::::应用系统自身认证模块",
+                ),
+            },
+        )
+        self.assertFalse(
+            any("I-DI&T-AS.IA-03" in relation.source_key for relation in relations)
+        )
+        for relation in relations:
+            self.assertEqual(
+                {source.column for source in relation.sources},
+                {"安全技术服务", "安全技术模块/措施"},
+            )
+            self.assertTrue(any(source.cell == "G3" for source in relation.sources))
+
+    def test_multivalue_lcdt_row_does_not_create_service_measure_cartesian_product(self) -> None:
+        workbook = Workbook()
+        lifecycle = workbook.active
+        lifecycle.title = "LC-DT 数据生命周期"
+        for _ in range(3):
+            lifecycle.append([])
+        lifecycle.append([1, "数据使用"])
+        mapping = workbook.create_sheet("LC-DT 安全技术服务、模块、策略映射表")
+        for _ in range(5):
+            mapping.append([])
+        mapping.cell(6, 2, "认证")
+        mapping.cell(
+            6,
+            13,
+            "I-US&T-AS.IA-02 用户认证\nI-DI&T-AS.IA-03 数据资源授权",
+        )
+        mapping.cell(6, 14, "应用系统自身认证模块")
+
+        result = parse_data_lifecycle_mapping_sheet(workbook)
+
+        self.assertFalse(
+            any(relation.relation_type == "uses_measure" for relation in result.relations)
         )
 
 

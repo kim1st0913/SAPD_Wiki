@@ -29,11 +29,18 @@ from .content_asset_service import (
     ContentAssetService,
     parse_http_byte_range,
 )
+from .capability_focus_projection import CapabilityFocusProjectionService
+from .capability_maintenance_projection import CapabilityMaintenanceProjectionService
 from .local_mcp.base_query_service import SCOPE, BaseKnowledgeQueryService
 from .local_mcp.dev_supervisor import DevSidecarSupervisor
 from .local_mcp.errors import McpCoreError
 from .local_mcp.models import RequestContext
 from .local_mcp.web_control import build_dev_control_api
+from .projection_contract import (
+    ProjectionIdentity,
+    ProjectionManifestError,
+    load_projection_identity,
+)
 
 from .maturity import (
     build_maturity_workspace,
@@ -117,6 +124,11 @@ _EPHEMERAL_USER_DB_LOCK = Lock()
 _MATURITY_REPORT_MANIFEST_LOCKS: dict[str, Lock] = {}
 _MATURITY_REPORT_MANIFEST_LOCKS_GUARD = Lock()
 _CONTENT_CURSOR_KEY = secrets.token_bytes(32)
+_PROJECTION_IDENTITY_LOCK = Lock()
+_PROJECTION_IDENTITY_CACHE: tuple[Path, ProjectionIdentity] | None = None
+_BATCH1_PROJECTION_CACHE: tuple[
+    Path, ProjectionIdentity, CapabilityMaintenanceProjectionService
+] | None = None
 MATURITY_REPORT_ARTIFACT_SCHEMA = "sapd-maturity-report-artifact-v1"
 RUNTIME_LABEL = "stable"
 USER_SCHEMA_VERSION = "user_schema_0.3"
@@ -604,6 +616,7 @@ def configure_runtime_paths(
     global USER_IMPORT_DIR, APP_DATA_ROOT, APP_DISPLAY_VERSION
     global USER_STATE_EPHEMERAL, _EPHEMERAL_USER_DB_URI, _EPHEMERAL_USER_ARTIFACTS
     global _EPHEMERAL_PREVIOUS_EXPORT_DIR
+    global _PROJECTION_IDENTITY_CACHE, _BATCH1_PROJECTION_CACHE
     leaving_ephemeral_export_dir = _EPHEMERAL_PREVIOUS_EXPORT_DIR
     close_ephemeral_user_state()
     USER_STATE_EPHEMERAL = bool(ephemeral_user_state)
@@ -651,6 +664,9 @@ def configure_runtime_paths(
     if runtime_label:
         RUNTIME_LABEL = str(runtime_label).strip() or RUNTIME_LABEL
     _DATA_PACKAGE_CACHE.clear()
+    with _PROJECTION_IDENTITY_LOCK:
+        _PROJECTION_IDENTITY_CACHE = None
+        _BATCH1_PROJECTION_CACHE = None
 
 
 def maturity_workspace_project_profile() -> str:
@@ -4490,6 +4506,54 @@ def content_knowledge_response(
     raise KeyError(path)
 
 
+def _runtime_projection_identity() -> ProjectionIdentity:
+    """Return one manifest-backed identity context for the configured process."""
+
+    global _PROJECTION_IDENTITY_CACHE
+    manifest_path = CONTENT_QUERY_DB_PATH.parent / "base-manifest.json"
+    with _PROJECTION_IDENTITY_LOCK:
+        cached = _PROJECTION_IDENTITY_CACHE
+        if cached is not None and cached[0] == manifest_path:
+            return cached[1]
+        identity = load_projection_identity(manifest_path)
+        _PROJECTION_IDENTITY_CACHE = (manifest_path, identity)
+        return identity
+
+
+def capability_focus_projection_response(
+    query: dict[str, list[str]],
+) -> dict[str, Any]:
+    """Resolve one explicitly selected focus from the formal read-only database."""
+
+    focus_id = next(iter(query.get("id", ())), "")
+    code = next(iter(query.get("code", ())), "")
+    return CapabilityFocusProjectionService(
+        base_database=CONTENT_QUERY_DB_PATH,
+        identity=_runtime_projection_identity(),
+    ).project(focus_id=focus_id, code=code)
+
+
+def _runtime_batch1_projection() -> CapabilityMaintenanceProjectionService:
+    """Reuse one read-only Batch 1 repository snapshot for this Runtime process."""
+
+    global _BATCH1_PROJECTION_CACHE
+    identity = _runtime_projection_identity()
+    with _PROJECTION_IDENTITY_LOCK:
+        cached = _BATCH1_PROJECTION_CACHE
+        if (
+            cached is not None
+            and cached[0] == CONTENT_QUERY_DB_PATH
+            and cached[1] == identity
+        ):
+            return cached[2]
+        service = CapabilityMaintenanceProjectionService(
+            base_database=CONTENT_QUERY_DB_PATH,
+            identity=identity,
+        )
+        _BATCH1_PROJECTION_CACHE = (CONTENT_QUERY_DB_PATH, identity, service)
+        return service
+
+
 def content_asset_list_response(query: dict[str, list[str]]) -> dict[str, Any]:
     if CONTENT_ASSET_DB_PATH is None:
         raise ContentAssetError("content asset database is not configured")
@@ -4873,6 +4937,42 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
     def _handle_api(self, path: str, query: dict[str, list[str]]) -> None:
         parts = [part for part in path.split("/") if part]
         try:
+            if path == "/api/v1/projections/capability-focus":
+                self._send_json(capability_focus_projection_response(query))
+                return
+            if path == "/api/v1/projections/capability-catalog":
+                self._send_json(_runtime_batch1_projection().capability_catalog())
+                return
+            if path == "/api/v1/projections/capability-view":
+                self._send_json(
+                    _runtime_batch1_projection().capability_view(
+                        object_type=(query.get("object_type") or [""])[0],
+                        object_id=(query.get("object_id") or [""])[0],
+                        code=(query.get("code") or [""])[0],
+                    )
+                )
+                return
+            if path == "/api/v1/projections/capability-locator":
+                self._send_json(
+                    _runtime_batch1_projection().locate_capability(
+                        target_ref=(query.get("target_ref") or [""])[0],
+                        object_type=(query.get("object_type") or [""])[0],
+                        object_id=(query.get("object_id") or [""])[0],
+                        code=(query.get("code") or [""])[0],
+                    )
+                )
+                return
+            if path == "/api/v1/projections/maintenance":
+                self._send_json(_runtime_batch1_projection().maintenance_index())
+                return
+            if len(parts) == 5 and parts[:4] == ["api", "v1", "projections", "maintenance"]:
+                self._send_json(
+                    _runtime_batch1_projection().maintenance_section(parts[4])
+                )
+                return
+            if path == "/api/v1/projections/shared-lookups":
+                self._send_json(_runtime_batch1_projection().shared_lookups())
+                return
             if path in {
                 "/api/v1/knowledge/search",
                 "/api/v1/knowledge/object",
@@ -5007,6 +5107,17 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
                     {"error": "invalid_asset_request", "message": str(exc), "path": path}
                 ),
                 status=400,
+            )
+        except ProjectionManifestError as exc:
+            self._send_json(
+                create_envelope(
+                    {
+                        "error": "projection_identity_unavailable",
+                        "message": str(exc),
+                        "path": path,
+                    }
+                ),
+                status=503,
             )
         except ValueError as exc:
             self._send_json(

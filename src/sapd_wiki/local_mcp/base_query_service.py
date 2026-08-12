@@ -618,6 +618,172 @@ class BaseKnowledgeRepository:
             else None
         )
 
+    def get_base_object_by_exact_identity(
+        self,
+        *,
+        object_type: str,
+        object_id: str,
+        code: str,
+    ) -> dict[str, Any] | None:
+        """Resolve one formal base object only when all identity fields agree."""
+
+        try:
+            row = self._connection.execute(
+                """
+                SELECT
+                    id, stable_ref, type, code, title, description,
+                    category, status, metadata_json
+                FROM knowledge_items
+                WHERE type = ? AND id = ? AND code = ?
+                """,
+                (object_type, object_id, code),
+            ).fetchone()
+        except Exception as exc:
+            raise RuntimeBoundaryError(
+                "base knowledge exact identity query failed"
+            ) from exc
+        if row is None:
+            return None
+        result = self._object(row, include_content=True)
+        result["id"] = str(row["id"])
+        return result
+
+    def get_base_object_by_canonical_ref(
+        self,
+        canonical_ref: str,
+    ) -> dict[str, Any] | None:
+        """Return a formal base object's UI identity for a canonical ref."""
+
+        try:
+            row = self._connection.execute(
+                """
+                SELECT
+                    id, stable_ref, type, code, title, description,
+                    category, status, metadata_json
+                FROM knowledge_items
+                WHERE stable_ref = ?
+                """,
+                (canonical_ref,),
+            ).fetchone()
+        except Exception as exc:
+            raise RuntimeBoundaryError(
+                "base knowledge canonical identity query failed"
+            ) from exc
+        if row is None:
+            return None
+        result = self._object(row, include_content=True)
+        result["id"] = str(row["id"])
+        return result
+
+    def list_base_objects(
+        self,
+        *,
+        object_types: tuple[str, ...],
+        active_only: bool = True,
+    ) -> list[dict[str, Any]]:
+        """Return formal base objects for a controlled projection type set."""
+
+        if not object_types:
+            return []
+        placeholders = ", ".join("?" for _value in object_types)
+        status_sql = "AND status = 'active'" if active_only else ""
+        try:
+            rows = self._connection.execute(
+                f"""
+                SELECT
+                    id, stable_ref, type, code, title, description,
+                    category, status, metadata_json
+                FROM knowledge_items
+                WHERE type IN ({placeholders})
+                  {status_sql}
+                ORDER BY type, stable_ref
+                """,
+                object_types,
+            ).fetchall()
+        except Exception as exc:
+            raise RuntimeBoundaryError(
+                "base knowledge object collection query failed"
+            ) from exc
+        result: list[dict[str, Any]] = []
+        for row in rows:
+            item = self._object(row, include_content=True)
+            item["id"] = str(row["id"])
+            result.append(item)
+        return result
+
+    def list_base_relations(
+        self,
+        *,
+        relation_types: tuple[str, ...],
+    ) -> list[dict[str, Any]]:
+        """Return formal relations for a controlled projection relation set."""
+
+        if not relation_types:
+            return []
+        placeholders = ", ".join("?" for _value in relation_types)
+        try:
+            rows = self._connection.execute(
+                f"""
+                SELECT
+                    relation.stable_ref,
+                    relation.relation_type,
+                    relation.relation_label,
+                    relation.confidence,
+                    relation.metadata_json,
+                    source.stable_ref AS source_stable_ref,
+                    target.stable_ref AS target_stable_ref
+                FROM knowledge_relations AS relation
+                JOIN knowledge_items AS source
+                  ON source.id = relation.source_item_id
+                JOIN knowledge_items AS target
+                  ON target.id = relation.target_item_id
+                WHERE relation.relation_type IN ({placeholders})
+                ORDER BY relation.stable_ref
+                """,
+                relation_types,
+            ).fetchall()
+        except Exception as exc:
+            raise RuntimeBoundaryError(
+                "base knowledge relation collection query failed"
+            ) from exc
+        return [self._base_relation(row) for row in rows]
+
+    def controlled_lcdt_measure_sources(self) -> list[dict[str, Any]]:
+        """Return distinct LC-DT source cells used by the existing single-pair rule."""
+
+        try:
+            rows = self._connection.execute(
+                """
+                SELECT DISTINCT
+                    reference.source_row,
+                    reference.source_column,
+                    reference.raw_value
+                FROM source_references AS reference
+                WHERE reference.target_type = 'item'
+                  AND reference.source_sheet =
+                      'LC-DT 安全技术服务、模块、策略映射表'
+                  AND reference.source_column IN (
+                      '安全技术服务', '安全技术模块'
+                  )
+                  AND reference.source_row IS NOT NULL
+                  AND trim(COALESCE(reference.raw_value, '')) <> ''
+                ORDER BY reference.source_row, reference.source_column,
+                         reference.raw_value
+                """
+            ).fetchall()
+        except Exception as exc:
+            raise RuntimeBoundaryError(
+                "LC-DT controlled measure source query failed"
+            ) from exc
+        return [
+            {
+                "source_row": int(row["source_row"]),
+                "source_column": str(row["source_column"]),
+                "raw_value": str(row["raw_value"]),
+            }
+            for row in rows
+        ]
+
     def get_relation(self, relation_ref: str) -> dict[str, Any] | None:
         try:
             base = self._connection.execute(

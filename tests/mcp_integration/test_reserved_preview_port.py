@@ -41,6 +41,104 @@ def load_dev_server_guard():
 
 
 class ReservedPreviewPortTests(unittest.TestCase):
+    def test_guard_batch1_projection_routes_all_200_pass(self) -> None:
+        guard = load_dev_server_guard()
+        responses = [
+            {"status": 200, "ok": True, "time_seconds": 0.01},
+            {"status": 200, "ok": True, "time_seconds": 0.02},
+            {"status": 200, "ok": True, "time_seconds": 0.03},
+        ]
+        with patch.object(guard, "http_status", side_effect=responses) as request:
+            routes = guard.batch1_projection_route_statuses(5173)
+
+        self.assertEqual(
+            [call.args[0] for call in request.call_args_list],
+            [
+                f"http://127.0.0.1:5173{path}"
+                for path in guard.BATCH1_PROJECTION_ROUTES.values()
+            ],
+        )
+        self.assertEqual(
+            routes,
+            {
+                "capability_catalog": {
+                    "status": 200,
+                    "ok": True,
+                    "time_seconds": 0.01,
+                },
+                "maintenance": {
+                    "status": 200,
+                    "ok": True,
+                    "time_seconds": 0.02,
+                },
+                "shared_lookups": {
+                    "status": 200,
+                    "ok": True,
+                    "time_seconds": 0.03,
+                },
+            },
+        )
+        self.assertEqual(
+            guard.guard_result(
+                stop_only=False,
+                home={"ok": True},
+                health={"ok": True},
+                workspace_projection={"ok": True},
+                batch1_projection_routes=routes,
+                has_project_server=True,
+                profile_ok=True,
+            ),
+            "pass",
+        )
+
+    def test_guard_batch1_projection_404_or_503_warns_and_restarts(self) -> None:
+        guard = load_dev_server_guard()
+        for status in (404, 503):
+            with self.subTest(status=status):
+                routes = {
+                    name: {
+                        "status": status if name == "maintenance" else 200,
+                        "ok": name != "maintenance",
+                        "time_seconds": 0.01,
+                    }
+                    for name in guard.BATCH1_PROJECTION_ROUTES
+                }
+                self.assertEqual(
+                    guard.guard_result(
+                        stop_only=False,
+                        home={"ok": True},
+                        health={"ok": True},
+                        workspace_projection={"ok": True},
+                        batch1_projection_routes=routes,
+                        has_project_server=True,
+                        profile_ok=True,
+                    ),
+                    "warn",
+                )
+                self.assertTrue(
+                    guard.existing_server_requires_restart(
+                        [{"is_project_server": True}],
+                        {"ok": True, "json": {"data": {"runtime": {}}}},
+                        {},
+                        routes,
+                    )
+                )
+
+    def test_guard_stop_only_still_passes_without_server(self) -> None:
+        guard = load_dev_server_guard()
+        self.assertEqual(
+            guard.guard_result(
+                stop_only=True,
+                home={"ok": False},
+                health={"ok": False},
+                workspace_projection={"ok": False},
+                batch1_projection_routes={},
+                has_project_server=False,
+                profile_ok=False,
+            ),
+            "pass",
+        )
+
     def test_guard_prefers_isolated_mcp_python_for_integrated_web_runtime(self) -> None:
         guard = load_dev_server_guard()
         with self.subTest("local MCP runtime"):

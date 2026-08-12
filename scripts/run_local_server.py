@@ -1869,6 +1869,55 @@ def build_handler(
     mcp_control_api: Any | None = None,
     mcp_runtime_id: str | None = None,
 ) -> type[BaseHTTPRequestHandler]:
+    def batch1_projection_response(
+        path: str,
+        params: dict[str, list[str]],
+    ) -> tuple[int, Any] | None:
+        if projection_api is None or not path.startswith("/api/v1/projections/"):
+            return None
+        parts = [unquote(part) for part in path.strip("/").split("/") if part]
+        try:
+            if path == "/api/v1/projections/capability-focus":
+                return 200, projection_api.capability_focus_projection_response(params)
+            if path == "/api/v1/projections/capability-catalog":
+                return 200, projection_api._runtime_batch1_projection().capability_catalog()
+            if path == "/api/v1/projections/capability-view":
+                return 200, projection_api._runtime_batch1_projection().capability_view(
+                    object_type=(params.get("object_type") or [""])[0],
+                    object_id=(params.get("object_id") or [""])[0],
+                    code=(params.get("code") or [""])[0],
+                )
+            if path == "/api/v1/projections/capability-locator":
+                return 200, projection_api._runtime_batch1_projection().locate_capability(
+                    target_ref=(params.get("target_ref") or [""])[0],
+                    object_type=(params.get("object_type") or [""])[0],
+                    object_id=(params.get("object_id") or [""])[0],
+                    code=(params.get("code") or [""])[0],
+                )
+            if path == "/api/v1/projections/maintenance":
+                return 200, projection_api._runtime_batch1_projection().maintenance_index()
+            if len(parts) == 5 and parts[:4] == ["api", "v1", "projections", "maintenance"]:
+                return 200, projection_api._runtime_batch1_projection().maintenance_section(parts[4])
+            if path == "/api/v1/projections/shared-lookups":
+                return 200, projection_api._runtime_batch1_projection().shared_lookups()
+            return None
+        except projection_api.ProjectionManifestError as error:
+            return 503, projection_api.create_envelope(
+                {
+                    "error": "projection_identity_unavailable",
+                    "message": str(error),
+                    "path": path,
+                }
+            )
+        except KeyError as error:
+            return 404, projection_api.create_envelope(
+                {"error": "not_found", "key": str(error), "path": path}
+            )
+        except ValueError as error:
+            return 400, projection_api.create_envelope(
+                {"error": "bad_request", "message": str(error), "path": path}
+            )
+
     class LocalHandler(BaseHTTPRequestHandler):
         server_version = "SAPDWikiZIPAlpha/0.1"
 
@@ -2150,6 +2199,14 @@ def build_handler(
                 if projection_api is not None:
                     params = parse_qs(parsed.query)
                     path_parts = [unquote(part) for part in parsed.path.strip("/").split("/") if part]
+                    projection_response = batch1_projection_response(
+                        parsed.path,
+                        params,
+                    )
+                    if projection_response is not None:
+                        status, payload = projection_response
+                        self.send_json(status, payload)
+                        return
                     if parsed.path in {
                         "/api/v1/knowledge/search",
                         "/api/v1/knowledge/object",

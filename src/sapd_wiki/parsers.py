@@ -50,6 +50,22 @@ def _is_scene_module_fill(cell: object) -> bool:
         return False
 
 
+def _is_scene_measure_fill(cell: object) -> bool:
+    """复用既有 exporter：浅黄色为措施，theme 0 为措施备注。"""
+    fill_color = getattr(getattr(cell, "fill", None), "fgColor", None)
+    try:
+        theme = int(fill_color.theme)
+        return fill_color.type == "theme" and (
+            theme == 0
+            or (
+                theme == 6
+                and abs(float(fill_color.tint) - 0.5999938962981048) < 0.0001
+            )
+        )
+    except (TypeError, ValueError):
+        return False
+
+
 def _is_lcap_development_type_fill(cell: object) -> bool:
     """LC-AP 软件开发模式列黄色底色代表适用。"""
     fill_color = getattr(getattr(cell, "fill", None), "fgColor", None)
@@ -138,16 +154,19 @@ def _relation(
     label: str,
     *,
     source: SourceRef | None = None,
+    sources: list[SourceRef] | None = None,
     metadata: dict[str, Any] | None = None,
 ) -> RelationCandidate:
-    sources = [source] if source else []
+    source_refs = list(sources or [])
+    if source:
+        source_refs.append(source)
     return RelationCandidate(
         source_key=source_key,
         target_key=target_key,
         relation_type=relation_type,
         relation_label=label,
         metadata=metadata or {},
-        sources=sources,
+        sources=source_refs,
     )
 
 
@@ -638,6 +657,7 @@ def parse_scene_sheet(
     last_module_raw: object = ""
     last_module_cell: str | None = None
     last_module_is_scene_module = False
+    last_module_is_scene_measure = False
     for row_index, row in enumerate(ws.iter_rows(min_row=3), start=3):
         environment_raw = normalize_text(_cell_raw_with_merged(row, 1, merged_values))
         segment_raw = normalize_text(_cell_raw_with_merged(row, 2, merged_values))
@@ -655,6 +675,7 @@ def parse_scene_sheet(
             last_module_raw = ""
             last_module_cell = None
             last_module_is_scene_module = False
+            last_module_is_scene_measure = False
         if environment_raw:
             last_environment = environment_raw
         if segment_raw:
@@ -666,6 +687,7 @@ def parse_scene_sheet(
             last_module_raw = ""
             last_module_cell = None
             last_module_is_scene_module = False
+            last_module_is_scene_measure = False
             last_system = ""
             last_system_cell = None
         if scope_raw:
@@ -676,12 +698,14 @@ def parse_scene_sheet(
         module_raw = row[6].value
         module_cell = _coord(row[6])
         module_is_scene_module = not is_blank_or_placeholder(module_raw) and _is_scene_module_fill(row[6])
+        module_is_scene_measure = not is_blank_or_placeholder(module_raw) and _is_scene_measure_fill(row[6])
         service_raw = row[5].value
         service_cell = _coord(row[5])
         if not is_blank_or_placeholder(module_raw):
             last_module_raw = module_raw
             last_module_cell = module_cell
             last_module_is_scene_module = module_is_scene_module
+            last_module_is_scene_measure = module_is_scene_measure
         if not is_blank_or_placeholder(service_raw):
             last_service_raw = service_raw
             last_service_cell = service_cell
@@ -689,6 +713,7 @@ def parse_scene_sheet(
                 module_raw = last_module_raw
                 module_cell = last_module_cell
                 module_is_scene_module = last_module_is_scene_module
+                module_is_scene_measure = last_module_is_scene_measure
         elif not is_blank_or_placeholder(module_raw) and last_service_raw:
             service_raw = last_service_raw
             service_cell = last_service_cell
@@ -771,6 +796,41 @@ def parse_scene_sheet(
                     system = _object("security_system", last_system, source=_source(sheet_name, row_index, "安全系统", last_system_cell, last_system))
                     result.objects.append(system)
                     result.relations.append(_relation(module.key, "part_of_system", system.key, "属于安全系统", source=module.sources[0]))
+
+        if service and not is_blank_or_placeholder(module_raw) and module_is_scene_measure:
+            service_source = service.sources[0]
+            measure_source = _source(
+                sheet_name,
+                row_index,
+                "安全技术模块/措施",
+                module_cell,
+                module_raw,
+            )
+            for measure_title in split_multivalue_text(
+                module_raw,
+                split_on_ideographic_comma=False,
+            ):
+                normalized_title = normalize_text(measure_title)
+                if not normalized_title or is_blank_or_placeholder(normalized_title):
+                    continue
+                measure = _object(
+                    "security_technical_measure",
+                    normalized_title,
+                    category="安全技术措施",
+                    metadata={"source_role": "scene_explicit_measure"},
+                    source=measure_source,
+                )
+                result.objects.append(measure)
+                result.relations.append(
+                    _relation(
+                        service.key,
+                        "uses_measure",
+                        measure.key,
+                        "关联安全技术措施",
+                        sources=[service_source, measure_source],
+                        metadata={"derivation": "explicit_same_row_or_merged_anchor"},
+                    )
+                )
     return result
 
 

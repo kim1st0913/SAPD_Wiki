@@ -41,6 +41,11 @@
     capabilityWorkspaceProjection: "/api/v1/capabilities/workspace-projection",
     capabilityWorkspaceView: "/api/v1/capabilities/workspace-view",
     capabilityWorkspaceInitial: "/api/v1/capabilities/workspace-initial",
+    capabilityCatalogProjection: "/api/v1/projections/capability-catalog",
+    capabilityViewProjection: "/api/v1/projections/capability-view",
+    capabilityLocatorProjection: "/api/v1/projections/capability-locator",
+    maintenanceProjection: "/api/v1/projections/maintenance",
+    sharedLookupsProjection: "/api/v1/projections/shared-lookups",
     searchIndex: "/api/v1/search-index",
     health: "/api/v1/health",
     userFavorites: "/api/v1/user/favorites",
@@ -491,6 +496,92 @@
     }
   }
 
+  function projectionApiError(path, status, payload, fallbackMessage) {
+    const error = new Error(text(payload?.data?.error || payload?.error || payload?.message || fallbackMessage || `HTTP ${status || 0}`));
+    error.name = "ProjectionApiError";
+    error.path = path;
+    error.status = Number(status) || 0;
+    return error;
+  }
+
+  async function fetchProjectionData(path, options = {}) {
+    const url = path ? apiUrl(path) : "";
+    if (!url) throw projectionApiError(path, 0, null, "projection API unavailable");
+    let response;
+    try {
+      response = await fetchWithTimeout(url, { cache: "no-store" }, options.timeoutMs);
+    } catch (error) {
+      throw projectionApiError(path, 0, null, error?.message || "projection API unavailable");
+    }
+    let payload = null;
+    try {
+      payload = await response.json();
+    } catch {
+      payload = null;
+    }
+    if (!response.ok) throw projectionApiError(path, response.status, payload, `HTTP ${response.status}`);
+    const data = unwrapEnvelope(payload);
+    if (!data || typeof data !== "object") throw projectionApiError(path, 502, payload, "projection response is invalid");
+    if (!options.includeEnvelopeFields) return data;
+    const envelopeFields = {};
+    for (const field of ["contract_version", "identity", "semantic_digest"]) {
+      if (!hasOwn(data, field) && hasOwn(payload, field)) envelopeFields[field] = payload[field];
+    }
+    return { ...data, ...envelopeFields };
+  }
+
+  function capabilityNodeFromProjection(node) {
+    const children = list(node?.children);
+    const item = {
+      id: text(node?.id).trim(),
+      type: text(node?.type).trim(),
+      code: text(node?.code).trim(),
+      title: titleOf(node, ""),
+      name: text(node?.name).trim(),
+      description: text(node?.description).trim(),
+      targetRef: text(node?.targetRef).trim(),
+    };
+    if (item.type === "capability_category") return { ...item, domains: children.map(capabilityNodeFromProjection) };
+    if (item.type === "capability_domain") return { ...item, capabilities: children.map(capabilityNodeFromProjection) };
+    if (item.type === "capability") return { ...item, focuses: children.map(capabilityNodeFromProjection) };
+    return item;
+  }
+
+  function capabilityTreeFromProjection(catalog) {
+    return {
+      generated_at: null,
+      data_state: catalog?.data_state || "ready",
+      stats: catalog?.meta?.stats || catalog?.stats || {},
+      categories: list(catalog?.navigator?.tree).map(capabilityNodeFromProjection),
+      unlinked_focuses: [],
+    };
+  }
+
+  function capabilityInitialProjectionFromCatalog(catalog) {
+    const compatibility = catalog?.compatibility && typeof catalog.compatibility === "object" ? catalog.compatibility : {};
+    const sourceMode = text(compatibility.mode).trim();
+    return {
+      ...catalog,
+      compatibility: {
+        ...compatibility,
+        mode: "initial_projection",
+        sourceMode,
+      },
+    };
+  }
+
+  function capabilityProjectionQuery(params = {}) {
+    const focusId = text(params.focusId || params.focus_id).trim();
+    const objectType = text(params.objectType || params.object_type || (focusId ? "capability_focus" : "")).trim();
+    const objectId = text(params.objectId || params.object_id || focusId).trim();
+    const code = text(params.code || params.objectCode || params.object_code).trim();
+    if (!objectType || (!objectId && !code)) throw projectionApiError(API_PATHS.capabilityViewProjection, 400, null, "capability projection requires explicit object identity");
+    const query = new URLSearchParams({ object_type: objectType });
+    if (objectId) query.set("object_id", objectId);
+    if (code) query.set("code", code);
+    return `?${query.toString()}`;
+  }
+
   async function fetchRuntimeHealth() {
     if (runtimeHealthCache) return runtimeHealthCache;
     if (runtimeHealthPromise) return runtimeHealthPromise;
@@ -847,6 +938,97 @@
     return data && typeof data === "object" ? data : fallback;
   }
 
+  function lifecycleTypeForDomain(domainCode) {
+    if (domainCode === "LC-AP") return "application_security_development";
+    if (domainCode === "LC-DT") return "data";
+    return "";
+  }
+
+  function lifecycleWorkbenchFromSplit(index, domainRows, projections, evidence, manifest) {
+    if (!index || index.dataState !== "ready" || !domainRows.length || domainRows.length !== projections.length) return null;
+    const objects = {};
+    const relationsById = new Map();
+    const sourcePackages = [manifest?.domains?.lifecycle?.indexPath || "lifecycle/index.json"];
+
+    for (let projectionIndex = 0; projectionIndex < projections.length; projectionIndex += 1) {
+      const projection = projections[projectionIndex];
+      const domainRow = domainRows[projectionIndex];
+      if (!projection || projection.dataState !== "ready" || projection.selected?.code !== domainRow.code) return null;
+      sourcePackages.push(domainRow.path);
+      const lifecycleType = lifecycleTypeForDomain(domainRow.code);
+      for (const [objectType, objectMap] of Object.entries(projection.objects || {})) {
+        if (!objects[objectType]) objects[objectType] = {};
+        for (const [objectId, objectValue] of Object.entries(objectMap || {})) {
+          objects[objectType][objectId] =
+            objectType === "lifecycle_stage" ? { ...objectValue, lifecycleType } : objectValue;
+        }
+      }
+      for (const relation of list(projection.relations)) {
+        if (relation?.id) relationsById.set(relation.id, relation);
+      }
+    }
+
+    const objectCount = Object.values(objects).reduce((count, objectMap) => count + Object.keys(objectMap || {}).length, 0);
+    const relations = Array.from(relationsById.values());
+    if (objectCount !== Number(index.stats?.objects) || relations.length !== Number(index.stats?.relations)) return null;
+
+    const tree = list(index.tree);
+    const applicationDomain = tree.find((item) => item?.code === "LC-AP");
+    const dataDomain = tree.find((item) => item?.code === "LC-DT");
+    sourcePackages.push("lifecycle/evidence.json", "oi149-split-manifest.json");
+    return {
+      meta: {
+        version: "v1",
+        viewModelVersion: "lifecycle-workbench-split-1.0",
+        generated_at: manifest?.generatedAt || null,
+        sourcePackages,
+        stats: index.stats || {},
+        dataSource: "oi149-split-lifecycle",
+      },
+      page: {
+        route: "/development-security",
+        pageType: "domain-module",
+        title: "生命周期安全专项关系投影",
+      },
+      navigator: {
+        defaultSelectedStageId: list(applicationDomain?.children)[0]?.id || null,
+        defaultSelectedDataStageId: list(dataDomain?.children)[0]?.id || null,
+        tree,
+        grouping: Object.keys(objects),
+      },
+      overview: {
+        defaultObjectId: list(applicationDomain?.children)[0]?.id || null,
+        object_type: "lifecycle_stage",
+        stats: index.stats || {},
+      },
+      objects,
+      relations,
+      evidenceRefs: list(evidence?.evidenceRefs),
+      compatibility: {
+        mode: "split_projection",
+        sourcePackages,
+        splitContract: manifest?.contract || "oi149-p4-split-v1",
+        warnings: ["当前使用 OI-149 P4 lifecycle split projections；完整性不通过时回退 lifecycle-workbench。"],
+      },
+    };
+  }
+
+  async function getLifecycleWorkbenchFromSplit() {
+    const manifest = await getOi149SplitManifest();
+    const indexPath = manifest?.domains?.lifecycle?.indexPath || "";
+    if (!indexPath) return null;
+    const index = await fetchOi149SplitJson(indexPath, null);
+    const domainRows = list(index?.projections).filter(
+      (row) => row?.type === "lifecycle_domain" && ["LC-AP", "LC-DT"].includes(row?.code) && row?.path,
+    );
+    if (domainRows.length !== 2) return null;
+    const [projections, evidence] = await Promise.all([
+      Promise.all(domainRows.map((row) => fetchOi149SplitJson(row.path, null))),
+      fetchOi149SplitJson("lifecycle/evidence.json", { evidenceRefs: [] }),
+    ]);
+    return lifecycleWorkbenchFromSplit(index, domainRows, projections, evidence, manifest);
+  }
+
   function capabilityWorkbenchFromSplitIndex(index, manifest) {
     if (!index || typeof index !== "object") return null;
     const tree = list(index.tree);
@@ -1049,32 +1231,13 @@
   }
 
   async function getMaintenanceIndexPayload() {
-    return fetchPackage("maintenanceIndex");
+    return fetchProjectionData(API_PATHS.maintenanceProjection);
   }
 
   async function getMaintenanceSectionPayload(sectionId) {
-    const [index, sharedLookups] = await Promise.all([getMaintenanceIndexPayload(), fetchPackage("sharedLookups")]);
-    const section = maintenanceSectionById(index, sectionId);
-    if (!section || index?.__data_state === "missing_file") {
-      return getMaintenanceKnowledgePayload();
-    }
-    const [sectionPayload, evidencePayload] = await Promise.all([
-      fetchJsonPath(section.dataPath, emptyMaintenanceSlice(index, sectionId)),
-      fetchJsonPath(section.sourceEvidencePath, { evidenceById: {} }),
-    ]);
-    const payload = {
-      ...emptyMaintenanceSlice(index, sectionId),
-      ...sectionPayload,
-      generated_at: sectionPayload?.generated_at || index?.generated_at || null,
-      stats: {
-        ...(index?.stats || {}),
-        ...(sectionPayload?.stats || {}),
-      },
-      section_counts: index?.section_counts || {},
-      source_evidence_by_id: evidencePayload?.evidenceById || evidencePayload?.evidence_by_id || {},
-      maintenance_index: index,
-    };
-    return mergeSharedLookups(payload, sharedLookups);
+    const normalized = text(sectionId).trim();
+    if (!normalized) throw projectionApiError(API_PATHS.maintenanceProjection, 400, null, "maintenance section is required");
+    return fetchProjectionData(`${API_PATHS.maintenanceProjection}/${encodeURIComponent(normalized)}`);
   }
 
   function gbtTaskNameFromTitle(title) {
@@ -2000,32 +2163,26 @@
     },
 
     async getCapabilityTree() {
-      const capability = await fetchPackage("capability");
-      return createEnvelope(capability);
+      const catalog = await fetchProjectionData(API_PATHS.capabilityCatalogProjection);
+      return createEnvelope(capabilityTreeFromProjection(catalog));
     },
 
     async getCapabilityWorkbench() {
-      const workbench = await fetchPackage("capabilityWorkbench");
-      if (workbench.__data_state !== "missing_file") return createEnvelope(workbench);
-      const { capability, management } = await getCapabilityAndManagement();
-      return createEnvelope(createLegacyCapabilityWorkbenchFallback(capability, management), ["capability-workbench.json 不存在，已启用过渡 fallback。"]);
+      const catalog = await fetchProjectionData(API_PATHS.capabilityCatalogProjection, { includeEnvelopeFields: true });
+      return createEnvelope(capabilityInitialProjectionFromCatalog(catalog));
     },
 
     async getCapabilityWorkspaceInitial() {
-      const splitInitial = await getCapabilityWorkspaceInitialFromSplit();
-      if (splitInitial) return createEnvelope(splitInitial);
-      const initial = await fetchApiData(API_PATHS.capabilityWorkspaceInitial);
-      if (initial) return createEnvelope(initial);
-      const workbench = await fetchPackage("capabilityWorkbench");
-      return createEnvelope(workbench, ["workspace-initial API 不可用，已回退到完整 capability-workbench。"]);
+      const catalog = await fetchProjectionData(API_PATHS.capabilityCatalogProjection, { includeEnvelopeFields: true });
+      return createEnvelope(capabilityInitialProjectionFromCatalog(catalog));
     },
 
     async getCapabilityMatrix(params = {}) {
-      const { capability, management } = await getCapabilityAndManagement();
-      const rows = capabilityMatrixRows(capability, management, params);
+      const view = await fetchProjectionData(`${API_PATHS.capabilityViewProjection}${capabilityProjectionQuery(params)}`, { timeoutMs: CAPABILITY_WORKSPACE_FETCH_TIMEOUT_MS });
+      const rows = list(view.technicalMappingRows || view.technical_mapping_rows);
       return createEnvelope({
-        generated_at: capability.generated_at,
-        selected: params.capability_id || null,
+        generated_at: null,
+        selected: view.selected || null,
         rows,
         stats: { rows: rows.length },
       });
@@ -2033,62 +2190,37 @@
 
     async getCapabilityRelationships(id) {
       const requestedId = text(id).trim();
-      const { capability, management } = await getCapabilityAndManagement();
-      const rows = requestedId ? capabilityMatrixRows(capability, management, { capability_id: requestedId }) : [];
-      const focusRow = requestedId ? rows.find((row) => row.focus.id === requestedId) || null : null;
+      if (!requestedId) throw projectionApiError(API_PATHS.capabilityViewProjection, 400, null, "capability focus id is required");
+      const view = await fetchProjectionData(`${API_PATHS.capabilityViewProjection}${capabilityProjectionQuery({ objectType: "capability_focus", objectId: requestedId })}`, { timeoutMs: CAPABILITY_WORKSPACE_FETCH_TIMEOUT_MS });
+      const localMap = view.localRelationMap || view.local_relation_map || {};
       return createEnvelope({
-        generated_at: capability.generated_at,
-        object: focusRow?.focus || null,
-        path: focusRow ? capabilityPathForFocus(capability, focusRow.focus.id) : {},
-        relationships: focusRow
-          ? {
-              services: focusRow.services,
-              scopes: focusRow.scopes,
-              process_groups: focusRow.process_groups,
-              process_references: focusRow.process_references,
-              activities: focusRow.activities,
-              stakeholders: focusRow.stakeholders,
-              modules: focusRow.modules,
-              systems_products: focusRow.systems_products,
-            }
-          : {},
+        generated_at: null,
+        object: view.selected || null,
+        path: {},
+        relationships: localMap,
       });
     },
 
     async getCapabilityWorkspaceProjection(params = {}) {
-      const focusId = params.focusId || params.focus_id || "";
-      const objectType = params.objectType || params.object_type || "";
-      const objectId = params.objectId || params.object_id || "";
-      const queryParams = new URLSearchParams();
-      if (objectType) queryParams.set("object_type", objectType);
-      if (objectId) queryParams.set("object_id", objectId);
-      if (!objectType && !objectId && focusId) queryParams.set("focus_id", focusId);
-      const query = queryParams.toString() ? `?${queryParams.toString()}` : "";
-      const projection = await fetchApiData(`${API_PATHS.capabilityWorkspaceProjection}${query}`, { timeoutMs: CAPABILITY_WORKSPACE_FETCH_TIMEOUT_MS });
-      return createEnvelope(
-        projection || {
-          generated_at: null,
-          data_state: "missing_api",
-          technicalMappingRows: [],
-          managementMappingRows: [],
-          stats: { technical_rows: 0, management_rows: 0, focuses: 0 },
-        },
-      );
+      return createEnvelope(await fetchProjectionData(`${API_PATHS.capabilityViewProjection}${capabilityProjectionQuery(params)}`, { timeoutMs: CAPABILITY_WORKSPACE_FETCH_TIMEOUT_MS }));
     },
 
     async getCapabilityWorkspaceView(params = {}) {
-      const focusId = params.focusId || params.focus_id || "";
-      const objectType = params.objectType || params.object_type || "";
-      const objectId = params.objectId || params.object_id || "";
-      const queryParams = new URLSearchParams();
-      if (objectType) queryParams.set("object_type", objectType);
-      if (objectId) queryParams.set("object_id", objectId);
-      if (!objectType && !objectId && focusId) queryParams.set("focus_id", focusId);
-      const query = queryParams.toString() ? `?${queryParams.toString()}` : "";
-      const view = await fetchApiData(`${API_PATHS.capabilityWorkspaceView}${query}`, { timeoutMs: CAPABILITY_WORKSPACE_FETCH_TIMEOUT_MS });
-      if (view) return createEnvelope(view);
-      const projection = await this.getCapabilityWorkspaceProjection(params);
-      return createEnvelope(projection.data, ["workspace-view API 不可用，已回退到 workspace-projection。"]);
+      return createEnvelope(await fetchProjectionData(`${API_PATHS.capabilityViewProjection}${capabilityProjectionQuery(params)}`, { timeoutMs: CAPABILITY_WORKSPACE_FETCH_TIMEOUT_MS }));
+    },
+
+    async locateCapability(params = {}) {
+      const query = new URLSearchParams();
+      const targetRef = text(params.targetRef || params.target_ref).trim();
+      const objectType = text(params.objectType || params.object_type).trim();
+      const objectId = text(params.objectId || params.object_id).trim();
+      const code = text(params.code).trim();
+      if (targetRef) query.set("target_ref", targetRef);
+      if (objectType) query.set("object_type", objectType);
+      if (objectId) query.set("object_id", objectId);
+      if (code) query.set("code", code);
+      if (!targetRef && (!objectType || (!objectId && !code))) throw projectionApiError(API_PATHS.capabilityLocatorProjection, 400, null, "capability locator requires explicit identity");
+      return createEnvelope(await fetchProjectionData(`${API_PATHS.capabilityLocatorProjection}?${query.toString()}`, { timeoutMs: CAPABILITY_WORKSPACE_FETCH_TIMEOUT_MS }));
     },
 
     async getEnvironmentTree() {
@@ -2224,7 +2356,7 @@
     },
 
     async getMaintenanceKnowledge() {
-      return createEnvelope(await getMaintenanceKnowledgePayload());
+      return createEnvelope(await getMaintenanceIndexPayload());
     },
 
     async getMaintenanceIndex() {
@@ -2269,7 +2401,7 @@
     },
 
     async getSharedLookups() {
-      return createEnvelope(await fetchPackage("sharedLookups"));
+      return createEnvelope(await fetchProjectionData(API_PATHS.sharedLookupsProjection));
     },
 
     async getLifecycleKnowledge() {
@@ -2278,6 +2410,8 @@
 
 
     async getLifecycleWorkbench() {
+      const splitWorkbench = await getLifecycleWorkbenchFromSplit();
+      if (splitWorkbench) return createEnvelope(splitWorkbench);
       const workbench = await fetchPackage("lifecycleWorkbench");
       if (workbench.__data_state !== "missing_file") return createEnvelope(workbench);
       const lifecycle = await fetchPackage("lifecycle");

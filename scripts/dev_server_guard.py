@@ -30,6 +30,11 @@ DEFAULT_RUNTIME_PATHS = {
     "data_root": (ROOT / "frontend" / "capability-browser" / "public" / "data").resolve(),
     "export_dir": (ROOT / "data" / "exports").resolve(),
 }
+BATCH1_PROJECTION_ROUTES = {
+    "capability_catalog": "/api/v1/projections/capability-catalog",
+    "maintenance": "/api/v1/projections/maintenance",
+    "shared_lookups": "/api/v1/projections/shared-lookups",
+}
 
 
 def default_persistent_mcp_runtime_root() -> Path | None:
@@ -182,6 +187,51 @@ def http_json_status(url: str, timeout: float = 2.5) -> dict[str, object]:
         return {"ok": False, "status": 0, "time_seconds": round(time.perf_counter() - started, 3), "error": str(error)}
 
 
+def batch1_projection_route_statuses(port: int) -> dict[str, dict[str, object]]:
+    """Probe the migrated Batch 1 owners without reading their full payloads."""
+
+    results: dict[str, dict[str, object]] = {}
+    for name, path in BATCH1_PROJECTION_ROUTES.items():
+        response = http_status(f"http://127.0.0.1:{port}{path}")
+        status = int(response.get("status") or 0)
+        results[name] = {
+            "status": status,
+            "ok": status == 200,
+            "time_seconds": response.get("time_seconds"),
+        }
+    return results
+
+
+def batch1_projection_routes_ok(
+    routes: dict[str, dict[str, object]],
+) -> bool:
+    return bool(routes) and all(route.get("ok") is True for route in routes.values())
+
+
+def guard_result(
+    *,
+    stop_only: bool,
+    home: dict[str, object],
+    health: dict[str, object],
+    workspace_projection: dict[str, object],
+    batch1_projection_routes: dict[str, dict[str, object]],
+    has_project_server: bool,
+    profile_ok: bool,
+) -> str:
+    if stop_only:
+        return "pass" if not has_project_server else "warn"
+    return (
+        "pass"
+        if home.get("ok")
+        and health.get("ok")
+        and workspace_projection.get("ok")
+        and batch1_projection_routes_ok(batch1_projection_routes)
+        and has_project_server
+        and profile_ok
+        else "warn"
+    )
+
+
 def expected_runtime(args: argparse.Namespace) -> dict[str, str]:
     values: dict[str, str] = {}
     if args.base_db:
@@ -295,12 +345,18 @@ def existing_server_requires_restart(
     processes: list[dict[str, str]],
     health: dict[str, object],
     expected: dict[str, str],
+    batch1_projection_routes: dict[str, dict[str, object]] | None = None,
 ) -> bool:
     if not any(row.get("is_project_server") for row in processes):
         return False
     if not health.get("ok"):
         return True
     if not all(check["ok"] for check in runtime_health_checks(health, expected)):
+        return True
+    if (
+        batch1_projection_routes is not None
+        and not batch1_projection_routes_ok(batch1_projection_routes)
+    ):
         return True
     if expected.get("mcp_platform_integration") == "1":
         return not any(
@@ -453,7 +509,17 @@ def main() -> int:
     if args.start and not args.restart:
         existing_processes = run_lsof(args.port)
         existing_health = http_json_status(f"http://127.0.0.1:{args.port}/api/v1/health")
-        if existing_server_requires_restart(existing_processes, existing_health, runtime):
+        existing_batch1_routes = (
+            batch1_projection_route_statuses(args.port)
+            if any(row.get("is_project_server") for row in existing_processes)
+            else None
+        )
+        if existing_server_requires_restart(
+            existing_processes,
+            existing_health,
+            runtime,
+            existing_batch1_routes,
+        ):
             stopped = stop_project_servers(existing_processes)
             if stopped:
                 time.sleep(0.3)
@@ -477,6 +543,10 @@ def main() -> int:
     home = http_status(f"http://127.0.0.1:{args.port}/")
     health = http_json_status(f"http://127.0.0.1:{args.port}/api/v1/health")
     projection = http_status(f"http://127.0.0.1:{args.port}/api/v1/capabilities/workspace-projection")
+    stop_only = args.stop and not args.start
+    batch1_routes = (
+        {} if stop_only else batch1_projection_route_statuses(args.port)
+    )
     profile_checks = runtime_health_checks(health, runtime)
     mcp_integration_check = mcp_integration_process_check(processes, runtime)
     if mcp_integration_check is not None:
@@ -484,10 +554,15 @@ def main() -> int:
     has_healthy_project_response = bool(home.get("ok") and projection.get("ok") and processes)
     has_project_server = any(row["is_project_server"] for row in processes) or has_healthy_project_response
     profile_ok = all(check["ok"] for check in profile_checks)
-    if args.stop and not args.start:
-        result = "pass" if not has_project_server else "warn"
-    else:
-        result = "pass" if home.get("ok") and projection.get("ok") and health.get("ok") and has_project_server and profile_ok else "warn"
+    result = guard_result(
+        stop_only=stop_only,
+        home=home,
+        health=health,
+        workspace_projection=projection,
+        batch1_projection_routes=batch1_routes,
+        has_project_server=has_project_server,
+        profile_ok=profile_ok,
+    )
     summary = {
         "port": args.port,
         "listeners": [
@@ -508,6 +583,7 @@ def main() -> int:
             "ok": projection.get("ok"),
             "time_seconds": projection.get("time_seconds"),
         },
+        "batch1_projection_routes": batch1_routes,
         "runtime_profile": runtime,
         "runtime_profile_checks": profile_checks,
         "result": result,

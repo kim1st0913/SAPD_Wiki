@@ -6,7 +6,7 @@ import WebKit
 
 private let bundleIdentifier = "com.sapd.wiki.macos"
 private let appDisplayName = "SAPD Wiki"
-private let fallbackDisplayVersion = "0.4.0"
+private let fallbackDisplayVersion = "0.4.1"
 private let wrapperLogName = "app-wrapper.log"
 private let runtimeFingerprintName = ".sapd-runtime-fingerprint"
 private let backendGracefulShutdownTimeout: TimeInterval = 12.0

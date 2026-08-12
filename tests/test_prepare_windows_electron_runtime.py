@@ -11,6 +11,7 @@ from pathlib import Path
 
 from scripts.prepare_windows_electron_runtime import (
     BACKEND_NAME,
+    DEFAULT_APP_VERSION,
     backend_source,
     build_runtime,
     load_delivery_manifest,
@@ -193,7 +194,7 @@ class PrepareWindowsElectronRuntimeTests(unittest.TestCase):
             expected_source_revision=self.source_revision,
         )
         return argparse.Namespace(
-            app_version="0.3.0",
+            app_version=DEFAULT_APP_VERSION,
             frontend_dist=self.frontend,
             base_db=self.base,
             content_asset_db=self.assets,
@@ -243,6 +244,48 @@ class PrepareWindowsElectronRuntimeTests(unittest.TestCase):
             base_manifest["projection_contract_version"],
             UI_PROJECTION_SUITE_VERSION,
         )
+
+    def test_windows_release_source_version_is_consistent(self) -> None:
+        repository = Path(__file__).resolve().parents[1]
+        package = json.loads(
+            (repository / "apps/electron/package.json").read_text(encoding="utf-8")
+        )
+        lockfile = json.loads(
+            (repository / "apps/electron/package-lock.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        changelog = (repository / "apps/electron/CHANGELOG.md").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertEqual(DEFAULT_APP_VERSION, "0.4.1")
+        self.assertEqual(package["version"], DEFAULT_APP_VERSION)
+        self.assertEqual(lockfile["version"], DEFAULT_APP_VERSION)
+        self.assertEqual(lockfile["packages"][""]["version"], DEFAULT_APP_VERSION)
+        self.assertIn(f"## {DEFAULT_APP_VERSION}", changelog)
+        self.assertIn("188f20efed31631f1f53219d4d8ef6f5e8c4fa5f2f07309b6bbe185994cf3680", changelog)
+        self.assertIn("`has_measure` 关系增至 53 条", changelog)
+
+    def test_delivery_manifest_rejects_stale_base_identity(self) -> None:
+        stale_manifest = json.loads(
+            self.delivery_manifest_path.read_text(encoding="utf-8")
+        )
+        stale_manifest["databases"]["base"]["sha256"] = (
+            "30d14679c7d8b7743fba129af38afde7b943bcdd707ff7b8a57bce5146f54c9e"
+        )
+        stale_path = self.root / "stale-delivery-data-manifest.json"
+        stale_path.write_text(json.dumps(stale_manifest), encoding="utf-8")
+
+        with self.assertRaisesRegex(
+            ValueError, "Windows delivery-data database mismatch: base.sha256"
+        ):
+            load_delivery_manifest(
+                stale_path,
+                base_db=self.base,
+                content_asset_db=self.assets,
+                source_revision=self.source_revision,
+            )
 
     def test_same_backend_and_delivery_data_produce_same_fingerprint(self) -> None:
         first_args = self._args(self.root / "runtime-first")
@@ -306,12 +349,13 @@ class PrepareWindowsElectronRuntimeTests(unittest.TestCase):
 
     def test_windows_runtime_contains_current_user_readme_and_changelog(self) -> None:
         args = self._args(self.root / "runtime-readme")
-        args.app_version = "0.4.0"
+        args.app_version = DEFAULT_APP_VERSION
         runtime = build_runtime(args, args.backend, args.output)
         readme = (runtime / "README-FIRST.md").read_text(encoding="utf-8")
         changelog = (runtime / "CHANGELOG.md").read_text(encoding="utf-8")
 
-        self.assertIn("# SAPD Wiki 0.4.0 Windows 使用说明", readme)
+        self.assertIn(f"# SAPD Wiki {DEFAULT_APP_VERSION} Windows 使用说明", readme)
+        self.assertIn(f"### {DEFAULT_APP_VERSION}", readme)
         self.assertIn("### 0.4.0", readme)
         self.assertIn("### 0.3.5", readme)
         self.assertIn("### 0.3.0（macOS）", readme)
@@ -319,7 +363,7 @@ class PrepareWindowsElectronRuntimeTests(unittest.TestCase):
         self.assertIn("批注一键导出", readme)
         self.assertIn("系统设置 > AI功能集成", readme)
         self.assertNotIn("macOS DMG", readme)
-        self.assertIn("## 0.4.0", changelog)
+        self.assertIn(f"## {DEFAULT_APP_VERSION}", changelog)
 
 
 if __name__ == "__main__":

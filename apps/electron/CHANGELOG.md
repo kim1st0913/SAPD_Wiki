@@ -1,5 +1,13 @@
 # SAPD Wiki Windows Changelog
 
+## 0.4.1
+
+- Phase 2 Batch 1 将能力、维护和共享索引的数据 owner 切换到 SQLite-backed `/api/v1/projections/*`；本批业务数据不再回退到 `public/data` JSON。
+- 正式基础库 artifact SHA-256 从 `30d14679c7d8b7743fba129af38afde7b943bcdd707ff7b8a57bce5146f54c9e` 更新为 `188f20efed31631f1f53219d4d8ef6f5e8c4fa5f2f07309b6bbe185994cf3680`；对象和 owner 保持不变，`has_measure` 关系增至 53 条。
+- 能力页默认进入摘要视图，关系图谱改为用户选择后按需初始化，保留显式图谱深链，减少首屏不必要的图谱构建。
+- Runtime 发布身份绑定源码、基础库、内容资产库和 projection 合同；5173 启动健康门新增三条 Batch 1 projection 检查，路由返回 404 或 503 时不再判定健康。
+- Windows Runtime 继续只携带受控只读基础库、内容资产库和空用户库模板，不包含真实用户批注、Issue、收藏、历史记录或恢复包。
+
 ## 0.4.0
 
 - 成熟度评估新增可持续维护的自定义模板工作台，以脑图方式编辑 L0、L1、L2、关注点和安全技术服务，支持逐层展开、拖动定位、缩放、搜索、合法层级移动、子树复制及会话级撤销/重做。

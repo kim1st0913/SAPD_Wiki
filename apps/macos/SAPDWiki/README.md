@@ -61,9 +61,12 @@ apps/macos/SAPDWiki/script/package_dmg.sh
 
 ```bash
 SAPD_WIKI_DMG_VARIANT=no-license \
-SAPD_WIKI_APP_VERSION=0.4.0 \
+SAPD_WIKI_APP_VERSION=0.4.1 \
 apps/macos/SAPDWiki/script/package_dmg.sh
 ```
+
+`0.4.1` 本轮发布只允许使用上述 `no-license` 单变体命令，不执行无参数双变体打包，
+也不生成 `license` 变体。
 
 产物：
 

@@ -730,7 +730,7 @@ class ResourceProbe(unittest.TestCase):
             seed.mkdir()
             stamp = "20260805-120000Z"
             architecture = platform.machine()
-            historical = root / "dist/license" / f"SAPD-Wiki-0.4.0-license-{stamp}-mac-{architecture}.dmg"
+            historical = root / "dist/license" / f"SAPD-Wiki-0.4.1-license-{stamp}-mac-{architecture}.dmg"
             historical.parent.mkdir(parents=True)
             historical.write_bytes(b"historical-dmg")
             result = subprocess.run(

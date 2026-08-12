@@ -7,7 +7,7 @@ REPO_ROOT="$(cd "$APP_ROOT/../../.." && pwd)"
 DIST_DIR="${SAPD_WIKI_DIST_DIR:-$APP_ROOT/dist}"
 APP_NAME="SAPD Wiki"
 APP_BUNDLE="$DIST_DIR/$APP_NAME.app"
-APP_VERSION="${SAPD_WIKI_APP_VERSION:-0.4.0}"
+APP_VERSION="${SAPD_WIKI_APP_VERSION:-0.4.1}"
 export SAPD_WIKI_DISPLAY_VERSION="${SAPD_WIKI_DISPLAY_VERSION:-$APP_VERSION}"
 BUILD_STAMP="${SAPD_WIKI_BUILD_STAMP:-$(date -u +%Y%m%d-%H%M%SZ)}"
 ARCH="$(uname -m)"
@@ -167,6 +167,17 @@ write_readme() {
 本 DMG 用于 SAPD Wiki macOS 内测交付。当前版本：${APP_VERSION}。当前包类型：${title}。
 
 ## Changelog
+
+### 0.4.1
+
+- 升级为 0.4.1 macOS ${title}测试包，同步 Phase 2 Batch 1 当前已确认的前端、后端和正式双库。
+- 能力、维护和共享字典 owner 已切换为 SQLite-backed projection，只请求 \`/api/v1/projections/*\`，不再回退到旧 JSON owner。
+- 正式基础库 projection 的 \`has_measure=53\`；当前关系口径包含已批准的两条 \`uses_measure\` 增量。
+- 5173 开发运行态增加 capability catalog、maintenance 和 shared lookups 三条 projection 健康门，404 / 503 会阻断通过。
+- 能力页默认显示摘要总览；能力关系图谱及对应明细按用户选择的视角加载和渲染。
+- 发布身份绑定基础库 artifact、parent source、projection contract 和内容资产哈希；Runtime 与桌面产物校验不匹配时 fail closed。
+- ${mode_summary}
+- 当前仍为 ad-hoc signing、未 notarize 的内测包，不启用自动更新。
 
 ### 0.4.0
 
@@ -334,6 +345,15 @@ write_runtime_readme() {
 当前版本：${APP_VERSION}。当前包类型：${title}。
 
 ## Changelog
+
+### 0.4.1
+
+- 升级为 0.4.1 Runtime，同步 Phase 2 Batch 1 SQLite projection、页面 owner switch 和正式双库。
+- 正式基础库 projection 保持 \`has_measure=53\`；5173 开发门会检查三条 Batch 1 projection 路由。
+- 能力页默认进入摘要总览，关系图谱及对应明细按所选视角加载和渲染。
+- Runtime manifest 和校验链绑定 artifact、parent source、projection contract 与内容资产哈希，身份不一致时拒绝继续。
+- 用户 SQLite 继续使用干净 \`user_schema_0.3\` 模板，不携带开发机批注、Issue、收藏或其他个人数据。
+- ${mode_summary}
 
 ### 0.4.0
 

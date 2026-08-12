@@ -10,6 +10,10 @@ from pathlib import Path
 from scripts.create_user_db import DEFAULT_SCHEMA_VERSION, initialize_user_db
 from scripts.prepare_windows_electron_runtime import write_runtime_fingerprint
 from scripts.verify_windows_runtime import verify_runtime_template
+from sapd_wiki.projection_contract import (
+    UI_PROJECTION_SUITE_VERSION,
+    knowledge_version_for_artifact_sha256,
+)
 
 
 class VerifyWindowsRuntimeTests(unittest.TestCase):
@@ -26,22 +30,63 @@ class VerifyWindowsRuntimeTests(unittest.TestCase):
         (self.runtime / "SAPD-Wiki-Backend.exe").write_bytes(b"MZ")
         (self.runtime / "_internal" / "runtime.dll").write_bytes(b"dependency")
         (self.runtime / "app" / "frontend-dist" / "index.html").write_text("ok")
+        for relative_path in (
+            "public/data/oi149-split-manifest.json",
+            "public/data/lifecycle/index.json",
+            "public/data/lifecycle/evidence.json",
+            "public/data/lifecycle/projections/lifecycle_domain_LC-AP.json",
+            "public/data/lifecycle/projections/lifecycle_domain_LC-DT.json",
+        ):
+            target = self.runtime / "app" / "frontend-dist" / relative_path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text("{}\n", encoding="utf-8")
         (self.runtime / "config" / "app-config.json").write_text("{}")
         initialize_user_db(
             self.runtime / "data" / "user" / "sapd_wiki_user.sqlite3",
             DEFAULT_SCHEMA_VERSION,
         )
+        self.artifact_sha256 = "a" * 64
+        self.parent_source_sha256 = "b" * 64
+        self.content_asset_sha256 = "c" * 64
         (self.runtime / "data" / "base" / "windows-delivery-data-manifest.json").write_text(
             json.dumps(
                 {
                     "schemaVersion": "sapd-windows-delivery-data-v1",
                     "releaseId": "release-test-v1",
+                    "databases": {
+                        "base": {
+                            "sha256": self.artifact_sha256,
+                            "metadata": {
+                                "base_database_sha256": self.parent_source_sha256
+                            },
+                        },
+                        "contentAssets": {
+                            "sha256": self.content_asset_sha256,
+                        },
+                    },
                 }
             ),
             encoding="utf-8",
         )
         (self.runtime / "data" / "base" / "base-manifest.json").write_text(
-            json.dumps({"app_version": "0.4.0"}), encoding="utf-8"
+            json.dumps(
+                {
+                    "app_version": "0.4.0",
+                    "knowledge_version": knowledge_version_for_artifact_sha256(
+                        self.artifact_sha256
+                    ),
+                    "parent_source_db_sha256": self.parent_source_sha256,
+                    "projection_contract_version": UI_PROJECTION_SUITE_VERSION,
+                    "base_database": {
+                        "schema_version": "content-query-test-v1",
+                        "sha256": self.artifact_sha256,
+                    },
+                    "content_asset_database": {
+                        "sha256": self.content_asset_sha256,
+                    },
+                }
+            ),
+            encoding="utf-8",
         )
         fingerprint = write_runtime_fingerprint(self.runtime)
         self.metadata = {
@@ -119,6 +164,14 @@ class VerifyWindowsRuntimeTests(unittest.TestCase):
             json.dumps({"app_version": "0.3.9"}), encoding="utf-8"
         )
         with self.assertRaisesRegex(ValueError, "Delivery manifest app version mismatch"):
+            self.verify()
+
+    def test_projection_identity_mismatch_fails(self) -> None:
+        manifest_path = self.runtime / "data" / "base" / "base-manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest["projection_contract_version"] = "sapd-ui-projection-v0"
+        manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "projection identity is invalid"):
             self.verify()
 
     def test_embedded_delivery_manifest_identity_mismatch_fails(self) -> None:

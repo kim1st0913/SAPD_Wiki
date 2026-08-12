@@ -752,6 +752,57 @@ class ResourceProbe(unittest.TestCase):
             self.assertIn("refusing to overwrite existing historical DMG", result.stderr)
             self.assertEqual(historical.read_bytes(), b"historical-dmg")
 
+    def test_package_image_staging_is_external_and_cleaned_on_exit(self) -> None:
+        source = (ROOT / "apps/macos/SAPDWiki/script/package_dmg.sh").read_text(encoding="utf-8")
+        prefix = source.split('if [[ ! -d "$MATURITY_REPORT_SEED" ]]', 1)[0]
+        with tempfile.TemporaryDirectory(prefix="sapd-dmg-image-staging-") as temporary:
+            temporary_root = Path(temporary)
+            image_temp_root = temporary_root / "image-temp"
+            probe_script = temporary_root / "image-staging-probe.sh"
+            probe_script.write_text(
+                prefix
+                + '\nif [[ -n "${3:-}" ]]; then REPO_ROOT="$3"; fi\n'
+                + "prepare_dmg_image_staging license\n"
+                + 'printf \'%s\\n\' "$ACTIVE_DMG_IMAGE_STAGING" >"$1"\n'
+                + 'ln -s /Applications "$ACTIVE_DMG_IMAGE_STAGING/Applications"\n'
+                + 'exit "$2"\n',
+                encoding="utf-8",
+            )
+            for exit_code in (0, 7):
+                with self.subTest(exit_code=exit_code):
+                    staging_path_file = temporary_root / f"staging-{exit_code}.txt"
+                    result = subprocess.run(
+                        ["bash", str(probe_script), str(staging_path_file), str(exit_code), str(ROOT)],
+                        env={
+                            **os.environ,
+                            "SAPD_WIKI_DMG_TEMP_ROOT": str(image_temp_root),
+                            "SAPD_WIKI_INTERNAL_PACKAGE_LOCK_HELD": "1",
+                        },
+                        capture_output=True,
+                        text=True,
+                        check=False,
+                    )
+                    self.assertEqual(result.returncode, exit_code, result.stderr)
+                    staging_path = Path(staging_path_file.read_text(encoding="utf-8").strip())
+                    self.assertEqual(staging_path.parent, image_temp_root.resolve())
+                    self.assertFalse(staging_path.exists())
+
+            repository_alias = temporary_root / "repository-alias"
+            repository_alias.symlink_to(ROOT, target_is_directory=True)
+            rejected = subprocess.run(
+                ["bash", str(probe_script), str(temporary_root / "rejected.txt"), "0", str(ROOT)],
+                env={
+                    **os.environ,
+                    "SAPD_WIKI_DMG_TEMP_ROOT": str(repository_alias),
+                    "SAPD_WIKI_INTERNAL_PACKAGE_LOCK_HELD": "1",
+                },
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertNotEqual(rejected.returncode, 0)
+            self.assertIn("DMG temporary staging must be outside the repository", rejected.stderr)
+
     def test_direct_macos_build_requires_content_asset_database_before_building(self) -> None:
         script = ROOT / "apps/macos/SAPDWiki/script/build_and_run.sh"
         with tempfile.TemporaryDirectory(prefix="sapd-required-content-asset-") as temporary:
@@ -784,13 +835,23 @@ class ResourceProbe(unittest.TestCase):
             temporary_root = Path(temporary)
             lock_dir = temporary_root / "package.lock"
             lock_dir.touch()
+            image_temp_root = temporary_root / "image-temp"
+            staging_path_file = temporary_root / "staging-path.txt"
             probe_script = temporary_root / "package-lock-probe.sh"
-            probe_script.write_text(prefix + "\nrun_package_command sleep 5\n", encoding="utf-8")
+            probe_script.write_text(
+                prefix
+                + "\nprepare_dmg_image_staging license\n"
+                + 'printf \'%s\\n\' "$ACTIVE_DMG_IMAGE_STAGING" >"$1"\n'
+                + 'ln -s /Applications "$ACTIVE_DMG_IMAGE_STAGING/Applications"\n'
+                + "run_package_command sleep 5\n",
+                encoding="utf-8",
+            )
             process = subprocess.Popen(
-                ["bash", str(probe_script)],
+                ["bash", str(probe_script), str(staging_path_file)],
                 env={
                     **os.environ,
                     "SAPD_WIKI_PACKAGE_LOCK_DIR": str(lock_dir),
+                    "SAPD_WIKI_DMG_TEMP_ROOT": str(image_temp_root),
                     "SAPD_WIKI_INTERNAL_PACKAGE_LOCK_HELD": "1",
                 },
                 stdout=subprocess.PIPE,
@@ -800,12 +861,15 @@ class ResourceProbe(unittest.TestCase):
             time.sleep(0.1)
             self.assertIsNone(process.poll())
             self.assertTrue(lock_dir.is_file(), process.communicate(timeout=1)[1] if process.poll() is not None else "")
+            staging_path = Path(staging_path_file.read_text(encoding="utf-8").strip())
+            self.assertTrue((staging_path / "Applications").is_symlink())
             started = time.monotonic()
             process.terminate()
             process.communicate(timeout=1)
             self.assertLess(time.monotonic() - started, 1)
             self.assertEqual(process.returncode, 143)
             self.assertTrue(lock_dir.is_file())
+            self.assertFalse(staging_path.exists())
 
     def test_direct_app_build_participates_in_the_package_lock(self) -> None:
         script = ROOT / "apps/macos/SAPDWiki/script/build_and_run.sh"

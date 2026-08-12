@@ -7,12 +7,56 @@ import argparse
 import hashlib
 import ipaddress
 import json
+import re
 import socket
 import sqlite3
+import sys
 from pathlib import Path
 from typing import Any
 
+SCRIPT_DIR = Path(__file__).resolve().parent
+REPO_ROOT = SCRIPT_DIR.parent
+SRC_ROOT = REPO_ROOT / "src"
+
+
+def configure_import_roots() -> None:
+    if getattr(sys, "frozen", False):
+        frozen_root_value = getattr(sys, "_MEIPASS", "")
+        if not frozen_root_value:
+            raise RuntimeError("frozen runtime root is unavailable")
+        runtime_source_root = Path(frozen_root_value).resolve() / "runtime_src"
+        package_root = runtime_source_root / "sapd_wiki"
+        required_package_files = [
+            package_root / "__init__.py",
+            package_root / "projection_contract.py",
+        ]
+        if not runtime_source_root.is_dir() or not all(
+            path.is_file() for path in required_package_files
+        ):
+            raise RuntimeError(
+                "frozen runtime source package is unavailable: "
+                f"{runtime_source_root}"
+            )
+        import_roots = (runtime_source_root,)
+    else:
+        import_roots = (SCRIPT_DIR, SRC_ROOT)
+
+    for import_root in import_roots:
+        import_value = str(import_root)
+        if import_value in sys.path:
+            sys.path.remove(import_value)
+        sys.path.insert(0, import_value)
+
+
+configure_import_roots()
+
 from create_user_db import DEFAULT_SCHEMA_VERSION, initialize_user_db
+from sapd_wiki.projection_contract import (
+    UI_PROJECTION_SUITE_VERSION,
+    ProjectionManifestError,
+    knowledge_version_for_artifact_sha256,
+    parent_source_db_sha256,
+)
 
 
 REQUIRED_MANIFEST_FIELDS = [
@@ -20,6 +64,9 @@ REQUIRED_MANIFEST_FIELDS = [
     "bundle_type",
     "platform",
     "build_time",
+    "knowledge_version",
+    "parent_source_db_sha256",
+    "projection_contract_version",
     "base_database",
     "user_database",
     "frontend",
@@ -27,6 +74,7 @@ REQUIRED_MANIFEST_FIELDS = [
 ]
 
 SUPPORTED_PLATFORMS = {"win-x64", "mac-arm64", "mac-x64"}
+SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 
 
 def is_loopback_host(host: str) -> bool:
@@ -160,6 +208,34 @@ def check_bundle(bundle_root: Path, create_user: bool = False) -> dict[str, Any]
         else {}
     )
     user_info = manifest.get("user_database", {}) if isinstance(manifest.get("user_database"), dict) else {}
+    artifact_manifest_hash = str(base_info.get("sha256") or "").lower()
+    parent_manifest_hash = str(manifest.get("parent_source_db_sha256") or "").lower()
+    knowledge_version = str(manifest.get("knowledge_version") or "")
+    projection_contract = str(manifest.get("projection_contract_version") or "")
+    artifact_hash_valid = bool(SHA256_PATTERN.fullmatch(artifact_manifest_hash))
+    parent_hash_valid = bool(SHA256_PATTERN.fullmatch(parent_manifest_hash))
+    add("base_db_sha256_format_valid", artifact_hash_valid, artifact_manifest_hash)
+    add("parent_source_db_sha256_format_valid", parent_hash_valid, parent_manifest_hash)
+    add(
+        "projection_contract_version_matches",
+        projection_contract == UI_PROJECTION_SUITE_VERSION,
+        f"actual={projection_contract}; expected={UI_PROJECTION_SUITE_VERSION}",
+    )
+    if artifact_hash_valid:
+        expected_knowledge_version = knowledge_version_for_artifact_sha256(
+            artifact_manifest_hash
+        )
+        add(
+            "knowledge_version_matches_artifact",
+            knowledge_version == expected_knowledge_version,
+            f"actual={knowledge_version}; expected={expected_knowledge_version}",
+        )
+    else:
+        add(
+            "knowledge_version_matches_artifact",
+            False,
+            "base_database.sha256 is unavailable or invalid",
+        )
     base_file = base_info.get("file", "sapd_wiki_base.sqlite3")
     user_file = user_info.get("file", "sapd_wiki_user.sqlite3")
     expected_user_schema = user_info.get("schema_version", DEFAULT_SCHEMA_VERSION)
@@ -199,6 +275,22 @@ def check_bundle(bundle_root: Path, create_user: bool = False) -> dict[str, Any]
         add("base_db_sha256_matches", False, "manifest missing base_database.sha256")
     else:
         add("base_db_sha256_matches", False, "base database missing")
+    if base_db and base_db.exists():
+        try:
+            actual_parent_hash = parent_source_db_sha256(base_db)
+            add(
+                "parent_source_db_sha256_matches",
+                parent_hash_valid and actual_parent_hash == parent_manifest_hash,
+                f"actual={actual_parent_hash}; manifest={parent_manifest_hash}",
+            )
+        except ProjectionManifestError as error:
+            add("parent_source_db_sha256_matches", False, str(error))
+    else:
+        add(
+            "parent_source_db_sha256_matches",
+            False,
+            "base database missing",
+        )
     if asset_info:
         add(
             "content_asset_db_exists",

@@ -89,6 +89,40 @@ do {
         self.assertNotIn("RuntimeIntegrity.isCurrent", source)
         self.assertNotIn("RuntimeIntegrity.verifyInstalledRuntime", source)
 
+    def test_app_shutdown_uses_owned_backend_handle_and_allows_sidecar_cleanup(self) -> None:
+        source = (ROOT / "apps/macos/SAPDWiki/Sources/SAPDWiki/main.swift").read_text(encoding="utf-8")
+        self.assertIn("private let backendGracefulShutdownTimeout: TimeInterval = 12.0", source)
+
+        launch_backend = source.split("private func launchBackend(settings: AppSettings)", 1)[1].split(
+            "private func waitForBackendAndLoad", 1
+        )[0]
+        self.assertIn("!delegate.isTerminating", launch_backend)
+        self.assertLess(
+            launch_backend.index("delegate.backendProcess = process"),
+            launch_backend.index("delegate.waitForBackendAndLoad"),
+        )
+
+        termination_callback = source.split("func applicationWillTerminate", 1)[1].split(
+            "private func createWindow", 1
+        )[0]
+        self.assertIn("isTerminating = true", termination_callback)
+        self.assertIn("stopBackend()", termination_callback)
+
+        stop_backend = source.split("private func stopBackend()", 1)[1].split(
+            "private func escapeHTML", 1
+        )[0]
+        self.assertIn("guard let process = backendProcess", stop_backend)
+        self.assertIn("process.terminate()", stop_backend)
+        self.assertIn("Darwin.kill(process.processIdentifier, SIGKILL)", stop_backend)
+        self.assertIn("backendGracefulShutdownTimeout", stop_backend)
+        self.assertNotIn("terminateExistingBackends", stop_backend)
+
+        stale_cleanup = source.split(
+            "private static func terminateExistingBackends", 1
+        )[1].split("private static func runProcessOutput", 1)[0]
+        self.assertIn("backendGracefulShutdownTimeout", stale_cleanup)
+        self.assertNotIn("Thread.sleep(forTimeInterval: 0.4)", stale_cleanup)
+
     @staticmethod
     def create_runtime(root: Path) -> None:
         files = {

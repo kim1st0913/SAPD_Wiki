@@ -9,6 +9,8 @@ private let appDisplayName = "SAPD Wiki"
 private let fallbackDisplayVersion = "0.4.0"
 private let wrapperLogName = "app-wrapper.log"
 private let runtimeFingerprintName = ".sapd-runtime-fingerprint"
+private let backendGracefulShutdownTimeout: TimeInterval = 12.0
+private let backendShutdownPollInterval: TimeInterval = 0.1
 
 private enum DesktopSettingsBridge {
     static let get = "sapdSettingsGet"
@@ -712,6 +714,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     private var webView: WKWebView?
     private var backendProcess: Process?
     private var runtimeRoot: URL?
+    private var isTerminating = false
     private var settings: AppSettings?
     private var settingsWindow: NSWindow?
     private var settingsDataRootField: NSTextField?
@@ -736,19 +739,54 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     private func launchBackend(settings: AppSettings) {
         showStatus("正在准备本地运行环境...")
         DispatchQueue.global(qos: .userInitiated).async {
-            AppDelegate.prepareAndLaunchBackend(settings: settings) { result in
+            do {
+                AppWrapperLogger.write("launch-backend start")
+                let runtimeRoot = try RuntimeInstaller(settings: settings).prepareRuntime()
+                AppDelegate.terminateExistingBackends(runtimeRoot: runtimeRoot)
                 DispatchQueue.main.async {
-                    guard let delegate = NSApp.delegate as? AppDelegate else {
+                    guard let delegate = NSApp.delegate as? AppDelegate, !delegate.isTerminating else {
                         return
                     }
-                    switch result {
-                    case .success(let launch):
-                        delegate.runtimeRoot = launch.runtimeRoot
-                        delegate.backendProcess = launch.process
-                        delegate.load(url: launch.url)
-                    case .failure(let error):
+                    do {
+                        let process = try AppDelegate.startBackend(runtimeRoot: runtimeRoot)
+                        delegate.runtimeRoot = runtimeRoot
+                        delegate.backendProcess = process
+                        delegate.waitForBackendAndLoad(runtimeRoot: runtimeRoot, process: process)
+                    } catch {
+                        AppWrapperLogger.write("launch-backend failed error=\(error.localizedDescription)")
                         delegate.showStatus("启动失败：\(error.localizedDescription)")
                     }
+                }
+            } catch {
+                AppWrapperLogger.write("launch-backend failed error=\(error.localizedDescription)")
+                DispatchQueue.main.async {
+                    guard let delegate = NSApp.delegate as? AppDelegate, !delegate.isTerminating else {
+                        return
+                    }
+                    delegate.showStatus("启动失败：\(error.localizedDescription)")
+                }
+            }
+        }
+    }
+
+    private func waitForBackendAndLoad(runtimeRoot: URL, process: Process) {
+        DispatchQueue.global(qos: .userInitiated).async {
+            let result = Result { try AppDelegate.waitForBackend(runtimeRoot: runtimeRoot, process: process) }
+            DispatchQueue.main.async {
+                guard let delegate = NSApp.delegate as? AppDelegate,
+                      delegate.backendProcess === process,
+                      !delegate.isTerminating
+                else {
+                    return
+                }
+                switch result {
+                case .success(let url):
+                    AppWrapperLogger.write("launch-backend ready url=\(url.absoluteString)")
+                    delegate.load(url: url)
+                case .failure(let error):
+                    AppWrapperLogger.write("launch-backend failed error=\(error.localizedDescription)")
+                    delegate.stopBackend()
+                    delegate.showStatus("启动失败：\(error.localizedDescription)")
                 }
             }
         }
@@ -764,6 +802,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        isTerminating = true
         stopBackend()
     }
 
@@ -1246,21 +1285,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         webView.reloadFromOrigin()
     }
 
-    nonisolated private static func prepareAndLaunchBackend(settings: AppSettings, _ completion: @escaping (Result<BackendLaunch, Error>) -> Void) {
-        do {
-            AppWrapperLogger.write("launch-backend start")
-            let runtimeRoot = try RuntimeInstaller(settings: settings).prepareRuntime()
-            terminateExistingBackends(runtimeRoot: runtimeRoot)
-            let process = try startBackend(runtimeRoot: runtimeRoot)
-            let url = try waitForBackend(runtimeRoot: runtimeRoot, process: process)
-            AppWrapperLogger.write("launch-backend ready url=\(url.absoluteString)")
-            completion(.success(BackendLaunch(runtimeRoot: runtimeRoot, process: process, url: url)))
-        } catch {
-            AppWrapperLogger.write("launch-backend failed error=\(error.localizedDescription)")
-            completion(.failure(error))
-        }
-    }
-
     nonisolated private static func startBackend(runtimeRoot: URL) throws -> Process {
         let backendURL = runtimeRoot.appendingPathComponent("SAPD-Wiki-Backend")
         guard FileManager.default.isExecutableFile(atPath: backendURL.path) else {
@@ -1326,7 +1350,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         if !matchingPIDs.isEmpty {
             let pidsText = matchingPIDs.map { String($0) }.joined(separator: ",")
             AppWrapperLogger.write("stale-backend terminate pids=\(pidsText)")
-            Thread.sleep(forTimeInterval: 0.4)
+            let deadline = Date().addingTimeInterval(backendGracefulShutdownTimeout)
+            while matchingPIDs.contains(where: { Darwin.kill($0, 0) == 0 }), Date() < deadline {
+                Thread.sleep(forTimeInterval: backendShutdownPollInterval)
+            }
         }
         for pid in matchingPIDs where Darwin.kill(pid, 0) == 0 {
             Darwin.kill(pid, SIGKILL)
@@ -1458,27 +1485,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
 
     private func stopBackend() {
         AppWrapperLogger.write("stop-backend requested")
-        guard let process = backendProcess, process.isRunning else {
-            if let runtimeRoot {
-                AppDelegate.terminateExistingBackends(runtimeRoot: runtimeRoot)
-            }
+        guard let process = backendProcess else {
+            return
+        }
+        backendProcess = nil
+        guard process.isRunning else {
             return
         }
         process.terminate()
-        let cleanupRuntimeRoot = runtimeRoot
-        let deadline = Date().addingTimeInterval(2.0)
+        let deadline = Date().addingTimeInterval(backendGracefulShutdownTimeout)
         while process.isRunning, Date() < deadline {
-            Thread.sleep(forTimeInterval: 0.1)
+            Thread.sleep(forTimeInterval: backendShutdownPollInterval)
         }
         if process.isRunning {
-            process.interrupt()
-            Thread.sleep(forTimeInterval: 0.3)
-            if let cleanupRuntimeRoot {
-                AppDelegate.terminateExistingBackends(runtimeRoot: cleanupRuntimeRoot)
-            }
-        }
-        if let cleanupRuntimeRoot {
-            AppDelegate.terminateExistingBackends(runtimeRoot: cleanupRuntimeRoot)
+            AppWrapperLogger.write("backend-process graceful-shutdown-timeout pid=\(process.processIdentifier)")
+            Darwin.kill(process.processIdentifier, SIGKILL)
         }
     }
 
@@ -1560,12 +1581,6 @@ private enum ToolbarIdentifiers {
     static let main = NSToolbar.Identifier("SAPDWiki.MainToolbar")
     static let reloadPage = NSToolbarItem.Identifier("SAPDWiki.ReloadPage")
     static let reloadFromOrigin = NSToolbarItem.Identifier("SAPDWiki.ReloadFromOrigin")
-}
-
-private struct BackendLaunch {
-    let runtimeRoot: URL
-    let process: Process
-    let url: URL
 }
 
 private final class HealthCheckResult: @unchecked Sendable {

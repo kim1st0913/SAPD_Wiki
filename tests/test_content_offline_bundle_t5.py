@@ -11,6 +11,11 @@ import unittest
 from contextlib import closing
 from pathlib import Path
 
+from sapd_wiki.projection_contract import (
+    UI_PROJECTION_SUITE_VERSION,
+    knowledge_version_for_artifact_sha256,
+)
+
 ROOT = Path(__file__).resolve().parents[1]
 _BUILD_BUNDLE_SPEC = importlib.util.spec_from_file_location(
     "sapd_test_build_zip_bundle",
@@ -66,7 +71,16 @@ class ContentOfflineBundleT5Tests(unittest.TestCase):
         )
         self.base = self.root / "candidate-query.sqlite3"
         self.asset = self.root / "candidate-assets.sqlite3"
-        self.base.write_bytes(b"query-database-test")
+        with closing(sqlite3.connect(self.base)) as connection, connection:
+            connection.execute(
+                "CREATE TABLE content_schema_meta "
+                "(key TEXT PRIMARY KEY, value TEXT NOT NULL)"
+            )
+            connection.execute(
+                "INSERT INTO content_schema_meta VALUES "
+                "('base_database_sha256', ?)",
+                ("b" * 64,),
+            )
         with closing(sqlite3.connect(self.asset)) as connection, connection:
             connection.executescript(
                 (ROOT / "config/sql/content-asset-schema-v1.sql").read_text(
@@ -128,6 +142,64 @@ class ContentOfflineBundleT5Tests(unittest.TestCase):
         )
         return self.output / "SAPD-Wiki-vt5-test-mac-arm64"
 
+    def run_frozen_check_import(self, frozen_root: Path) -> subprocess.CompletedProcess[str]:
+        bootstrap = "\n".join(
+            [
+                "import runpy, sys, types",
+                "create_user_db = types.ModuleType('create_user_db')",
+                "create_user_db.DEFAULT_SCHEMA_VERSION = 'user_schema_0.3'",
+                "create_user_db.initialize_user_db = lambda path: None",
+                "sys.modules['create_user_db'] = create_user_db",
+                "sys.frozen = True",
+                "sys._MEIPASS = sys.argv[1]",
+                "namespace = runpy.run_path(sys.argv[2], run_name='sapd_frozen_check')",
+                "assert namespace['UI_PROJECTION_SUITE_VERSION'] == 'sapd-ui-projection-v1'",
+            ]
+        )
+        return subprocess.run(
+            [
+                sys.executable,
+                "-I",
+                "-c",
+                bootstrap,
+                str(frozen_root),
+                str(CHECK),
+            ],
+            check=False,
+            cwd=self.root,
+            capture_output=True,
+            text=True,
+        )
+
+    def test_frozen_check_imports_projection_contract_from_runtime_source(self) -> None:
+        frozen_root = self.root / "frozen-success"
+        package_root = frozen_root / "runtime_src/sapd_wiki"
+        package_root.mkdir(parents=True)
+        (package_root / "__init__.py").write_text("", encoding="utf-8")
+        (package_root / "projection_contract.py").write_bytes(
+            (ROOT / "src/sapd_wiki/projection_contract.py").read_bytes()
+        )
+
+        result = self.run_frozen_check_import(frozen_root)
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_frozen_check_fails_closed_without_runtime_source_package(self) -> None:
+        cases = {
+            "missing_runtime_source": self.root / "frozen-missing-runtime-source",
+            "missing_package": self.root / "frozen-missing-package",
+        }
+        cases["missing_package"].joinpath("runtime_src").mkdir(parents=True)
+        for label, frozen_root in cases.items():
+            with self.subTest(label=label):
+                frozen_root.mkdir(exist_ok=True)
+                result = self.run_frozen_check_import(frozen_root)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(
+                    "frozen runtime source package is unavailable",
+                    result.stderr,
+                )
+
     def test_bundle_copies_asset_and_records_hash_and_runtime_path(self) -> None:
         bundle = self.build()
         copied_asset = bundle / "data/base/sapd_content_assets.sqlite3"
@@ -142,6 +214,17 @@ class ContentOfflineBundleT5Tests(unittest.TestCase):
         self.assertRegex(
             manifest["content_asset_database"]["sha256"],
             r"^[0-9a-f]{64}$",
+        )
+        self.assertEqual(
+            manifest["knowledge_version"],
+            knowledge_version_for_artifact_sha256(
+                manifest["base_database"]["sha256"]
+            ),
+        )
+        self.assertEqual(manifest["parent_source_db_sha256"], "b" * 64)
+        self.assertEqual(
+            manifest["projection_contract_version"],
+            UI_PROJECTION_SUITE_VERSION,
         )
         self.assertRegex(manifest["frontend"]["source_sha256"], r"^[0-9a-f]{64}$")
         self.assertRegex(manifest["frontend"]["runtime_sha256"], r"^[0-9a-f]{64}$")
@@ -198,6 +281,58 @@ class ContentOfflineBundleT5Tests(unittest.TestCase):
         self.assertTrue(checks["content_asset_db_exists"])
         self.assertTrue(checks["content_asset_db_sha256_matches"])
         self.assertTrue(checks["config_content_asset_db_path_set"])
+        self.assertTrue(checks["knowledge_version_matches_artifact"])
+        self.assertTrue(checks["parent_source_db_sha256_matches"])
+        self.assertTrue(checks["projection_contract_version_matches"])
+
+    def test_bundle_check_fails_closed_for_projection_identity(self) -> None:
+        bundle = self.build()
+        manifest_path = bundle / "data/base/base-manifest.json"
+        baseline = json.loads(manifest_path.read_text(encoding="utf-8"))
+        cases = {
+            "missing_knowledge": (
+                lambda manifest: manifest.pop("knowledge_version"),
+                "knowledge_version_matches_artifact",
+            ),
+            "wrong_knowledge": (
+                lambda manifest: manifest.update(
+                    knowledge_version="base-0000000000000000"
+                ),
+                "knowledge_version_matches_artifact",
+            ),
+            "wrong_parent_format": (
+                lambda manifest: manifest.update(parent_source_db_sha256="bad"),
+                "parent_source_db_sha256_format_valid",
+            ),
+            "wrong_contract": (
+                lambda manifest: manifest.update(
+                    projection_contract_version="sapd-ui-projection-v0"
+                ),
+                "projection_contract_version_matches",
+            ),
+        }
+        for label, (mutate, expected_check) in cases.items():
+            with self.subTest(label=label):
+                candidate = json.loads(json.dumps(baseline))
+                mutate(candidate)
+                manifest_path.write_text(
+                    json.dumps(candidate),
+                    encoding="utf-8",
+                )
+                checked = subprocess.run(
+                    [sys.executable, str(CHECK), str(bundle), "--json"],
+                    check=False,
+                    cwd=ROOT,
+                    capture_output=True,
+                    text=True,
+                )
+                self.assertEqual(checked.returncode, 1)
+                checks = {
+                    item["name"]: item["ok"]
+                    for item in json.loads(checked.stdout)["checks"]
+                }
+                self.assertFalse(checks[expected_check])
+        manifest_path.write_text(json.dumps(baseline), encoding="utf-8")
 
     def test_bundle_rejects_an_unmatched_required_frontend_asset_rewrite(self) -> None:
         (self.frontend / "components/AppShell.js").write_text(

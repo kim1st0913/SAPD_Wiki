@@ -8,14 +8,29 @@ import hashlib
 import json
 import re
 import sqlite3
+import sys
 import tempfile
 from contextlib import closing
 from pathlib import Path
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+REPO_ROOT = SCRIPT_DIR.parent
+SRC_ROOT = REPO_ROOT / "src"
+for import_root in (SCRIPT_DIR, SRC_ROOT):
+    import_value = str(import_root)
+    if import_value in sys.path:
+        sys.path.remove(import_value)
+    sys.path.insert(0, import_value)
 
 try:
     from create_user_db import DEFAULT_SCHEMA_VERSION, initialize_user_db
 except ModuleNotFoundError:
     from scripts.create_user_db import DEFAULT_SCHEMA_VERSION, initialize_user_db
+
+from sapd_wiki.projection_contract import (
+    ProjectionManifestError,
+    load_projection_identity,
+)
 
 
 BACKEND_NAME = "SAPD-Wiki-Backend.exe"
@@ -24,6 +39,13 @@ RUNTIME_FINGERPRINT_NAME = ".sapd-runtime-fingerprint"
 DELIVERY_MANIFEST_NAME = "windows-delivery-data-manifest.json"
 SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 REVISION_PATTERN = re.compile(r"^[0-9a-f]{40}$")
+REQUIRED_LIFECYCLE_FRONTEND_PATHS = (
+    "public/data/oi149-split-manifest.json",
+    "public/data/lifecycle/index.json",
+    "public/data/lifecycle/evidence.json",
+    "public/data/lifecycle/projections/lifecycle_domain_LC-AP.json",
+    "public/data/lifecycle/projections/lifecycle_domain_LC-DT.json",
+)
 
 
 def _hash_paths(root: Path, paths: list[Path]) -> tuple[str, int]:
@@ -195,13 +217,37 @@ def verify_runtime_template(
         or delivery_manifest.get("releaseId") != delivery.get("releaseId")
     ):
         raise ValueError("Windows Runtime embedded Delivery manifest mismatch")
-    base_manifest = json.loads(
-        (runtime_root / "data" / "base" / "base-manifest.json").read_text(
-            encoding="utf-8-sig"
-        )
-    )
+    base_manifest_path = runtime_root / "data" / "base" / "base-manifest.json"
+    base_manifest = json.loads(base_manifest_path.read_text(encoding="utf-8-sig"))
     if base_manifest.get("app_version") != expected_app_version:
         raise ValueError("Windows Delivery manifest app version mismatch")
+    try:
+        projection_identity = load_projection_identity(base_manifest_path)
+    except ProjectionManifestError as error:
+        raise ValueError(f"Windows projection identity is invalid: {error}") from error
+    delivery_databases = delivery_manifest.get("databases", {})
+    delivery_base = delivery_databases.get("base", {})
+    delivery_assets = delivery_databases.get("contentAssets", {})
+    if (
+        projection_identity.artifact_db_sha256 != delivery_base.get("sha256")
+        or projection_identity.parent_source_db_sha256
+        != delivery_base.get("metadata", {}).get("base_database_sha256")
+        or projection_identity.content_asset_sha256
+        != delivery_assets.get("sha256")
+    ):
+        raise ValueError("Windows projection identity does not match Delivery data")
+
+    frontend_root = runtime_root / "app" / "frontend-dist"
+    missing_lifecycle_paths = [
+        relative_path
+        for relative_path in REQUIRED_LIFECYCLE_FRONTEND_PATHS
+        if not (frontend_root / relative_path).is_file()
+    ]
+    if missing_lifecycle_paths:
+        raise ValueError(
+            "Windows Runtime lifecycle split package is incomplete: "
+            + ", ".join(missing_lifecycle_paths)
+        )
 
     recorded = str(metadata.get("runtimeFingerprint", ""))
     fingerprint_path = runtime_root / RUNTIME_FINGERPRINT_NAME

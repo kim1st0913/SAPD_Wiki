@@ -1,16 +1,18 @@
 from __future__ import annotations
 
 import importlib.util
+import io
 import json
 import os
 import plistlib
 import re
 import sqlite3
+import struct
 import subprocess
 import sys
 import tempfile
 import unittest
-from contextlib import closing
+from contextlib import closing, redirect_stdout
 from pathlib import Path
 from unittest.mock import Mock, patch
 
@@ -25,7 +27,114 @@ verifier = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(verifier)
 
 
+def signed_macho(code: bytes, signature_payload: bytes) -> bytes:
+    signature = verifier.EMBEDDED_SIGNATURE_MAGIC + signature_payload
+    header_size = 32
+    command_size = 16
+    signature_offset = header_size + command_size + len(code)
+    header = struct.pack(
+        "<IiiIIIII",
+        0xFEEDFACF,
+        0x0100000C,
+        0,
+        2,
+        1,
+        command_size,
+        0,
+        0,
+    )
+    command = struct.pack(
+        "<IIII",
+        verifier.LC_CODE_SIGNATURE,
+        command_size,
+        signature_offset,
+        len(signature),
+    )
+    return header + command + code + signature
+
+
 class VerifyMacDmgArtifactsTests(unittest.TestCase):
+    def test_stable_macho_identity_excludes_only_valid_code_signature_blob(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="sapd-macho-identity-") as temporary:
+            root = Path(temporary)
+            license_binary = root / "license"
+            no_license_binary = root / "no-license"
+            changed_code_binary = root / "changed-code"
+            license_binary.write_bytes(signed_macho(b"same-code", b"A" * 16))
+            no_license_binary.write_bytes(signed_macho(b"same-code", b"B" * 16))
+            changed_code_binary.write_bytes(signed_macho(b"same-codf", b"A" * 16))
+
+            license_identity = verifier.stable_macho_code_identity(license_binary)
+            no_license_identity = verifier.stable_macho_code_identity(no_license_binary)
+            changed_identity = verifier.stable_macho_code_identity(changed_code_binary)
+
+            self.assertNotEqual(verifier.sha256_file(license_binary), verifier.sha256_file(no_license_binary))
+            self.assertEqual(license_identity["sha256"], no_license_identity["sha256"])
+            self.assertNotEqual(license_identity["sha256"], changed_identity["sha256"])
+
+    def test_stable_macho_identity_fails_closed_for_invalid_layouts(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="sapd-macho-invalid-") as temporary:
+            root = Path(temporary)
+            missing_command = root / "missing-command"
+            missing_command.write_bytes(
+                struct.pack("<IiiIIIII", 0xFEEDFACF, 0x0100000C, 0, 2, 0, 0, 0, 0)
+            )
+            valid = bytearray(signed_macho(b"code", b"signature"))
+            out_of_bounds = root / "out-of-bounds"
+            struct.pack_into("<I", valid, 40, len(valid) + 1)
+            out_of_bounds.write_bytes(valid)
+            invalid_signature = root / "invalid-signature"
+            invalid_bytes = bytearray(signed_macho(b"code", b"signature"))
+            signature_offset = struct.unpack_from("<I", invalid_bytes, 40)[0]
+            invalid_bytes[signature_offset] ^= 0xFF
+            invalid_signature.write_bytes(invalid_bytes)
+            unsupported = root / "unsupported"
+            unsupported.write_bytes(b"not-a-mach-o")
+
+            cases = {
+                missing_command: "load-command table is invalid",
+                out_of_bounds: "code-signature range is invalid",
+                invalid_signature: "embedded code signature is invalid",
+                unsupported: "not a supported thin Mach-O",
+            }
+            for path, message in cases.items():
+                with self.subTest(path=path.name), self.assertRaisesRegex(RuntimeError, message):
+                    verifier.stable_macho_code_identity(path)
+
+    def test_cross_variant_gate_uses_stable_code_identity_and_runtime_core(self) -> None:
+        shared = {
+            "runtime_core_sha256": "r" * 64,
+            "app_stable_code_sha256": "c" * 64,
+            "path": ROOT / "artifact.dmg",
+            "dmg_sha256": "d" * 64,
+        }
+        verified = [
+            {**shared, "variant": "license", "app_binary_sha256": "a" * 64},
+            {**shared, "variant": "no-license", "app_binary_sha256": "b" * 64},
+        ]
+        output = io.StringIO()
+        with (
+            patch.object(verifier, "current_app_version", return_value="0.4.0"),
+            patch.object(verifier, "current_build_stamp", return_value="20260811-150420Z"),
+            patch.object(verifier, "current_architecture", return_value="arm64"),
+            patch.object(verifier, "verify_variant", side_effect=verified),
+            redirect_stdout(output),
+        ):
+            verifier.main()
+        self.assertIn("result=pass", output.getvalue())
+        self.assertIn("app_binary_sha256=" + "a" * 64, output.getvalue())
+        self.assertIn("app_stable_code_sha256=" + "c" * 64, output.getvalue())
+
+        changed = [verified[0], {**verified[1], "app_stable_code_sha256": "e" * 64}]
+        with (
+            patch.object(verifier, "current_app_version", return_value="0.4.0"),
+            patch.object(verifier, "current_build_stamp", return_value="20260811-150420Z"),
+            patch.object(verifier, "current_architecture", return_value="arm64"),
+            patch.object(verifier, "verify_variant", side_effect=changed),
+            self.assertRaisesRegex(RuntimeError, "different stable App code identities"),
+        ):
+            verifier.main()
+
     def test_content_asset_database_is_required_and_matches_manifest_hash(self) -> None:
         with tempfile.TemporaryDirectory(prefix="sapd-mac-content-asset-") as temporary:
             runtime = Path(temporary) / "Runtime"
@@ -217,7 +326,9 @@ class VerifyMacDmgArtifactsTests(unittest.TestCase):
             user_db = runtime / "data/user/sapd_wiki_user.sqlite3"
             initialize_user_db(user_db, "user_schema_0.3")
             (contents / "MacOS").mkdir()
-            (contents / "MacOS/SAPDWiki").write_bytes(b"app binary")
+            (contents / "MacOS/SAPDWiki").write_bytes(
+                signed_macho(b"app binary", b"test signature")
+            )
             with (contents / "Info.plist").open("wb") as handle:
                 plistlib.dump(
                     {
@@ -241,6 +352,9 @@ class VerifyMacDmgArtifactsTests(unittest.TestCase):
                 )
 
             self.assertRegex(evidence["app_binary_sha256"], r"^[0-9a-f]{64}$")
+            self.assertRegex(evidence["app_stable_code_sha256"], r"^[0-9a-f]{64}$")
+            self.assertGreater(evidence["app_code_signature_offset"], 0)
+            self.assertGreater(evidence["app_code_signature_size"], 0)
             self.assertRegex(evidence["runtime_core_sha256"], r"^[0-9a-f]{64}$")
             self.assertEqual(evidence["content_asset_database_sha256"], verifier.sha256_file(content_asset))
             commands = [call.args[0] for call in run.call_args_list]

@@ -21,6 +21,10 @@ from scripts.windows_delivery_data import (
     database_summary,
     sha256_file,
 )
+from sapd_wiki.projection_contract import (
+    UI_PROJECTION_SUITE_VERSION,
+    knowledge_version_for_artifact_sha256,
+)
 
 
 class PrepareWindowsElectronRuntimeTests(unittest.TestCase):
@@ -54,6 +58,17 @@ class PrepareWindowsElectronRuntimeTests(unittest.TestCase):
             'const guide = { href: "./assets/guides/maturity-model-usage.html" };\n',
             encoding="utf-8",
         )
+        lifecycle_root = self.frontend / "public" / "data" / "lifecycle"
+        lifecycle_projection_root = lifecycle_root / "projections"
+        lifecycle_projection_root.mkdir(parents=True)
+        for relative_path in (
+            "public/data/oi149-split-manifest.json",
+            "public/data/lifecycle/index.json",
+            "public/data/lifecycle/evidence.json",
+            "public/data/lifecycle/projections/lifecycle_domain_LC-AP.json",
+            "public/data/lifecycle/projections/lifecycle_domain_LC-DT.json",
+        ):
+            (self.frontend / relative_path).write_text("{}\n", encoding="utf-8")
         self.backend_root.mkdir()
         (self.backend_root / "_internal").mkdir()
         (self.backend_root / "_internal" / "runtime.txt").write_text(
@@ -141,6 +156,11 @@ class PrepareWindowsElectronRuntimeTests(unittest.TestCase):
             connection.execute(
                 "INSERT INTO content_schema_meta VALUES ('schema_version', 'content-query-test-v1')"
             )
+            connection.execute(
+                "INSERT INTO content_schema_meta VALUES "
+                "('base_database_sha256', ?) ",
+                ("c" * 64,),
+            )
             connection.commit()
         with closing(sqlite3.connect(self.assets)) as connection:
             connection.execute(
@@ -202,13 +222,26 @@ class PrepareWindowsElectronRuntimeTests(unittest.TestCase):
             metadata["deliveryData"]["sourceMainRevision"],
             self.data_source_revision,
         )
+        base_manifest = json.loads(
+            (runtime / "data/base/base-manifest.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(base_manifest["build_time"], "2026-07-27T00:00:00Z")
         self.assertEqual(
-            json.loads(
-                (runtime / "data/base/base-manifest.json").read_text(
-                    encoding="utf-8"
-                )
-            )["build_time"],
-            "2026-07-27T00:00:00Z",
+            base_manifest["base_database"]["sha256"],
+            self.delivery_manifest["databases"]["base"]["sha256"],
+        )
+        self.assertEqual(
+            base_manifest["knowledge_version"],
+            knowledge_version_for_artifact_sha256(
+                self.delivery_manifest["databases"]["base"]["sha256"]
+            ),
+        )
+        self.assertEqual(base_manifest["parent_source_db_sha256"], "c" * 64)
+        self.assertEqual(
+            base_manifest["projection_contract_version"],
+            UI_PROJECTION_SUITE_VERSION,
         )
 
     def test_same_backend_and_delivery_data_produce_same_fingerprint(self) -> None:
@@ -220,6 +253,29 @@ class PrepareWindowsElectronRuntimeTests(unittest.TestCase):
             (first / ".sapd-runtime-fingerprint").read_text(encoding="utf-8"),
             (second / ".sapd-runtime-fingerprint").read_text(encoding="utf-8"),
         )
+
+    def test_runtime_verification_rejects_missing_lifecycle_split_package(self) -> None:
+        args = self._args(self.root / "runtime-missing-lifecycle")
+        runtime = build_runtime(args, args.backend, args.output)
+        missing_path = (
+            runtime
+            / "app"
+            / "frontend-dist"
+            / "public"
+            / "data"
+            / "lifecycle"
+            / "index.json"
+        )
+        missing_path.unlink()
+        with self.assertRaisesRegex(ValueError, "lifecycle split package is incomplete"):
+            from scripts.verify_windows_runtime import verify_runtime_template
+
+            verify_runtime_template(
+                runtime,
+                expected_app_version=args.app_version,
+                expected_source_revision=args.source_revision,
+                expected_delivery_release_id=args.delivery_release_id,
+            )
 
     def test_backend_provenance_rejects_tampered_internal_tree(self) -> None:
         (self.backend_root / "_internal" / "runtime.txt").write_text(

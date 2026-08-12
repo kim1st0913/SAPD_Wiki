@@ -7,6 +7,7 @@ import sys
 import threading
 import unittest
 import urllib.request
+from urllib.error import HTTPError
 from unittest import mock
 from http.server import ThreadingHTTPServer
 from pathlib import Path
@@ -59,6 +60,68 @@ class _ControlApi:
         return _ControlResponse()
 
 
+class _ProjectionManifestError(RuntimeError):
+    pass
+
+
+class _Batch1ProjectionService:
+    def capability_catalog(self) -> dict[str, object]:
+        return {"data": {"package_type": "capability-catalog"}}
+
+    def capability_view(
+        self,
+        *,
+        object_type: str,
+        object_id: str,
+        code: str,
+    ) -> dict[str, object]:
+        if object_id == "missing":
+            raise KeyError(f"{object_type}:{object_id}")
+        return {"data": {"selected": {"type": object_type, "id": object_id, "code": code}}}
+
+    def locate_capability(self, **identity: str) -> dict[str, object]:
+        return {"data": {"identity": identity}}
+
+    def maintenance_index(self) -> dict[str, object]:
+        return {"data": {"package_type": "maintenance-index"}}
+
+    def maintenance_section(self, section: str) -> dict[str, object]:
+        if section == "missing":
+            raise KeyError(section)
+        return {"data": {"section": section}}
+
+    def shared_lookups(self) -> dict[str, object]:
+        return {"data": {"package_type": "shared-lookups"}}
+
+
+class _ProjectionApi:
+    ProjectionManifestError = _ProjectionManifestError
+
+    def __init__(self, *, identity_available: bool = True) -> None:
+        self.identity_available = identity_available
+        self.service = _Batch1ProjectionService()
+        self.data_package_reads = 0
+
+    @staticmethod
+    def create_envelope(data: object) -> dict[str, object]:
+        return {"data": data, "warnings": []}
+
+    @staticmethod
+    def capability_focus_projection_response(
+        query: dict[str, list[str]],
+    ) -> dict[str, object]:
+        return {"data": {"query": query}}
+
+    def _runtime_batch1_projection(self) -> _Batch1ProjectionService:
+        if not self.identity_available:
+            raise self.ProjectionManifestError("projection manifest is unavailable")
+        return self.service
+
+    def read_data_package(self, _name: str) -> object:
+        self.data_package_reads += 1
+        raise AssertionError("Batch 1 projection routes must not read data packages")
+
+
 class BundleMcpRuntimeTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
@@ -108,6 +171,92 @@ class BundleMcpRuntimeTests(unittest.TestCase):
             server.shutdown()
             server.server_close()
             thread.join(timeout=5)
+
+    def request_with_projection_api(
+        self,
+        projection_api: _ProjectionApi,
+        path: str,
+    ) -> tuple[int, dict[str, object]]:
+        state = {"port": 0}
+        with mock.patch.object(self.bundle_server, "projection_api", projection_api):
+            server = ThreadingHTTPServer(
+                ("127.0.0.1", 0),
+                self.bundle_server.build_handler(
+                    _Runtime(),
+                    state,
+                    "bundle-projection-session",
+                ),
+            )
+            state["port"] = int(server.server_address[1])
+            thread = threading.Thread(target=server.serve_forever, daemon=True)
+            thread.start()
+            try:
+                url = f"http://127.0.0.1:{server.server_address[1]}{path}"
+                try:
+                    with urllib.request.urlopen(url, timeout=5) as response:
+                        return response.status, json.loads(response.read())
+                except HTTPError as error:
+                    try:
+                        return error.code, json.loads(error.read())
+                    finally:
+                        error.close()
+            finally:
+                server.shutdown()
+                server.server_close()
+                thread.join(timeout=5)
+
+    def test_bundle_handler_dispatches_batch1_projection_routes_without_json_fallback(
+        self,
+    ) -> None:
+        projection_api = _ProjectionApi()
+        cases = {
+            "/api/v1/projections/capability-catalog": "capability-catalog",
+            "/api/v1/projections/maintenance": "maintenance-index",
+            "/api/v1/projections/maintenance/services": "services",
+            "/api/v1/projections/shared-lookups": "shared-lookups",
+        }
+        for path, expected in cases.items():
+            with self.subTest(path=path):
+                status, payload = self.request_with_projection_api(
+                    projection_api,
+                    path,
+                )
+                self.assertEqual(status, 200)
+                self.assertIn(expected, json.dumps(payload, ensure_ascii=False))
+        self.assertEqual(projection_api.data_package_reads, 0)
+
+    def test_bundle_handler_preserves_batch1_projection_error_contracts(self) -> None:
+        projection_api = _ProjectionApi()
+        cases = (
+            (
+                "/api/v1/projections/capability-view?"
+                "object_type=capability_focus&object_id=missing",
+                404,
+                "not_found",
+            ),
+            ("/api/v1/projections/maintenance/missing", 404, "not_found"),
+        )
+        for path, expected_status, expected_error in cases:
+            with self.subTest(path=path):
+                status, payload = self.request_with_projection_api(
+                    projection_api,
+                    path,
+                )
+                self.assertEqual(status, expected_status)
+                self.assertEqual(payload["data"]["error"], expected_error)
+        self.assertEqual(projection_api.data_package_reads, 0)
+
+        unavailable_api = _ProjectionApi(identity_available=False)
+        status, payload = self.request_with_projection_api(
+            unavailable_api,
+            "/api/v1/projections/capability-catalog",
+        )
+        self.assertEqual(status, 503)
+        self.assertEqual(
+            payload["data"]["error"],
+            "projection_identity_unavailable",
+        )
+        self.assertEqual(unavailable_api.data_package_reads, 0)
 
     def test_bundle_health_preserves_legacy_fields_and_projects_runtime_data(
         self,

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, readlinkSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -12,6 +12,14 @@ const strictCurrentSource = args.has("--strict-current-source");
 
 function read(relativePath) {
   return readFileSync(path.join(projectRoot, relativePath), "utf8");
+}
+
+function isApplicationsDirectoryLink(linkPath) {
+  try {
+    return lstatSync(linkPath).isSymbolicLink() && readlinkSync(linkPath) === "/Applications";
+  } catch {
+    return false;
+  }
 }
 
 function sha256File(filePath) {
@@ -344,10 +352,38 @@ add(checks, "app_bundle_version_defaults_to_display_version", [
 add(checks, "dmg_resigns_staged_app_after_readme_mutation", packageDmg.includes("write_runtime_readme") && packageDmg.includes("resign_staged_app"), {
   file: files.packageDmg,
 });
-add(checks, "dmg_staging_includes_applications_install_shortcut", [
-  'ln -s /Applications "$staging_dir/Applications"',
+add(checks, "dmg_image_staging_is_outside_repository", [
+  'DMG_TEMP_ROOT="${SAPD_WIKI_DMG_TEMP_ROOT:-${TMPDIR:-/private/tmp}}"',
+  'DMG_TEMP_ROOT_RESOLVED="$(cd "$DMG_TEMP_ROOT" && pwd -P)"',
+  '"$REPO_ROOT/"*)',
+  'ACTIVE_DMG_IMAGE_STAGING="$(mktemp -d "$DMG_TEMP_ROOT_RESOLVED/sapd-wiki-dmg-${variant}.XXXXXX")"',
+].every((item) => packageDmg.includes(item)), {
+  file: files.packageDmg,
+});
+add(checks, "dmg_image_staging_includes_applications_install_shortcut", [
+  'ln -s /Applications "$ACTIVE_DMG_IMAGE_STAGING/Applications"',
   "拖到镜像内的 \\`Applications\\` 图标完成安装",
 ].every((item) => packageDmg.includes(item)), {
+  file: files.packageDmg,
+});
+add(checks, "dmg_retained_staging_never_creates_applications_shortcut", !packageDmg.includes('ln -s /Applications "$staging_dir/Applications"'), {
+  file: files.packageDmg,
+});
+add(checks, "dmg_image_staging_cleanup_covers_all_script_exits", [
+  "trap cleanup_active_dmg_image_staging EXIT",
+  'rm -rf -- "$ACTIVE_DMG_IMAGE_STAGING"',
+  'rm -f "$ACTIVE_DMG_IMAGE_STAGING/Applications"',
+  'mv "$ACTIVE_DMG_IMAGE_STAGING" "$staging_dir"',
+].every((item) => packageDmg.includes(item)), {
+  file: files.packageDmg,
+});
+const retainedDmgStagingRoots = ["license", "no-license"].map((variant) => path.join(
+  projectRoot,
+  "apps/macos/SAPDWiki/dist",
+  `dmg-staging-${variant}`,
+  "Applications",
+));
+add(checks, "current_retained_dmg_staging_has_no_applications_directory_link", !retainedDmgStagingRoots.some(isApplicationsDirectoryLink), {
   file: files.packageDmg,
 });
 add(checks, "dmg_created_with_hdiutil", packageDmg.includes("hdiutil create"), {

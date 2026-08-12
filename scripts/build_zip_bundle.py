@@ -14,17 +14,26 @@ import json
 import os
 import shutil
 import sqlite3
+import sys
 import time
 import zipfile
 from pathlib import Path
 from urllib.parse import quote
 
-from check_bundle_runtime import sha256_file
-from create_user_db import initialize_user_db
-
-
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parent
+SRC_ROOT = REPO_ROOT / "src"
+for import_root in (SCRIPT_DIR, SRC_ROOT):
+    import_value = str(import_root)
+    if import_value in sys.path:
+        sys.path.remove(import_value)
+    sys.path.insert(0, import_value)
+
+from check_bundle_runtime import sha256_file
+from create_user_db import initialize_user_db
+from sapd_wiki.projection_contract import build_release_projection_identity
+
+
 WINDOWS_CHANGELOG = REPO_ROOT / "apps" / "electron" / "CHANGELOG.md"
 SUPPORTED_PLATFORMS = {"win-x64", "mac-arm64", "mac-x64"}
 DEFAULT_BUNDLE_ROOT = Path(
@@ -705,17 +714,27 @@ def build_bundle(args: argparse.Namespace) -> Path:
 
     base_db = bundle_root / "data" / "base" / "sapd_wiki_base.sqlite3"
     content_asset_db = bundle_root / "data" / "base" / "sapd_content_assets.sqlite3"
+    artifact_db_sha256 = sha256_file(base_db) if base_db.exists() else ""
+    projection_identity = (
+        build_release_projection_identity(
+            base_database=base_db,
+            artifact_db_sha256=artifact_db_sha256,
+        )
+        if base_db.exists()
+        else {}
+    )
     manifest = {
         "app_name": "SAPD Wiki",
         "app_version": args.app_version,
         "bundle_type": "zip-portable",
         "platform": args.platform,
         "build_time": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        **projection_identity,
         "base_database": {
             "file": "sapd_wiki_base.sqlite3",
             "data_version": args.data_version,
             "schema_version": args.base_schema_version,
-            "sha256": sha256_file(base_db) if base_db.exists() else "",
+            "sha256": artifact_db_sha256,
         },
         **(
             {

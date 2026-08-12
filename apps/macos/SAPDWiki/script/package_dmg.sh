@@ -18,6 +18,34 @@ BACKEND_BUILT_THIS_RUN=0
 PACKAGE_LOCK_FILE="${SAPD_WIKI_PACKAGE_LOCK_DIR:-$APP_ROOT/.build/package-dmg.lock}"
 PACKAGE_LOCK_STALE_SECONDS="${SAPD_WIKI_PACKAGE_LOCK_STALE_SECONDS:-21600}"
 PACKAGE_CHILD_PID=""
+DMG_TEMP_ROOT="${SAPD_WIKI_DMG_TEMP_ROOT:-${TMPDIR:-/private/tmp}}"
+DMG_TEMP_ROOT_RESOLVED=""
+ACTIVE_DMG_IMAGE_STAGING=""
+
+cleanup_active_dmg_image_staging() {
+  if [[ -z "$ACTIVE_DMG_IMAGE_STAGING" ]]; then
+    return 0
+  fi
+  if [[ -z "$DMG_TEMP_ROOT_RESOLVED" || "$ACTIVE_DMG_IMAGE_STAGING" != "$DMG_TEMP_ROOT_RESOLVED"/sapd-wiki-dmg-* ]]; then
+    echo "refusing to clean unexpected DMG staging path: $ACTIVE_DMG_IMAGE_STAGING" >&2
+    return 0
+  fi
+  rm -rf -- "$ACTIVE_DMG_IMAGE_STAGING"
+  ACTIVE_DMG_IMAGE_STAGING=""
+}
+
+prepare_dmg_image_staging() {
+  local variant="$1"
+  mkdir -p "$DMG_TEMP_ROOT"
+  DMG_TEMP_ROOT_RESOLVED="$(cd "$DMG_TEMP_ROOT" && pwd -P)"
+  case "$DMG_TEMP_ROOT_RESOLVED/" in
+    "$REPO_ROOT/"*)
+      echo "DMG temporary staging must be outside the repository: $DMG_TEMP_ROOT_RESOLVED" >&2
+      return 1
+      ;;
+  esac
+  ACTIVE_DMG_IMAGE_STAGING="$(mktemp -d "$DMG_TEMP_ROOT_RESOLVED/sapd-wiki-dmg-${variant}.XXXXXX")"
+}
 
 prepare_package_lock_file() {
   local modified_at
@@ -88,6 +116,7 @@ if [[ "${SAPD_WIKI_INTERNAL_PACKAGE_LOCK_HELD:-0}" != "1" ]]; then
 fi
 trap 'terminate_package 130' INT
 trap 'terminate_package 143' TERM
+trap cleanup_active_dmg_image_staging EXIT
 
 if [[ ! -d "$MATURITY_REPORT_SEED" ]]; then
   echo "maturity report seed does not exist: $MATURITY_REPORT_SEED" >&2
@@ -459,22 +488,28 @@ build_variant() {
   BACKEND_BUILT_THIS_RUN=1
 
   rm -rf "$staging_dir"
-  mkdir -p "$staging_dir" "$output_dir"
-  cp -R "$APP_BUNDLE" "$staging_dir/"
-  ln -s /Applications "$staging_dir/Applications"
+  mkdir -p "$output_dir"
+  prepare_dmg_image_staging "$variant"
+  cp -R "$APP_BUNDLE" "$ACTIVE_DMG_IMAGE_STAGING/"
   if command -v xattr >/dev/null 2>&1; then
-    xattr -cr "$staging_dir/$APP_NAME.app" >/dev/null 2>&1 || true
+    xattr -cr "$ACTIVE_DMG_IMAGE_STAGING/$APP_NAME.app" >/dev/null 2>&1 || true
   fi
 
-  write_readme "$staging_dir" "$variant"
-  write_runtime_readme "$staging_dir" "$variant"
-  resign_staged_app "$staging_dir/$APP_NAME.app"
+  write_readme "$ACTIVE_DMG_IMAGE_STAGING" "$variant"
+  write_runtime_readme "$ACTIVE_DMG_IMAGE_STAGING" "$variant"
+  resign_staged_app "$ACTIVE_DMG_IMAGE_STAGING/$APP_NAME.app"
+  ln -s /Applications "$ACTIVE_DMG_IMAGE_STAGING/Applications"
 
-  run_package_command hdiutil create \
+  if ! run_package_command hdiutil create \
     -volname "SAPD Wiki ${APP_VERSION} ${title}" \
-    -srcfolder "$staging_dir" \
+    -srcfolder "$ACTIVE_DMG_IMAGE_STAGING" \
     -format UDZO \
-    "$dmg_path" >/dev/null
+    "$dmg_path" >/dev/null; then
+    return 1
+  fi
+  rm -f "$ACTIVE_DMG_IMAGE_STAGING/Applications"
+  mv "$ACTIVE_DMG_IMAGE_STAGING" "$staging_dir"
+  ACTIVE_DMG_IMAGE_STAGING=""
 
   printf 'dmg_%s=%s\n' "${variant//-/_}" "$dmg_path"
 }

@@ -12,6 +12,7 @@ import re
 import shutil
 import socket
 import sqlite3
+import struct
 import subprocess
 import tempfile
 import time
@@ -33,6 +34,8 @@ VARIANTS = ("license", "no-license")
 USER_SCHEMA_VERSION = "user_schema_0.3"
 RUNTIME_API_SMOKE_TIMEOUT_SECONDS = 60
 FRONTEND_SOURCE_ARTIFACT_SUFFIXES = {".drawio", ".pptx"}
+LC_CODE_SIGNATURE = 0x1D
+EMBEDDED_SIGNATURE_MAGIC = b"\xfa\xde\x0c\xc0"
 USER_DATA_TABLES = {
     "user_capability_model_nodes",
     "user_capability_model_relations",
@@ -93,6 +96,83 @@ def sha256_file(path: Path) -> str:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def stable_macho_code_identity(path: Path) -> dict[str, int | str]:
+    try:
+        data = path.read_bytes()
+    except OSError as error:
+        raise RuntimeError(f"App executable cannot be read: {path}") from error
+
+    layouts = {
+        b"\xce\xfa\xed\xfe": ("<", 28),
+        b"\xcf\xfa\xed\xfe": ("<", 32),
+        b"\xfe\xed\xfa\xce": (">", 28),
+        b"\xfe\xed\xfa\xcf": (">", 32),
+    }
+    layout = layouts.get(data[:4])
+    if layout is None:
+        raise RuntimeError("App executable is not a supported thin Mach-O file")
+    byte_order, header_size = layout
+    if len(data) < header_size:
+        raise RuntimeError("App executable Mach-O header is truncated")
+
+    command_count, command_bytes = struct.unpack_from(
+        f"{byte_order}II",
+        data,
+        16,
+    )
+    command_end = header_size + command_bytes
+    if command_count < 1 or command_end > len(data):
+        raise RuntimeError("App executable Mach-O load-command table is invalid")
+
+    command_offset = header_size
+    signature_range: tuple[int, int] | None = None
+    for _index in range(command_count):
+        if command_offset + 8 > command_end:
+            raise RuntimeError("App executable Mach-O load command is truncated")
+        command, command_size = struct.unpack_from(
+            f"{byte_order}II",
+            data,
+            command_offset,
+        )
+        next_command = command_offset + command_size
+        if (
+            command_size < 8
+            or command_size % 4 != 0
+            or next_command > command_end
+        ):
+            raise RuntimeError("App executable Mach-O load command size is invalid")
+        if command == LC_CODE_SIGNATURE:
+            if signature_range is not None or command_size != 16:
+                raise RuntimeError("App executable Mach-O code-signature command is invalid")
+            signature_range = struct.unpack_from(
+                f"{byte_order}II",
+                data,
+                command_offset + 8,
+            )
+        command_offset = next_command
+    if command_offset != command_end:
+        raise RuntimeError("App executable Mach-O load-command layout is invalid")
+    if signature_range is None:
+        raise RuntimeError("App executable Mach-O code-signature command is missing")
+
+    signature_offset, signature_size = signature_range
+    if (
+        signature_size < len(EMBEDDED_SIGNATURE_MAGIC)
+        or signature_offset < command_end
+        or signature_offset >= len(data)
+        or signature_offset + signature_size != len(data)
+    ):
+        raise RuntimeError("App executable Mach-O code-signature range is invalid")
+    if data[signature_offset : signature_offset + 4] != EMBEDDED_SIGNATURE_MAGIC:
+        raise RuntimeError("App executable embedded code signature is invalid")
+
+    return {
+        "sha256": hashlib.sha256(data[:signature_offset]).hexdigest(),
+        "signature_offset": signature_offset,
+        "signature_size": signature_size,
+    }
 
 
 def tree_sha256(root: Path, *, excluded_suffixes: set[str] | None = None) -> tuple[str, int]:
@@ -451,8 +531,12 @@ def _verify_mounted_app(
         raise RuntimeError(f"mounted App executable is missing for {variant}")
     if architecture not in _macho_architectures(app_binary):
         raise RuntimeError(f"mounted App executable does not support {architecture}: {variant}")
+    code_identity = stable_macho_code_identity(app_binary)
     return {
         "app_binary_sha256": sha256_file(app_binary),
+        "app_stable_code_sha256": str(code_identity["sha256"]),
+        "app_code_signature_offset": int(code_identity["signature_offset"]),
+        "app_code_signature_size": int(code_identity["signature_size"]),
         "runtime_core_sha256": _runtime_core_digest(runtime),
         "content_asset_database_sha256": content_asset_sha256,
     }
@@ -498,13 +582,18 @@ def main() -> None:
     build_stamp = current_build_stamp()
     architecture = current_architecture()
     verified = [verify_variant(version, build_stamp, architecture, variant) for variant in VARIANTS]
-    if len({item["app_binary_sha256"] for item in verified}) != 1:
-        raise RuntimeError("license variants contain different App executables")
+    if len({item["app_stable_code_sha256"] for item in verified}) != 1:
+        raise RuntimeError("license variants contain different stable App code identities")
     if len({item["runtime_core_sha256"] for item in verified}) != 1:
         raise RuntimeError("license variants contain different core Runtime payloads")
     print(f"result=pass version={version} build_stamp={build_stamp} artifacts={len(verified)}")
     for item in verified:
-        print(f"variant={item['variant']} sha256={item['dmg_sha256']} path={item['path'].relative_to(ROOT)}")
+        print(
+            f"variant={item['variant']} sha256={item['dmg_sha256']} "
+            f"app_binary_sha256={item['app_binary_sha256']} "
+            f"app_stable_code_sha256={item['app_stable_code_sha256']} "
+            f"path={item['path'].relative_to(ROOT)}"
+        )
 
 
 if __name__ == "__main__":

@@ -31,15 +31,15 @@ APPLY_CONFIRMATION = "APPLY_PHASE2_BATCH1_RELATION_ONLY"
 RESTORE_CONFIRMATION = "RESTORE_PHASE2_BATCH1_FORMAL_BASE_ONLY"
 
 ARTIFACTS = {
-    "macos-license-dmg": "apps/macos/SAPDWiki/dist/license/SAPD-Wiki-0.4.0-license-20260801-033335Z-mac-arm64.dmg",
-    "macos-no-license-dmg": "apps/macos/SAPDWiki/dist/no-license/SAPD-Wiki-0.4.0-no-license-20260801-033335Z-mac-arm64.dmg",
-    "windows-setup": "apps/electron/dist/SAPD-Wiki-Setup-0.4.0-win-x64.exe",
+    "macos-license-dmg": "apps/macos/SAPDWiki/dist/releases/0.4.0/license/SAPD-Wiki-0.4.0-license-20260801-033335Z-mac-arm64.dmg",
+    "macos-no-license-dmg": "apps/macos/SAPDWiki/dist/releases/0.4.0/no-license/SAPD-Wiki-0.4.0-no-license-20260801-033335Z-mac-arm64.dmg",
+    "windows-setup": "apps/electron/releases/0.4.0/SAPD-Wiki-Setup-0.4.0-win-x64.exe",
 }
 RELEASE_MANIFESTS = {
-    "macos-license-base-manifest": "apps/macos/SAPDWiki/dist/dmg-staging-license/SAPD Wiki.app/Contents/Resources/Runtime/data/base/base-manifest.json",
-    "macos-no-license-base-manifest": "apps/macos/SAPDWiki/dist/dmg-staging-no-license/SAPD Wiki.app/Contents/Resources/Runtime/data/base/base-manifest.json",
-    "macos-license-info-plist": "apps/macos/SAPDWiki/dist/dmg-staging-license/SAPD Wiki.app/Contents/Info.plist",
-    "macos-no-license-info-plist": "apps/macos/SAPDWiki/dist/dmg-staging-no-license/SAPD Wiki.app/Contents/Info.plist",
+    "macos-license-base-manifest": "apps/macos/SAPDWiki/.build/packaging/dmg-staging-license/SAPD Wiki.app/Contents/Resources/Runtime/data/base/base-manifest.json",
+    "macos-no-license-base-manifest": "apps/macos/SAPDWiki/.build/packaging/dmg-staging-no-license/SAPD Wiki.app/Contents/Resources/Runtime/data/base/base-manifest.json",
+    "macos-license-info-plist": "apps/macos/SAPDWiki/.build/packaging/dmg-staging-license/SAPD Wiki.app/Contents/Info.plist",
+    "macos-no-license-info-plist": "apps/macos/SAPDWiki/.build/packaging/dmg-staging-no-license/SAPD Wiki.app/Contents/Info.plist",
     "macos-unpackaged-current-base-manifest": "apps/macos/SAPDWiki/.build/runtime-work/SAPD-Wiki-v0.4.0-mac-arm64/data/base/base-manifest.json",
     "windows-nonmatching-0.3.0-base-manifest": "apps/electron/.build/archive/local-windows-0.3.0/bundle-work/SAPD-Wiki-v0.3.0-win-x64/data/base/base-manifest.json",
     "content-source-manifest": "config/content-source-manifest.v1.json",
@@ -70,7 +70,7 @@ SOURCE_ROOT_FILES = (
     "pyproject.toml",
     "task_plan.md",
 )
-SOURCE_EXCLUDED_PARTS = {".build", "dist", "node_modules", "__pycache__", ".git"}
+SOURCE_EXCLUDED_PARTS = {".build", "dist", "releases", "node_modules", "__pycache__", ".git"}
 
 
 def now_iso() -> str:

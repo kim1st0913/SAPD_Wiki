@@ -2,7 +2,7 @@
 
 > 状态：`生效中 / 当前事实源`
 >
-> 更新日期：2026-08-03
+> 更新日期：2026-08-12
 
 本文档用于区分打包源码、流程编排、生成产物、发布证据和已停用的打包材料，并补充 `desktop-packaging-runbook.md` 中的具体操作步骤。
 
@@ -24,17 +24,18 @@
 apps/
   README.md                               平台目录索引
   electron/                               Windows Electron 源码
-    .build/                               已忽略、可清理的 Runtime 和构建工作区
-      archive/                            保留的本地过期 Runtime 快照，禁止作为构建输入
-    dist/                                 已忽略的当前本地安装器副本或构建输出
-      archive/                            保留的本地历史输出
+    .build/                               已忽略的 Runtime、解包目录和构建工作区
+      archive/                            保留的本地构建快照，禁止作为发布输入
+    dist/                                 Electron Builder 临时输出；构建后可清理
+    releases/<version>/                   已验收 Windows 安装器的本地下载副本
   macos/SAPDWiki/                         macOS Swift App 源码
     script/                               本地 macOS 构建和 DMG 入口
     .build/                               已忽略的构建和缓存工作区
+      packaging/                          临时 App 和 DMG staging；不是交付物
       archive/                            保留的旧缓存目录结构
-    dist/                                 已忽略的当前 App、staging 和 DMG 输出
-      license/archive/                    历史 license DMG
-      no-license/archive/                 历史 no-license DMG
+    dist/releases/<version>/              已验收 DMG 的本地权威目录
+      license/                            授权版 DMG（仅在明确要求时生成）
+      no-license/                         无授权版 DMG；0.4.1 本次唯一变体
 
 scripts/
   build_zip_bundle.py                     共用的受控 Runtime 组装器
@@ -70,20 +71,22 @@ docs/05-archive/delivery-retired-2026-07/
 
 ## 4. 本地产物保存规则
 
-- 各平台供验证脚本使用的活动 `dist/` 位置只保留当前本地安装器或 DMG。
-- 较早的本地产物移入对应平台的 `dist/archive/`，不得与当前构建根目录混放。
+- macOS 最终安装包只进入 `dist/releases/<version>/<variant>/`；版本目录不可覆盖，同名文件存在时打包必须失败关闭。
+- macOS `0.4.1` 本次只生成 `no-license`，保留的旧 `license` 仅作历史证据。
+- Windows 私有不可变 GitHub Release 是发布权威；本地下载副本统一放在 `apps/electron/releases/<version>/`，避免被 Electron Builder 清理 `dist/` 时误删。
+- `.app`、DMG staging、Electron 解包目录、Runtime 组装目录和缓存只能进入 `.build/`，不得与最终安装包混放。
 - 过期的 Electron `.build/runtime-template` 存在被 Electron Builder 误打包的风险。必须将旧快照移入 `.build/archive/`，使下一次本地构建在重新准备 Runtime 前保持失败关闭。
-- `dist/archive/` 和 `.build/archive/` 只是便于整理的本地保留区，不是备份权威或发布权威。
-- Windows 安装器证据保存在私有 Release；macOS 证据记录在任务或进度文档中，并包含 DMG 路径和 SHA-256。
+- 只保留 `0.3.0` 及之后的桌面安装包；低于 `0.3.0` 的 DMG、Setup 和对应 blockmap 删除。该保留规则不自动删除正式数据备份、恢复清单或发布验收记录。
 - 除非某个明确的验证任务规定了证据路径，否则不得把打包产物复制到 `data/exports/worker-verify/`。
 
 ## 5. 当前本地分类
 
-2026-08-03 完成目录整理后：
+2026-08-12 完成目录整理后：
 
-- 当前本地 Windows 副本：`apps/electron/dist/SAPD-Wiki-Setup-0.4.0-win-x64.exe`；
-- 过期的本地 Windows `0.3.0` Runtime：`apps/electron/.build/archive/local-windows-0.3.0/`；
-- 较早的本地 Windows 安装器和构建输出：`apps/electron/dist/archive/local-history/`；
-- 当前本地 macOS DMG：`dist/license/` 和 `dist/no-license/` 分别保留一个 `0.4.0` 文件；
-- 较早的本地 macOS DMG：各变体对应的 `dist/*/archive/` 目录；
-- 旧的嵌套 Swift 模块缓存：`.build/archive/legacy-nested-swift-cache-20260803/`。
+- Windows 本地安装器副本：`apps/electron/releases/0.3.0/`、`0.3.5/`、`0.4.0/`；`0.4.1` 成功发布后再从私有 Release 下载到对应版本目录；
+- Windows 发布权威：私有仓不可变 `internal-windows-*` Release；Delivery Data 仍使用独立不可变 `windows-data-*` Release；
+- macOS DMG：`apps/macos/SAPDWiki/dist/releases/0.3.0/`、`0.3.5/`、`0.4.0/`、`0.4.1/`；
+- macOS 当前待验收包：`dist/releases/0.4.1/no-license/`；
+- macOS 中间物：`apps/macos/SAPDWiki/.build/packaging/`；
+- 旧 macOS staging：`apps/macos/SAPDWiki/.build/archive/packaging-staging/`，仅作历史排查，不参与当前验收；
+- 低于 `0.3.0` 的本地桌面安装包已删除，GitHub 上不存在低于 `0.3.0` 的 Windows 安装器 Release。

@@ -9,6 +9,12 @@ const __filename = fileURLToPath(import.meta.url);
 const projectRoot = path.resolve(path.dirname(__filename), "..");
 const args = new Set(process.argv.slice(2));
 const strictCurrentSource = args.has("--strict-current-source");
+const variantArgument = process.argv.slice(2).find((argument) => argument.startsWith("--variant="));
+const requestedVariant = variantArgument ? variantArgument.slice("--variant=".length) : "all";
+if (!["all", "license", "no-license"].includes(requestedVariant)) {
+  throw new Error(`unsupported --variant=${requestedVariant}; use all, license, or no-license`);
+}
+const auditedVariants = requestedVariant === "all" ? ["license", "no-license"] : [requestedVariant];
 
 function read(relativePath) {
   return readFileSync(path.join(projectRoot, relativePath), "utf8");
@@ -251,9 +257,18 @@ add(checks, "release_full_validates_built_dmg_artifacts", [
   'manifest.get("app_version") != version',
   'runtime / "start-macos.command"',
   'runtime / "diagnostics/export-diagnostics.command"',
+  'Contents" / "Helpers" / "SAPDWikiKeychainRepair"',
+  'keychain_helper_stable_code_sha256',
   'VARIANTS = ("license", "no-license")',
 ].every((item) => verifyMacDmg.includes(item)), {
   files: [files.projectTestRunner, files.verifyMacDmg],
+});
+add(checks, "mac_app_stages_and_signs_keychain_repair_helper", [
+  'APP_HELPERS="$APP_CONTENTS/Helpers"',
+  'SAPDWikiKeychainRepair',
+  'sign_path "$APP_HELPERS/SAPDWikiKeychainRepair"',
+].every((item) => buildAndRun.includes(item)), {
+  files: [files.buildAndRun],
 });
 add(checks, "runtime_fingerprint_covers_frontend_config_base_backend", [
   "SAPD-Wiki-Backend",
@@ -343,7 +358,7 @@ add(checks, "dmg_reuses_one_current_source_backend_across_variants", [
   "BACKEND_BUILT_THIS_RUN=1",
 ].every((item) => packageDmg.includes(item)), { file: files.packageDmg });
 add(checks, "app_bundle_version_defaults_to_display_version", [
-  'DISPLAY_VERSION="${SAPD_WIKI_DISPLAY_VERSION:-${SAPD_WIKI_APP_VERSION:-0.4.0}}"',
+  'DISPLAY_VERSION="${SAPD_WIKI_DISPLAY_VERSION:-${SAPD_WIKI_APP_VERSION:-0.4.1}}"',
   'BUNDLE_VERSION="${SAPD_WIKI_BUNDLE_VERSION:-$DISPLAY_VERSION}"',
   '<string>$BUNDLE_VERSION</string>',
 ].every((item) => buildAndRun.includes(item)), {
@@ -377,9 +392,9 @@ add(checks, "dmg_image_staging_cleanup_covers_all_script_exits", [
 ].every((item) => packageDmg.includes(item)), {
   file: files.packageDmg,
 });
-const retainedDmgStagingRoots = ["license", "no-license"].map((variant) => path.join(
+const retainedDmgStagingRoots = auditedVariants.map((variant) => path.join(
   projectRoot,
-  "apps/macos/SAPDWiki/dist",
+  "apps/macos/SAPDWiki/.build/packaging",
   `dmg-staging-${variant}`,
   "Applications",
 ));
@@ -602,10 +617,10 @@ add(checks, "release_matrix_documents_bug_fix_acceptance_routing", releaseBugCla
   missing: releaseBugClassificationSnippets.filter((item) => !releaseMatrix.includes(item)),
 });
 
-const expectedStagingRuntimeRoots = [
-  "apps/macos/SAPDWiki/dist/dmg-staging-license/SAPD Wiki.app/Contents/Resources/Runtime",
-  "apps/macos/SAPDWiki/dist/dmg-staging-no-license/SAPD Wiki.app/Contents/Resources/Runtime",
-].map((relativePath) => path.join(projectRoot, relativePath));
+const expectedStagingRuntimeRoots = auditedVariants.map((variant) => path.join(
+  projectRoot,
+  `apps/macos/SAPDWiki/.build/packaging/dmg-staging-${variant}/SAPD Wiki.app/Contents/Resources/Runtime`,
+));
 const stagingRuntimeRoots = expectedStagingRuntimeRoots.filter((runtimeRoot) => existsSync(runtimeRoot));
 const missingStagingRuntimeRoots = expectedStagingRuntimeRoots
   .filter((runtimeRoot) => !existsSync(runtimeRoot))

@@ -12272,7 +12272,12 @@ function mcpActionSuccessMessage(action) {
 
 async function prepareMcpCertificateAction(action) {
   if (state.mcpPendingAction) return;
-  const allowed = ["certificate_provision", "certificate_rotate", "certificate_repair_trust"];
+  const allowed = [
+    "certificate_provision",
+    "certificate_rotate",
+    "certificate_repair_trust",
+    "certificate_repair_secret_access",
+  ];
   if (!allowed.includes(action)) return;
   const dataClient = window.sapdDataClient;
   const payload = mcpMutationPayload(`certificate-prepare-${action}`);
@@ -12329,7 +12334,14 @@ function mcpCertificateFailureMessage(code) {
     CERTIFICATE_TRUST_CONFIRMATION_TIMEOUT: "等待系统确认超时。请重新操作，并在 2 分钟内于系统提示中选择允许。",
     CERTIFICATE_TRUST_USER_DENIED: "系统未允许写入当前用户信任。请重新操作，并在系统提示中选择允许。",
     CERTIFICATE_TRUST_VERIFY_FAILED: "127.0.0.1 安全连接校验未通过，系统已自动回滚。",
-    SECRET_STORE_UNAVAILABLE: "macOS“登录”钥匙串当前锁定或无法验证；请在“钥匙串访问”中解锁“登录”钥匙串后重试，不要再次重置。",
+    SECRET_STORE_UNAVAILABLE: "macOS“登录”钥匙串当前不可用，请确认当前用户会话已解锁后重试。",
+    SECRET_STORE_LOCKED_OR_SESSION_UNAVAILABLE: "macOS“登录”钥匙串或当前用户会话尚未解锁，请先完成系统解锁后重试。",
+    SECRET_INTERACTION_NOT_ALLOWED: "macOS 当前无法显示钥匙串系统确认，请保持 SAPD Wiki 在前台后重试。",
+    SECRET_AUTH_OR_ACCESS_DENIED: "SAPD Wiki 对当前证书口令条目的访问被拒绝，请使用页面中的“修复访问权限”。",
+    SECRET_ACCESS_REPAIR_CANCELLED: "钥匙串访问权限未修改；如需继续，请重新操作并在 macOS 系统提示中确认。",
+    SECRET_ACCESS_REPAIR_FAILED: "钥匙串访问权限修复未完成，原证书、口令和客户端授权均保持不变。",
+    KEY_STORE_ACCESS_DENIED: "SAPD Wiki 对当前证书口令条目的访问被拒绝，请使用“修复访问权限”。",
+    KEY_STORE_BACKEND_FAILURE: "无法确认 macOS 钥匙串状态；系统不会重置证书或客户端授权。",
     SECRET_WRITE_FAILED: "证书密钥未能保存到当前用户安全存储，系统已自动回滚。",
   }[text(code).trim()] || "";
 }
@@ -12354,17 +12366,33 @@ async function confirmMcpCertificateAction() {
       : (await dataClient.confirmMcpCertificateAction({ ...payload, confirmationId: preview.confirmation_id }))?.data;
     state.mcpCertificatePreview = null;
     const operationId = text(response?.operation_id).trim();
-    const refreshed = operationId
+    let refreshed = operationId
       ? await waitForMcpCertificateOperation(operationId)
       : await loadMcpControlPanel({ force: true });
     if (!refreshed) throw new Error("证书操作已返回，但无法读取最新状态。");
+    if (
+      preview.action === "certificate_repair_secret_access"
+      && refreshed.status?.desired_state === "enabled"
+      && refreshed.status?.service_state === "error"
+    ) {
+      const retryPayload = mcpMutationPayload("keychain-access-repair-retry");
+      if (retryPayload && typeof dataClient?.retryMcpService === "function") {
+        await dataClient.retryMcpService(retryPayload);
+        refreshed = await loadMcpControlPanel({ force: true });
+      }
+    }
     if (["recovery_required", "error"].includes(text(refreshed.certificate?.state).trim())) {
+      if (preview.action === "certificate_repair_secret_access") {
+        throw new Error("钥匙串访问权限修复未生效；原证书、口令和客户端授权均未改变。请查看诊断信息或重新执行“修复访问权限”。");
+      }
       throw new Error("安全连接未能完整更新，请按页面提示恢复或重置 AI 集成。");
     }
     state.mcpControlNotice = {
       tone: "success",
-      message: preview.action === "certificate_repair_trust"
-        ? "本机安全连接已修复。"
+      message: preview.action === "certificate_repair_secret_access"
+        ? "当前证书口令条目的访问权限已修复；证书和客户端授权未改变。"
+        : preview.action === "certificate_repair_trust"
+          ? "本机安全连接已修复。"
         : preview.action === "certificate_rotate"
           ? refreshed.certificate?.cleanup_pending
             ? "本机安全证书已更新；旧证书将按页面所示时间自动清理。"

@@ -8,6 +8,7 @@ root.
 
 from __future__ import annotations
 
+import json
 import os
 import re
 import subprocess
@@ -43,15 +44,32 @@ TRANSIENT_SECRET_CUSTODY_CODES = frozenset(
     {
         "SECRET_BACKEND_UNAVAILABLE",
         "SECRET_STORE_UNAVAILABLE",
+        "SECRET_STORE_LOCKED_OR_SESSION_UNAVAILABLE",
+        "SECRET_INTERACTION_NOT_ALLOWED",
     }
 )
-KEYCHAIN_TEMPORARY_FAILURE_RETURN_CODES = frozenset({36, 51})
+REPAIRABLE_SECRET_ACCESS_CODES = frozenset(
+    {
+        "SECRET_AUTH_OR_ACCESS_DENIED",
+    }
+)
+KEYCHAIN_ITEM_NOT_FOUND_RETURN_CODE = 44
+KEYCHAIN_INTERACTION_NOT_ALLOWED_RETURN_CODE = 36
+KEYCHAIN_AUTH_OR_ACCESS_DENIED_RETURN_CODE = 51
+KEYCHAIN_ACCESS_HELPER_ENV = "SAPD_WIKI_KEYCHAIN_ACCESS_HELPER"
 
 
 def is_transient_secret_custody_error(error: BaseException) -> bool:
     return (
         isinstance(error, SecretCustodyError)
         and error.code in TRANSIENT_SECRET_CUSTODY_CODES
+    )
+
+
+def is_repairable_secret_access_error(error: BaseException) -> bool:
+    return (
+        isinstance(error, SecretCustodyError)
+        and error.code in REPAIRABLE_SECRET_ACCESS_CODES
     )
 
 
@@ -452,6 +470,148 @@ class SubprocessKeychainCommandRunner:
         )
 
 
+@dataclass(frozen=True, slots=True)
+class KeychainAccessDiagnosis:
+    keychain_unlocked: bool
+    item_found: bool
+    security_trusted: bool
+
+
+class KeychainAccessController(Protocol):
+    @property
+    def available(self) -> bool: ...
+
+    def diagnose(
+        self,
+        *,
+        keychain: Path,
+        service: str,
+        account: str,
+    ) -> KeychainAccessDiagnosis: ...
+
+    def repair(
+        self,
+        *,
+        keychain: Path,
+        service: str,
+        account: str,
+    ) -> None: ...
+
+
+class NativeKeychainAccessController:
+    """Narrow bridge to the signed macOS ACL helper.
+
+    The helper locates an exact generic-password item without requesting its
+    secret data. Repair replaces only decrypt ACL trusted applications with
+    ``/usr/bin/security`` and lets SecurityAgent own user authorization.
+    """
+
+    def __init__(self, helper_path: Path | None = None) -> None:
+        configured = str(os.environ.get(KEYCHAIN_ACCESS_HELPER_ENV, "")).strip()
+        self.helper_path = helper_path or (Path(configured) if configured else None)
+
+    @property
+    def available(self) -> bool:
+        helper = self.helper_path
+        return bool(
+            helper is not None
+            and helper.is_absolute()
+            and helper.name == "SAPDWikiKeychainRepair"
+            and helper.is_file()
+            and os.access(helper, os.X_OK)
+        )
+
+    def _run(
+        self,
+        command: str,
+        *,
+        keychain: Path,
+        service: str,
+        account: str,
+    ) -> dict[str, object]:
+        if not self.available or self.helper_path is None:
+            raise SecretCustodyError("SECRET_ACCESS_REPAIR_UNAVAILABLE")
+        if command not in {"diagnose", "repair"}:
+            raise SecretCustodyError("SECRET_ACCESS_REPAIR_FAILED")
+        try:
+            completed = subprocess.run(
+                (
+                    str(self.helper_path),
+                    command,
+                    str(keychain),
+                    service,
+                    account,
+                ),
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                shell=False,
+                check=False,
+                timeout=150 if command == "repair" else 15,
+                env={"PATH": "/usr/bin:/bin"},
+            )
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            raise SecretCustodyError("SECRET_ACCESS_REPAIR_FAILED") from exc
+        try:
+            payload = json.loads(completed.stdout[:4096].decode("utf-8"))
+        except (UnicodeError, json.JSONDecodeError) as exc:
+            raise SecretCustodyError("SECRET_ACCESS_REPAIR_FAILED") from exc
+        if not isinstance(payload, dict):
+            raise SecretCustodyError("SECRET_ACCESS_REPAIR_FAILED")
+        if completed.returncode != 0 or payload.get("ok") is not True:
+            code = str(payload.get("code", ""))
+            mapped = {
+                "ITEM_MISSING": "SECRET_ITEM_MISSING",
+                "INTERACTION_UNAVAILABLE": "SECRET_INTERACTION_NOT_ALLOWED",
+                "ACCESS_DENIED": "SECRET_AUTH_OR_ACCESS_DENIED",
+                "USER_CANCELLED": "SECRET_ACCESS_REPAIR_CANCELLED",
+            }.get(code, "SECRET_ACCESS_REPAIR_FAILED")
+            raise SecretCustodyError(mapped)
+        if payload.get("secret_api_calls") != 0:
+            raise SecretCustodyError("SECRET_ACCESS_REPAIR_FAILED")
+        return payload
+
+    def diagnose(
+        self,
+        *,
+        keychain: Path,
+        service: str,
+        account: str,
+    ) -> KeychainAccessDiagnosis:
+        payload = self._run(
+            "diagnose",
+            keychain=keychain,
+            service=service,
+            account=account,
+        )
+        values = (
+            payload.get("keychain_unlocked"),
+            payload.get("item_found"),
+            payload.get("security_trusted"),
+        )
+        if any(not isinstance(value, bool) for value in values):
+            raise SecretCustodyError("SECRET_ACCESS_REPAIR_FAILED")
+        return KeychainAccessDiagnosis(
+            keychain_unlocked=values[0],
+            item_found=values[1],
+            security_trusted=values[2],
+        )
+
+    def repair(
+        self,
+        *,
+        keychain: Path,
+        service: str,
+        account: str,
+    ) -> None:
+        self._run(
+            "repair",
+            keychain=keychain,
+            service=service,
+            account=account,
+        )
+
+
 def _security_interactive_argument(value: str) -> str:
     """Quote a controlled value for ``security -i`` without using argv."""
 
@@ -478,10 +638,12 @@ class MacOSWebDevKeychainSecretProvider:
         self,
         *,
         runner: KeychainCommandRunner | None = None,
+        access_controller: KeychainAccessController | None = None,
         mutation_enabled: bool = False,
         login_keychain: Path | None = None,
     ) -> None:
         self.runner = runner or SubprocessKeychainCommandRunner()
+        self.access_controller = access_controller or NativeKeychainAccessController()
         self.mutation_enabled = bool(mutation_enabled)
         candidate = login_keychain or (
             Path.home() / "Library" / "Keychains" / "login.keychain-db"
@@ -490,6 +652,10 @@ class MacOSWebDevKeychainSecretProvider:
             raise SecretCustodyError("SECRET_STORE_INVALID")
         self.login_keychain = candidate
         self.service = "com.sapd-wiki.local-mcp.web-dev"
+
+    @property
+    def access_repair_available(self) -> bool:
+        return bool(self.access_controller.available and self.mutation_enabled)
 
     @staticmethod
     def _require_platform() -> None:
@@ -502,26 +668,66 @@ class MacOSWebDevKeychainSecretProvider:
 
     def get_secret(self, reference: str) -> bytes | None:
         self._require_platform()
+        account = self._account(reference)
         result = self.runner.run(
             (
                 "/usr/bin/security",
                 "find-generic-password",
                 "-a",
-                self._account(reference),
+                account,
                 "-s",
                 self.service,
                 "-w",
                 str(self.login_keychain),
             )
         )
-        if result.returncode == 44:
+        if result.returncode == KEYCHAIN_ITEM_NOT_FOUND_RETURN_CODE:
             return None
         if result.returncode != 0:
-            raise SecretCustodyError("SECRET_STORE_UNAVAILABLE")
+            self._raise_read_failure(account=account, returncode=result.returncode)
         value = result.stdout.rstrip(b"\r\n")
         if len(value) < 32:
             raise SecretCustodyError("SECRET_VALUE_INVALID")
         return bytes(value)
+
+    def _raise_read_failure(self, *, account: str, returncode: int) -> None:
+        if returncode not in {
+            KEYCHAIN_INTERACTION_NOT_ALLOWED_RETURN_CODE,
+            KEYCHAIN_AUTH_OR_ACCESS_DENIED_RETURN_CODE,
+        }:
+            raise SecretCustodyError("SECRET_BACKEND_FAILURE")
+        diagnosis: KeychainAccessDiagnosis | None = None
+        if self.access_controller.available:
+            try:
+                diagnosis = self.access_controller.diagnose(
+                    keychain=self.login_keychain,
+                    service=self.service,
+                    account=account,
+                )
+            except SecretCustodyError:
+                diagnosis = None
+        if diagnosis is not None:
+            if not diagnosis.item_found:
+                raise SecretCustodyError("SECRET_ITEM_MISSING")
+            if not diagnosis.keychain_unlocked:
+                raise SecretCustodyError(
+                    "SECRET_STORE_LOCKED_OR_SESSION_UNAVAILABLE"
+                )
+            if not diagnosis.security_trusted:
+                raise SecretCustodyError("SECRET_AUTH_OR_ACCESS_DENIED")
+        if returncode == KEYCHAIN_INTERACTION_NOT_ALLOWED_RETURN_CODE:
+            raise SecretCustodyError("SECRET_INTERACTION_NOT_ALLOWED")
+        raise SecretCustodyError("SECRET_AUTH_OR_ACCESS_DENIED")
+
+    def repair_access(self, reference: str) -> None:
+        self._require_platform()
+        if not self.mutation_enabled or not self.access_controller.available:
+            raise SecretCustodyError("SECRET_ACCESS_REPAIR_UNAVAILABLE")
+        self.access_controller.repair(
+            keychain=self.login_keychain,
+            service=self.service,
+            account=self._account(reference),
+        )
 
     def put_secret(self, reference: str, secret: bytes) -> None:
         self._require_platform()
@@ -543,6 +749,11 @@ class MacOSWebDevKeychainSecretProvider:
             "add-generic-password "
             f"-a {_security_interactive_argument(self._account(reference))} "
             f"-s {_security_interactive_argument(self.service)} "
+            # Defensive contract only: macOS currently trusts the creating
+            # /usr/bin/security process by default. Making it explicit avoids
+            # depending on that implicit default; it is not a claimed root
+            # cause for any historical ACL failure.
+            f"-T {_security_interactive_argument('/usr/bin/security')} "
             "-U "
             f"-w {_security_interactive_argument(secret_text)} "
             f"{_security_interactive_argument(str(self.login_keychain))}\n"
@@ -552,8 +763,10 @@ class MacOSWebDevKeychainSecretProvider:
             input_bytes=prompt_value,
         )
         if result.returncode != 0:
-            if result.returncode in KEYCHAIN_TEMPORARY_FAILURE_RETURN_CODES:
-                raise SecretCustodyError("SECRET_STORE_UNAVAILABLE")
+            if result.returncode == KEYCHAIN_INTERACTION_NOT_ALLOWED_RETURN_CODE:
+                raise SecretCustodyError("SECRET_INTERACTION_NOT_ALLOWED")
+            if result.returncode == KEYCHAIN_AUTH_OR_ACCESS_DENIED_RETURN_CODE:
+                raise SecretCustodyError("SECRET_AUTH_OR_ACCESS_DENIED")
             raise SecretCustodyError("SECRET_WRITE_FAILED")
 
     def delete_secret(self, reference: str) -> None:
@@ -571,7 +784,9 @@ class MacOSWebDevKeychainSecretProvider:
                 str(self.login_keychain),
             )
         )
-        if result.returncode not in {0, 44}:
-            if result.returncode in KEYCHAIN_TEMPORARY_FAILURE_RETURN_CODES:
-                raise SecretCustodyError("SECRET_STORE_UNAVAILABLE")
+        if result.returncode not in {0, KEYCHAIN_ITEM_NOT_FOUND_RETURN_CODE}:
+            if result.returncode == KEYCHAIN_INTERACTION_NOT_ALLOWED_RETURN_CODE:
+                raise SecretCustodyError("SECRET_INTERACTION_NOT_ALLOWED")
+            if result.returncode == KEYCHAIN_AUTH_OR_ACCESS_DENIED_RETURN_CODE:
+                raise SecretCustodyError("SECRET_AUTH_OR_ACCESS_DENIED")
             raise SecretCustodyError("SECRET_DELETE_FAILED")

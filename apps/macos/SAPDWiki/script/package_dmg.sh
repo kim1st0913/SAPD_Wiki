@@ -5,8 +5,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 APP_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 REPO_ROOT="$(cd "$APP_ROOT/../../.." && pwd)"
 DIST_DIR="${SAPD_WIKI_DIST_DIR:-$APP_ROOT/dist}"
+RELEASES_DIR="${SAPD_WIKI_RELEASES_DIR:-$DIST_DIR/releases}"
+PACKAGE_WORK_DIR="${SAPD_WIKI_PACKAGE_WORK_DIR:-$APP_ROOT/.build/packaging}"
 APP_NAME="SAPD Wiki"
-APP_BUNDLE="$DIST_DIR/$APP_NAME.app"
+APP_BUNDLE="$PACKAGE_WORK_DIR/$APP_NAME.app"
 APP_VERSION="${SAPD_WIKI_APP_VERSION:-0.4.1}"
 export SAPD_WIKI_DISPLAY_VERSION="${SAPD_WIKI_DISPLAY_VERSION:-$APP_VERSION}"
 BUILD_STAMP="${SAPD_WIKI_BUILD_STAMP:-$(date -u +%Y%m%d-%H%M%SZ)}"
@@ -487,8 +489,8 @@ build_variant() {
   local title
   local rebuild_backend
   license_mode="$(license_mode_for_variant "$variant")"
-  output_dir="$DIST_DIR/$variant"
-  staging_dir="$DIST_DIR/dmg-staging-$variant"
+  output_dir="$RELEASES_DIR/$APP_VERSION/$variant"
+  staging_dir="$PACKAGE_WORK_DIR/dmg-staging-$variant"
   dmg_path="$output_dir/SAPD-Wiki-${APP_VERSION}-${variant}-${BUILD_STAMP}-mac-${ARCH}.dmg"
   title="$(variant_title "$variant")"
   rebuild_backend="${SAPD_WIKI_REBUILD_BACKEND:-auto}"
@@ -503,6 +505,7 @@ build_variant() {
   run_package_command env \
     "SAPD_WIKI_LICENSE_MODE=$license_mode" \
     "SAPD_WIKI_REBUILD_BACKEND=$rebuild_backend" \
+    "SAPD_WIKI_DIST_DIR=$PACKAGE_WORK_DIR" \
     SAPD_WIKI_INTERNAL_PACKAGE_LOCK_HELD=1 \
     "$SCRIPT_DIR/build_and_run.sh" build
   BACKEND_BUILT_THIS_RUN=1
@@ -536,7 +539,7 @@ build_variant() {
 
 assert_variant_output_available() {
   local variant="$1"
-  local dmg_path="$DIST_DIR/$variant/SAPD-Wiki-${APP_VERSION}-${variant}-${BUILD_STAMP}-mac-${ARCH}.dmg"
+  local dmg_path="$RELEASES_DIR/$APP_VERSION/$variant/SAPD-Wiki-${APP_VERSION}-${variant}-${BUILD_STAMP}-mac-${ARCH}.dmg"
   if [[ -e "$dmg_path" || -L "$dmg_path" ]]; then
     echo "refusing to overwrite existing historical DMG: $dmg_path" >&2
     return 1

@@ -48,7 +48,7 @@ macOS 不迁移到 GitHub Runner。DMG 继续在正式 Mac 主工作区本地构
 | 正式发布前 | Windows 10 / 11 实机 UAT | DMG 挂载、App Runtime、证书和目标客户端 UAT |
 
 目录、脚本、GitHub workflow 和本地产物的 owner 统一见
-`docs/09-delivery/packaging-directory-map.md`。本地 `.build/`、`dist/archive/`
+`docs/09-delivery/packaging-directory-map.md`。本地 `.build/` 和 `dist/releases/`
 以及归档 workflow 都不是当前发布入口。
 
 ## 3. 共同数据规则
@@ -230,11 +230,21 @@ SAPD_WIKI_REBUILD_BACKEND=1 \
 apps/macos/SAPDWiki/script/package_dmg.sh
 ```
 
-产物位于：
+最终产物位于（中间 `.app` 与 staging 位于 `.build/packaging/`）：
 
 ```text
-apps/macos/SAPDWiki/dist/license/
-apps/macos/SAPDWiki/dist/no-license/
+apps/macos/SAPDWiki/dist/releases/<version>/license/
+apps/macos/SAPDWiki/dist/releases/<version>/no-license/
+```
+
+`0.4.1` 本次正式打包只生成 `no-license` 变体。Windows 安装器以私有不可变
+GitHub Release 为发布权威；需要保留本地副本时下载到
+`apps/electron/releases/<version>/`，不得放回 Electron Builder 会清理的 `dist/`。
+
+本次只生成单一 macOS 变体时，严格 staging 审计使用：
+
+```bash
+node scripts/audit_mac_dmg_browser_parity_contract.mjs --strict-current-source --variant=no-license
 ```
 
 每个 DMG 的 staging 根目录必须包含：

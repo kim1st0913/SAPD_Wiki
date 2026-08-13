@@ -77,6 +77,9 @@ function maturityHarness() {
   let storageWriteCount = 0;
   let failedWrites = 0;
   let failedReads = 0;
+  let writeFailure = null;
+  let readFailure = null;
+  let elementFromPoint = () => null;
   const window = {
     sapdComponents: {},
     localStorage: {
@@ -84,7 +87,7 @@ function maturityHarness() {
         storageReadKeys.push(key);
         if (failedReads > 0) {
           failedReads -= 1;
-          throw new Error("storage unavailable");
+          throw readFailure || new Error("storage unavailable");
         }
         return storage.get(key) ?? null;
       },
@@ -92,7 +95,7 @@ function maturityHarness() {
         storageWriteCount += 1;
         if (failedWrites > 0) {
           failedWrites -= 1;
-          throw new Error("storage unavailable");
+          throw writeFailure || new Error("storage unavailable");
         }
         storage.set(key, String(value));
       },
@@ -109,6 +112,8 @@ function maturityHarness() {
     addEventListener() {},
     scrollX: 0,
     scrollY: 0,
+    innerWidth: 1920,
+    innerHeight: 1080,
     scrollTo(x, y) { this.scrollX = x; this.scrollY = y; },
     CSS: { escape: (value) => String(value) },
     crypto: { randomUUID: () => "test-uuid" },
@@ -124,8 +129,10 @@ function maturityHarness() {
   const document = {
     activeElement: null,
     body: null,
+    documentElement: { dataset: { sapdUiScale: "1" } },
     querySelector() { return null; },
     getElementById() { return null; },
+    elementFromPoint(clientX, clientY) { return elementFromPoint(clientX, clientY); },
     addEventListener(type, listener, capture) {
       const key = `${type}:${Boolean(capture)}`;
       documentListeners.set(key, listener);
@@ -138,7 +145,7 @@ function maturityHarness() {
   };
   const marker = "  components.MaturityAssessmentWorkbench = {";
   assert(component.includes(marker), "maturity test harness injection point missing");
-  const instrumented = component.replace(marker, `  window.__maturityTest = { model, persistDetail, scheduleDetailPersistence, flushScheduledDetailPersistence, hydrateWorkspace, dashboardSnapshot, bindRoot, handleDeleteModalKeydown, applyDeleteModalInertBoundary, clearDeleteModalInertBoundary, restoreRenderPosition, render, renderProjectList, displayTemplateName, standardProjectTemplateName, standardCustomTemplateName, syncMaturityShellHeader, copyTemplateSubtree, createStandaloneTemplateWorkspace, refreshHydratedAssessments, restorePersistedReports, importTemplate, importScoreExchange, generateReport, calculateDetail, saveCreateDraft, createProject, saveProjectInfo, validateTemplate, completeAssessment, unlockAssessmentForEditing, beginScoreDirectoryResize, unmount: typeof unmount === "function" ? unmount : undefined };\n${marker}`);
+  const instrumented = component.replace(marker, `  window.__maturityTest = { model, persistDetail, scheduleDetailPersistence, flushScheduledDetailPersistence, hydrateWorkspace, dashboardSnapshot, bindRoot, handleDeleteModalKeydown, applyDeleteModalInertBoundary, clearDeleteModalInertBoundary, restoreRenderPosition, render, renderProjectList, displayTemplateName, standardProjectTemplateName, standardCustomTemplateName, syncMaturityShellHeader, copyTemplateSubtree, createStandaloneTemplateWorkspace, refreshHydratedAssessments, restorePersistedReports, importTemplate, importScoreExchange, generateReport, calculateDetail, saveCreateDraft, createProject, saveProjectInfo, validateTemplate, completeAssessment, unlockAssessmentForEditing, beginScoreDirectoryResize, safeStore, writeStore, localStoreFailureSnapshot, localStoreFailureMessage, persistenceFailureFeedback, maturityAdaptiveScale, maturityLogicalPoint, maturityLogicalRectSize, maturityContextMenuPosition, fitMaturityContextMenuToViewport, maturityLogicalWheelDelta, closestTemplateContextTarget, unmount: typeof unmount === "function" ? unmount : undefined };\n${marker}`);
   vm.runInNewContext(instrumented, {
     window,
     document,
@@ -159,8 +166,9 @@ function maturityHarness() {
     storage,
     storageReadKeys,
     storageWriteCount() { return storageWriteCount; },
-    failNextReads(count) { failedReads = count; },
-    failNextWrites(count) { failedWrites = count; },
+    failNextReads(count, error = null) { failedReads = count; readFailure = error; },
+    failNextWrites(count, error = null) { failedWrites = count; writeFailure = error; },
+    setElementFromPoint(callback) { elementFromPoint = callback; },
     runTimers() {
       while (timers.size) {
         const pending = [...timers.values()];
@@ -468,6 +476,163 @@ for (const invalidStore of ["[]", "1", '{"version":"2.1","projects":[]}']) {
   assert.equal(harness.persistDetail(incoming), false, `invalid store structure was accepted: ${invalidStore}`);
   assert.equal(incoming.localSaveState, "error");
   assert.equal(harness.storage.get(key), invalidStore, "invalid store structure was overwritten");
+  assert.equal(
+    harness.localStoreFailureSnapshot().kind,
+    "read_invalid_structure",
+    "invalid local-store structure did not retain a neutral failure classification",
+  );
+}
+
+{
+  const harness = maturityHarness();
+  harness.window.innerWidth = 3008;
+  harness.window.innerHeight = 1092;
+  harness.document.documentElement.dataset.sapdUiScale = "1.56";
+  assert.equal(harness.maturityAdaptiveScale(), 1.56);
+  const logicalPoint = harness.maturityLogicalPoint(312, 468, { left: 156, top: 156 });
+  assert.equal(logicalPoint.x, 100, "viewport X was not converted only when entering maturity logical space");
+  assert.equal(logicalPoint.y, 200, "viewport Y was not converted only when entering maturity logical space");
+  const logicalRect = harness.maturityLogicalRectSize({ width: 1560, height: 780 });
+  assert.equal(logicalRect.width, 1000, "scaled DOM rect width was not converted to maturity logical size");
+  assert.equal(logicalRect.height, 500, "scaled DOM rect height was not converted to maturity logical size");
+  const underestimatedMenu = harness.maturityContextMenuPosition(3000, 1080, { widthInset: 238, heightInset: 264 });
+  assert(
+    underestimatedMenu.y * 1.56 + 498.91 > 1092,
+    "the former 264 logical-pixel estimate no longer reproduces the real node-menu overflow",
+  );
+  const menu = harness.maturityContextMenuPosition(3000, 1080, { widthInset: 238, heightInset: 332 });
+  assert(menu.x >= 12 && menu.y >= 12, "scaled context menu escaped the logical viewport start boundary");
+  assert((menu.x + 238) * 1.56 <= 3008, "scaled context menu escaped the physical viewport width");
+  const nodeMenu = {
+    style: { top: `${menu.y}px` },
+    getBoundingClientRect() {
+      const top = Number.parseFloat(this.style.top) * 1.56;
+      return { top, bottom: top + 498.91, height: 498.91 };
+    },
+  };
+  harness.fitMaturityContextMenuToViewport(nodeMenu);
+  const nodeMenuRect = nodeMenu.getBoundingClientRect();
+  assert(nodeMenuRect.bottom <= 1092 && 1092 - nodeMenuRect.bottom >= 0, "3008x1092 node menu escaped the physical viewport height");
+  assert(1092 - nodeMenuRect.bottom >= 11, "node menu did not retain the physical viewport margin");
+
+  const canvasPosition = harness.maturityContextMenuPosition(3000, 1080, { widthInset: 238, heightInset: 160 });
+  const canvasMenu = {
+    style: { top: `${canvasPosition.y}px` },
+    getBoundingClientRect() {
+      const top = Number.parseFloat(this.style.top) * 1.56;
+      return { top, bottom: top + 180, height: 180 };
+    },
+  };
+  harness.fitMaturityContextMenuToViewport(canvasMenu);
+  assert(canvasMenu.getBoundingClientRect().bottom <= 1092, "3008x1092 canvas menu escaped the physical viewport height");
+  assert.equal(harness.maturityLogicalWheelDelta(156, 0, { getBoundingClientRect: () => ({ height: 780 }) }), 100);
+
+  const node = { closest(selector) { return selector === "[data-template-node-type][data-template-node-id]" ? this : null; } };
+  let point = null;
+  harness.setElementFromPoint((clientX, clientY) => { point = [clientX, clientY]; return node; });
+  const matched = harness.closestTemplateContextTarget({
+    clientX: 211,
+    clientY: 377,
+    target: { closest() { return null; } },
+    composedPath() { return []; },
+  }, "[data-template-node-type][data-template-node-id]");
+  assert.equal(matched, node, "node context fallback did not recover the visible node");
+  assert.equal(point[0], 211, "elementFromPoint changed the raw viewport X coordinate");
+  assert.equal(point[1], 377, "elementFromPoint changed the raw viewport Y coordinate");
+
+  harness.document.documentElement.dataset.sapdUiScale = "1";
+  const baselinePoint = harness.maturityLogicalPoint(312, 468, { left: 156, top: 156 });
+  assert.equal(baselinePoint.x, 156);
+  assert.equal(baselinePoint.y, 312);
+  harness.window.innerWidth = 1920;
+  harness.window.innerHeight = 1080;
+  const baselineMenuPosition = harness.maturityContextMenuPosition(1910, 1070, { widthInset: 238, heightInset: 332 });
+  const baselineMenu = {
+    style: { top: `${baselineMenuPosition.y}px` },
+    getBoundingClientRect() {
+      const top = Number.parseFloat(this.style.top);
+      return { top, bottom: top + 319.5, height: 319.5 };
+    },
+  };
+  harness.fitMaturityContextMenuToViewport(baselineMenu);
+  assert(baselineMenu.getBoundingClientRect().bottom <= 1080, "1920x1080 node menu escaped the physical viewport height");
+}
+
+{
+  const harness = maturityHarness();
+  const key = "sapd-wiki-maturity-controlled-demo-v2.1";
+  const original = JSON.stringify({ version: "2.1", projects: { kept: detail("kept") } });
+  harness.storage.set(key, original);
+
+  harness.failNextWrites(1, new DOMException("full", "QuotaExceededError"));
+  assert.equal(harness.writeStore({ version: "2.1", projects: { quota: detail("quota") } }), false);
+  assert.equal(harness.storage.get(key), original, "quota failure overwrote existing local maturity data");
+  assert.equal(harness.localStoreFailureSnapshot().stage, "write");
+  assert.equal(harness.localStoreFailureSnapshot().kind, "quota_exceeded");
+  assert(harness.localStoreFailureSnapshot().byteSize > 0, "quota diagnostic omitted serialized byte size");
+  assert.deepEqual(
+    Object.keys(harness.localStoreFailureSnapshot()).sort(),
+    ["byteSize", "errorName", "kind", "stage"],
+    "storage diagnostics retained more than neutral metadata",
+  );
+  assert.match(harness.localStoreFailureMessage("模板草稿"), /容量不足/);
+  assert.match(harness.persistenceFailureFeedback(), /容量不足/);
+
+  assert.equal(harness.writeStore({ version: "2.1", projects: {} }), true);
+  assert.equal(harness.localStoreFailureSnapshot(), null, "successful write did not clear stale storage failure state");
+}
+
+{
+  const harness = maturityHarness();
+  harness.failNextWrites(1, new DOMException("denied", "SecurityError"));
+  assert.equal(harness.writeStore({ version: "2.1", projects: {} }), false);
+  assert.equal(harness.localStoreFailureSnapshot().kind, "write_dom_exception");
+  assert.match(harness.localStoreFailureMessage(), /拒绝了本地写入/);
+}
+
+{
+  const harness = maturityHarness();
+  const key = "sapd-wiki-maturity-controlled-demo-v2.1";
+  const original = JSON.stringify({ version: "2.1", projects: { kept: detail("kept") } });
+  harness.storage.set(key, original);
+  harness.failNextReads(1, new DOMException("denied", "SecurityError"));
+  assert.equal(Object.keys(harness.safeStore()).length, 0);
+  assert.equal(harness.localStoreFailureSnapshot().kind, "read_unavailable");
+  assert.match(harness.localStoreFailureMessage(), /为保护现有数据，本次未写入/);
+  assert.equal(harness.writeStore({ version: "2.1", projects: {} }), false, "read denial did not fail closed");
+  assert.equal(harness.storage.get(key), original, "read denial changed existing local maturity data");
+}
+
+{
+  const harness = maturityHarness();
+  harness.window.localStorage = null;
+  assert.equal(Object.keys(harness.safeStore()).length, 0);
+  assert.equal(harness.localStoreFailureSnapshot().kind, "read_unavailable");
+  assert.match(harness.localStoreFailureMessage(), /当前无法读取/);
+}
+
+{
+  const harness = maturityHarness();
+  const key = "sapd-wiki-maturity-controlled-demo-v2.1";
+  harness.storage.set(key, "{broken");
+  assert.equal(Object.keys(harness.safeStore()).length, 0);
+  assert.equal(harness.localStoreFailureSnapshot().kind, "read_invalid_json");
+  assert.match(harness.localStoreFailureMessage(), /无法解析/);
+  assert.equal(harness.storage.get(key), "{broken", "damaged JSON was overwritten");
+}
+
+{
+  const harness = maturityHarness();
+  const cyclic = {};
+  cyclic.self = cyclic;
+  assert.equal(harness.writeStore(cyclic), false);
+  assert.equal(harness.localStoreFailureSnapshot().kind, "serialize_failed");
+  assert.equal(harness.localStoreFailureSnapshot().byteSize, 0);
+
+  harness.failNextWrites(1, new Error("unknown write failure"));
+  assert.equal(harness.writeStore({ version: "2.1", projects: {} }), false);
+  assert.equal(harness.localStoreFailureSnapshot().kind, "write_unknown");
+  assert.doesNotMatch(harness.localStoreFailureMessage(), /清空|删除全部/);
 }
 
 {
@@ -501,11 +666,12 @@ for (const invalidStore of ["[]", "1", '{"version":"2.1","projects":[]}']) {
   const harness = maturityHarness();
   harness.model.workspace = { template: assessmentDetail().template, dictionarySnapshot: { id: "dictionary" } };
   harness.model.navigate = () => assert.fail("failed template draft must not navigate");
-  harness.failNextWrites(2);
+  harness.failNextWrites(2, new DOMException("full", "QuotaExceededError"));
   const created = harness.createStandaloneTemplateWorkspace();
   assert.equal(created, false);
   assert.deepEqual(Object.keys(harness.model.details), [], "failed template draft remained in memory");
   assert.equal(harness.model.toastTone, "error", "failed template draft reported success");
+  assert.match(harness.model.toast, /容量不足/, "failed template draft did not surface the classified storage reason");
 }
 
 {

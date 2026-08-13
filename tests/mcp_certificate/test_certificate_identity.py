@@ -33,6 +33,17 @@ class ToggleSecretProvider(InMemorySecretProvider):
         return super().get_secret(reference)
 
 
+class ClassifiedFailureSecretProvider(InMemorySecretProvider):
+    def __init__(self) -> None:
+        super().__init__()
+        self.failure_code: str | None = None
+
+    def get_secret(self, reference: str) -> bytes | None:
+        if self.failure_code is not None:
+            raise SecretCustodyError(self.failure_code)
+        return super().get_secret(reference)
+
+
 class CertificateIdentityTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temporary = tempfile.TemporaryDirectory()
@@ -262,6 +273,34 @@ class CertificateIdentityTests(unittest.TestCase):
         recovered = store.public_state(trust_installed=True)
         self.assertEqual(recovered["state"], "valid")
         self.assertIsNone(recovered["reason_code"])
+
+    def test_access_denial_and_unknown_backend_failure_have_distinct_recovery(self) -> None:
+        provider = ClassifiedFailureSecretProvider()
+        store = CertificateIdentityStore(
+            Path(self.temporary.name) / "classified-keychain-identity",
+            secret_provider=provider,
+        )
+        store.provision(install_id="install-classified-keychain-error-01")
+
+        provider.failure_code = "SECRET_AUTH_OR_ACCESS_DENIED"
+        denied = store.public_state(trust_installed=True)
+        self.assertEqual(denied["state"], "error")
+        self.assertEqual(
+            denied["reason_code"],
+            "CERTIFICATE_SECRET_ACCESS_DENIED",
+        )
+        self.assertEqual(
+            denied["next_action"],
+            "certificate_repair_secret_access",
+        )
+
+        provider.failure_code = "SECRET_BACKEND_FAILURE"
+        failed = store.public_state(trust_installed=True)
+        self.assertEqual(
+            failed["reason_code"],
+            "CERTIFICATE_SECRET_BACKEND_FAILURE",
+        )
+        self.assertEqual(failed["next_action"], "certificate_view_details")
 
 
 if __name__ == "__main__":

@@ -121,6 +121,31 @@ class ToggleSecretProvider(InMemorySecretProvider):
         return super().get_secret(reference)
 
 
+class RepairableAccessDeniedSecretProvider(RecordingSecretProvider):
+    access_repair_available = True
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.access_denied = False
+        self.repair_error: str | None = None
+        self.repaired_references: list[str] = []
+
+    def get_secret(self, reference: str) -> bytes | None:
+        if self.access_denied:
+            raise SecretCustodyError("SECRET_AUTH_OR_ACCESS_DENIED")
+        return super().get_secret(reference)
+
+    def repair_access(self, reference: str) -> None:
+        self.repaired_references.append(reference)
+        if self.repair_error is not None:
+            raise SecretCustodyError(self.repair_error)
+        self.access_denied = False
+
+    def stored_secret_bytes(self, reference: str) -> bytes | None:
+        value = self._values.get(reference)
+        return bytes(value) if value is not None else None
+
+
 class VolatileVerifiedAtTrust(FakeCurrentUserTrustAdapter):
     def __init__(self) -> None:
         super().__init__()
@@ -667,6 +692,174 @@ class DevSupervisorTests(unittest.TestCase):
             self.assertEqual(recovered["status"]["service_state"], "ready")
             self.assertIsNotNone(supervisor.process)
             self.assertIsNone(supervisor.process.poll())
+        finally:
+            supervisor.close()
+
+    def test_keychain_access_denial_repairs_exact_item_and_preserves_identity(
+        self,
+    ) -> None:
+        port = free_port()
+        provider = RepairableAccessDeniedSecretProvider()
+        supervisor = DevSidecarSupervisor(
+            configured_port=port,
+            certificate_secret_provider=provider,
+            auto_restore_enabled=True,
+        )
+        try:
+            certificate = provision_certificate(supervisor)
+            original_ca = certificate["ca_fingerprint_sha256"]
+            original_server = certificate["server_fingerprint_sha256"]
+            original_reference = provider.last_reference
+            original_secret = provider.last_secret
+            provider.access_denied = True
+
+            denied = supervisor.read_snapshot()
+            self.assertEqual(
+                denied["certificate"]["reason_code"],
+                "CERTIFICATE_SECRET_ACCESS_DENIED",
+            )
+            self.assertEqual(
+                denied["certificate"]["next_action"],
+                "certificate_repair_secret_access",
+            )
+            self.assertTrue(
+                denied["settings"]["control_capabilities"][
+                    "certificate_repair_secret_access"
+                ]
+            )
+            with self.assertRaises(GatewayActionError):
+                supervisor.start_service(
+                    request_id="request-start-access-denied",
+                    expected_state_version=denied["state_version"],
+                )
+            failed_start = supervisor.read_snapshot()
+            self.assertEqual(
+                failed_start["status"]["recoverable_error"],
+                {
+                    "code": "KEY_STORE_ACCESS_DENIED",
+                    "recovery_action": "repair_keychain_access",
+                },
+            )
+
+            prepared = supervisor.prepare_certificate_action(
+                action="certificate_repair_secret_access",
+                request_id="request-prepare-access-repair",
+                expected_state_version=failed_start["state_version"],
+            )
+            self.assertEqual(
+                prepared["effects"],
+                [
+                    "repair_current_item_access",
+                    "preserve_managed_identity",
+                    "preserve_client_authorization",
+                ],
+            )
+            supervisor.confirm_certificate_action(
+                confirmation_id=prepared["confirmation_id"],
+                request_id="request-confirm-access-repair",
+                expected_state_version=prepared["state_version"],
+            )
+
+            repaired = supervisor.read_snapshot()
+            self.assertEqual(provider.repaired_references, [original_reference])
+            self.assertEqual(provider.last_secret, original_secret)
+            self.assertEqual(repaired["certificate"]["state"], "valid")
+            self.assertEqual(
+                repaired["certificate"]["ca_fingerprint_sha256"],
+                original_ca,
+            )
+            self.assertEqual(
+                repaired["certificate"]["server_fingerprint_sha256"],
+                original_server,
+            )
+            repair_events = [
+                event
+                for event in repaired["audit"]["recent_events"]
+                if event["event_type"] == "KEYCHAIN_ACCESS_REPAIR"
+            ]
+            self.assertEqual(repair_events[0]["result_code"], "SUCCESS")
+
+            supervisor.retry_service(
+                request_id="request-retry-after-access-repair",
+                expected_state_version=repaired["state_version"],
+            )
+            self.assertEqual(
+                supervisor.read_snapshot()["status"]["service_state"],
+                "ready",
+            )
+        finally:
+            supervisor.close()
+
+    def test_cancelled_keychain_access_repair_fails_closed_and_consumes_confirmation(
+        self,
+    ) -> None:
+        provider = RepairableAccessDeniedSecretProvider()
+        supervisor = DevSidecarSupervisor(
+            configured_port=free_port(),
+            certificate_secret_provider=provider,
+            auto_restore_enabled=True,
+        )
+        try:
+            certificate = provision_certificate(supervisor)
+            original_reference = provider.last_reference
+            original_secret = provider.last_secret
+            original_ca = certificate["ca_fingerprint_sha256"]
+            original_server = certificate["server_fingerprint_sha256"]
+            provider.access_denied = True
+            provider.repair_error = "SECRET_ACCESS_REPAIR_CANCELLED"
+
+            denied = supervisor.read_snapshot()
+            prepared = supervisor.prepare_certificate_action(
+                action="certificate_repair_secret_access",
+                request_id="request-prepare-cancelled-access-repair",
+                expected_state_version=denied["state_version"],
+            )
+            with self.assertRaises(GatewayActionError):
+                supervisor.confirm_certificate_action(
+                    confirmation_id=prepared["confirmation_id"],
+                    request_id="request-confirm-cancelled-access-repair",
+                    expected_state_version=prepared["state_version"],
+                )
+
+            failed = supervisor.read_snapshot()
+            self.assertIsNotNone(original_reference)
+            self.assertEqual(
+                provider.stored_secret_bytes(original_reference),
+                original_secret,
+            )
+            self.assertEqual(
+                failed["certificate"]["ca_fingerprint_sha256"],
+                original_ca,
+            )
+            self.assertEqual(
+                failed["certificate"]["server_fingerprint_sha256"],
+                original_server,
+            )
+            self.assertEqual(
+                failed["status"]["recoverable_error"],
+                {
+                    "code": "SECRET_ACCESS_REPAIR_CANCELLED",
+                    "recovery_action": "repair_keychain_access",
+                },
+            )
+            repair_events = [
+                event
+                for event in failed["audit"]["recent_events"]
+                if event["event_type"] == "KEYCHAIN_ACCESS_REPAIR"
+            ]
+            self.assertEqual(
+                repair_events[0]["result_code"],
+                "SECRET_ACCESS_REPAIR_CANCELLED",
+            )
+            self.assertEqual(len(provider.repaired_references), 1)
+
+            with self.assertRaises(GatewayActionError):
+                supervisor.confirm_certificate_action(
+                    confirmation_id=prepared["confirmation_id"],
+                    request_id="request-replay-cancelled-access-repair",
+                    expected_state_version=failed["state_version"],
+                )
+            self.assertEqual(len(provider.repaired_references), 1)
         finally:
             supervisor.close()
 

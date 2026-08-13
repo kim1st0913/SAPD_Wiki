@@ -93,8 +93,22 @@ assert.match(settingsCss, /\.app-shell-integrated \.topbar\s*\{\s*overflow:\s*vi
 assert.match(settingsCss, /\.mcp-status-monitor:hover \.mcp-status-popover/);
 assert.match(settingsSource, /macos_web_dev_keychain:\s*"macOS 登录钥匙串（开发环境）"/);
 assert.match(settingsSource, /unlock_keychain:\s*"请解锁 macOS“登录”钥匙串后重试"/);
-assert.match(settingsSource, /SECRET_STORE_UNAVAILABLE:[^,\n]*钥匙串当前锁定或无法验证/);
-assert.match(app, /SECRET_STORE_UNAVAILABLE:[^,\n]*钥匙串当前锁定或无法验证/);
+assert.match(settingsSource, /SECRET_STORE_UNAVAILABLE:[^,\n]*钥匙串当前不可用/);
+assert.match(settingsSource, /SECRET_AUTH_OR_ACCESS_DENIED:[^,\n]*修复访问权限/);
+assert.match(app, /SECRET_STORE_UNAVAILABLE:[^,\n]*钥匙串当前不可用/);
+assert.match(app, /SECRET_AUTH_OR_ACCESS_DENIED:[^,\n]*修复访问权限/);
+const confirmCertificateActionSource = app.match(
+  /async function confirmMcpCertificateAction\(\) \{[\s\S]*?\n\}\n\nasync function performMcpControlAction/,
+)?.[0] || "";
+assert.match(
+  confirmCertificateActionSource,
+  /preview\.action === "certificate_repair_secret_access"[\s\S]*钥匙串访问权限修复未生效；原证书、口令和客户端授权均未改变。请查看诊断信息或重新执行“修复访问权限”/,
+);
+assert.ok(
+  confirmCertificateActionSource.indexOf("钥匙串访问权限修复未生效")
+    < confirmCertificateActionSource.indexOf("恢复或重置 AI 集成"),
+  "access repair must use its neutral failure message before the generic certificate reset guidance",
+);
 
 const context = vm.createContext({ window: { sapdComponents: {} } });
 vm.runInContext(settingsSource, context, { filename: "SystemSettings.js" });
@@ -140,6 +154,7 @@ const aiHtml = component.render({
         certificate_provision: true,
         certificate_rotate: true,
         certificate_repair_trust: true,
+        certificate_repair_secret_access: true,
         certificate_view_details: true,
       },
     },
@@ -389,8 +404,39 @@ const temporarilyLockedHtml = component.render({
   },
 });
 assert.match(temporarilyLockedHtml, /安全存储暂不可用/);
-assert.match(temporarilyLockedHtml, /已运行的 MCP 会保持服务，请解锁后重新启动/);
+assert.match(temporarilyLockedHtml, /已运行的 MCP 会保持服务，请完成系统解锁后重试/);
 assert.doesNotMatch(temporarilyLockedHtml, /重置 AI 集成并重新初始化/);
+
+const accessDeniedHtml = component.render({
+  route: "/settings/ai-integration",
+  mcp: {
+    contract_version: "sapd-mcp-control-v1",
+    status: {
+      service_state: "error",
+      recoverable_error: {
+        code: "KEY_STORE_ACCESS_DENIED",
+        recovery_action: "repair_keychain_access",
+      },
+    },
+    settings: {
+      control_capabilities: {
+        certificate_repair_secret_access: true,
+        certificate_view_details: true,
+      },
+    },
+    certificate: certificate("error", {
+      reason_code: "CERTIFICATE_SECRET_ACCESS_DENIED",
+      next_action: "certificate_repair_secret_access",
+    }),
+    clients: [],
+    diagnostics: { overall_state: "blocked", last_checked_at: null, checks: [] },
+  },
+});
+assert.match(accessDeniedHtml, /钥匙串访问被拒绝/);
+assert.match(accessDeniedHtml, /data-mcp-certificate-action="certificate_repair_secret_access"/);
+assert.match(accessDeniedHtml, /修复访问权限/);
+assert.doesNotMatch(accessDeniedHtml, /解锁 macOS“登录”钥匙串/);
+assert.doesNotMatch(accessDeniedHtml, /重置 AI 集成并重新初始化/);
 
 const rotatingHtml = component.render({
   route: "/settings/ai-integration",

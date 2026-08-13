@@ -30,7 +30,11 @@ from .path_security import (
     atomic_write_secure,
     ensure_secure_directory,
 )
-from .platform_secrets import is_transient_secret_custody_error
+from .platform_secrets import (
+    SecretCustodyError,
+    is_repairable_secret_access_error,
+    is_transient_secret_custody_error,
+)
 
 
 MANIFEST_SCHEMA_VERSION = 1
@@ -704,6 +708,8 @@ class CertificateIdentityStore:
         remaining_days = max(0, (valid_until.date() - now.date()).days)
         secret_available: bool | None = None
         secret_store_temporarily_unavailable = False
+        secret_access_denied = False
+        secret_backend_failed = False
         if forced_state is not None:
             state, reason, next_action = (
                 forced_state,
@@ -746,6 +752,13 @@ class CertificateIdentityStore:
             except Exception as exc:
                 if is_transient_secret_custody_error(exc):
                     secret_store_temporarily_unavailable = True
+                elif is_repairable_secret_access_error(exc):
+                    secret_access_denied = True
+                elif (
+                    isinstance(exc, SecretCustodyError)
+                    and exc.code == "SECRET_BACKEND_FAILURE"
+                ):
+                    secret_backend_failed = True
                 else:
                     secret_available = False
         if (
@@ -759,6 +772,32 @@ class CertificateIdentityStore:
             state, reason, next_action = (
                 "error",
                 "CERTIFICATE_SECRET_STORE_UNAVAILABLE",
+                "certificate_view_details",
+            )
+        elif (
+            forced_state is None
+            and now >= valid_from
+            and now < valid_until
+            and not trust_conflict
+            and trust_installed
+            and secret_access_denied
+        ):
+            state, reason, next_action = (
+                "error",
+                "CERTIFICATE_SECRET_ACCESS_DENIED",
+                "certificate_repair_secret_access",
+            )
+        elif (
+            forced_state is None
+            and now >= valid_from
+            and now < valid_until
+            and not trust_conflict
+            and trust_installed
+            and secret_backend_failed
+        ):
+            state, reason, next_action = (
+                "error",
+                "CERTIFICATE_SECRET_BACKEND_FAILURE",
                 "certificate_view_details",
             )
         elif (

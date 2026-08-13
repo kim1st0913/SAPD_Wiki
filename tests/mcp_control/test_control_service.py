@@ -234,14 +234,23 @@ class FakeSupervisorGateway:
             request_id,
             expected_state_version,
         )
+        effects = (
+            [
+                "repair_current_item_access",
+                "preserve_managed_identity",
+                "preserve_client_authorization",
+            ]
+            if action == "certificate_repair_secret_access"
+            else [
+                "create_managed_identity",
+                "install_current_user_trust",
+            ]
+        )
         result.update(
             {
                 "confirmation_id": "certificate-confirmation-0001",
                 "expires_at": "2026-07-23T01:05:00Z",
-                "effects": [
-                    "create_managed_identity",
-                    "install_current_user_trust",
-                ],
+                "effects": effects,
                 "action": action,
                 "profile": "dev",
                 "expected_ca_fingerprint_sha256": None,
@@ -406,6 +415,21 @@ class ControlServiceTests(unittest.TestCase):
             expected_state_version=1,
         )
         self.assertEqual(confirmed["operation_id"], "certificate-operation-0001")
+
+    def test_keychain_access_repair_projects_narrow_preservation_effects(self) -> None:
+        prepared = self.service.prepare_certificate_action(
+            action="certificate_repair_secret_access",
+            request_id="request-keychain-repair-prepare-0001",
+            expected_state_version=0,
+        )
+        self.assertEqual(
+            prepared["certificate_confirmation"]["effects"],
+            [
+                "repair_current_item_access",
+                "preserve_managed_identity",
+                "preserve_client_authorization",
+            ],
+        )
 
     def test_sensitive_gateway_field_is_rejected_recursively(self) -> None:
         self.gateway.snapshot["diagnostics"]["checks"][0]["access_token"] = "not-returned"

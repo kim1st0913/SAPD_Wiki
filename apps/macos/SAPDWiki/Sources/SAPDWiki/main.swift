@@ -1295,6 +1295,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         process.executableURL = backendURL
         process.currentDirectoryURL = runtimeRoot
         process.arguments = ["--bundle-root", runtimeRoot.path, "--no-browser"]
+        let keychainRepairHelper = Bundle.main.bundleURL
+            .appendingPathComponent("Contents/Helpers/SAPDWikiKeychainRepair")
+        guard FileManager.default.isExecutableFile(atPath: keychainRepairHelper.path) else {
+            throw RuntimeError("SAPDWikiKeychainRepair is missing or not executable.")
+        }
+        var environment = ProcessInfo.processInfo.environment
+        environment["SAPD_WIKI_KEYCHAIN_ACCESS_HELPER"] = keychainRepairHelper.path
+        process.environment = environment
 
         let logsRoot = runtimeRoot.appendingPathComponent("logs", isDirectory: true)
         try FileManager.default.createDirectory(at: logsRoot, withIntermediateDirectories: true)

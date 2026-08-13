@@ -302,24 +302,106 @@
   }
 
   let localStoreReadAvailable = true;
+  let localStoreFailure = null;
+
+  function localStoreFailureSnapshot() {
+    return localStoreFailure ? { ...localStoreFailure } : null;
+  }
+
+  function localStoreErrorName(error) {
+    const name = typeof error?.name === "string" ? error.name.trim() : "";
+    return name || "UnknownError";
+  }
+
+  function localStoreUtf8ByteLength(value) {
+    let size = 0;
+    for (const character of String(value || "")) {
+      const codePoint = character.codePointAt(0);
+      size += codePoint <= 0x7f ? 1 : codePoint <= 0x7ff ? 2 : codePoint <= 0xffff ? 3 : 4;
+    }
+    return size;
+  }
+
+  function recordLocalStoreFailure({ stage, kind, error = null, byteSize = 0 }) {
+    localStoreFailure = {
+      stage,
+      kind,
+      errorName: localStoreErrorName(error),
+      byteSize: Math.max(0, Number(byteSize) || 0),
+    };
+    return localStoreFailure;
+  }
+
+  function clearLocalStoreFailure() {
+    localStoreFailure = null;
+  }
+
+  function localStoreWriteFailureKind(error) {
+    const name = localStoreErrorName(error);
+    if (name === "QuotaExceededError" || Number(error?.code) === 22 || Number(error?.code) === 1014) return "quota_exceeded";
+    const domExceptionNames = new Set(["AbortError", "DataError", "InvalidStateError", "NotAllowedError", "OperationError", "SecurityError", "UnknownError"]);
+    const isDomException = (typeof DOMException !== "undefined" && error instanceof DOMException) || domExceptionNames.has(name);
+    return isDomException ? "write_dom_exception" : "write_unknown";
+  }
+
+  function localStoreFailureMessage(subject = "本地成熟度数据") {
+    const label = text(subject).trim() || "本地成熟度数据";
+    switch (localStoreFailure?.kind) {
+      case "quota_exceeded":
+        return `${label}未保存：App 或浏览器本地存储容量不足。请先导出仍需保留的项目或模板，再删除明确不再需要的内容后重试。`;
+      case "read_unavailable":
+        return "本地成熟度数据当前无法读取；为保护现有数据，本次未写入。请确认 App 或浏览器存储可用后重试。";
+      case "read_invalid_json":
+        return "已有本地成熟度数据无法解析；为保护现有数据，本次未写入。请保留当前数据并联系维护人员处理。";
+      case "read_invalid_structure":
+        return "已有本地成熟度数据结构无效；为保护现有数据，本次未写入。请保留当前数据并联系维护人员处理。";
+      case "serialize_failed":
+        return `${label}无法序列化，本次未写入。请撤销最近一次编辑后重试；持续失败请提供诊断信息。`;
+      case "write_unavailable":
+        return `${label}未保存：本地存储写入接口当前不可用。本次未覆盖现有数据，请重新打开 App 或页面后重试。`;
+      case "write_dom_exception":
+        return `${label}未保存：App 或浏览器拒绝了本地写入。本次未覆盖现有数据，请重新打开 App 或页面后重试。`;
+      case "write_unknown":
+      default:
+        return `${label}写入失败，本次未覆盖现有数据。请保留当前页面并重试；持续失败请提供诊断信息。`;
+    }
+  }
 
   function isRecord(value) {
     return Boolean(value) && typeof value === "object" && !Array.isArray(value);
   }
 
   function safeStore() {
+    let raw = null;
     try {
-      const raw = window.localStorage?.getItem(STORAGE_KEY);
-      const parsed = raw ? JSON.parse(raw) : {};
-      if (!isRecord(parsed) || (Object.prototype.hasOwnProperty.call(parsed, "projects") && !isRecord(parsed.projects))) {
-        throw new TypeError("invalid maturity local store structure");
+      const storage = window.localStorage;
+      if (!storage || typeof storage.getItem !== "function") {
+        localStoreReadAvailable = false;
+        recordLocalStoreFailure({ stage: "read", kind: "read_unavailable" });
+        return {};
       }
-      localStoreReadAvailable = true;
-      return parsed;
-    } catch {
+      raw = storage.getItem(STORAGE_KEY);
+    } catch (error) {
       localStoreReadAvailable = false;
+      recordLocalStoreFailure({ stage: "read", kind: "read_unavailable", error });
       return {};
     }
+    let parsed = {};
+    try {
+      parsed = raw ? JSON.parse(raw) : {};
+    } catch (error) {
+      localStoreReadAvailable = false;
+      recordLocalStoreFailure({ stage: "parse", kind: "read_invalid_json", error });
+      return {};
+    }
+    if (!isRecord(parsed) || (Object.prototype.hasOwnProperty.call(parsed, "projects") && !isRecord(parsed.projects))) {
+      localStoreReadAvailable = false;
+      recordLocalStoreFailure({ stage: "structure", kind: "read_invalid_structure", error: new TypeError("invalid maturity local store structure") });
+      return {};
+    }
+    localStoreReadAvailable = true;
+    clearLocalStoreFailure();
+    return parsed;
   }
 
   function dashboardSummaryEntry(detail) {
@@ -414,12 +496,35 @@
 
   function writeStore(store) {
     if (!localStoreReadAvailable) return false;
+    let storage = null;
     try {
-      const storage = window.localStorage;
-      if (!storage || typeof storage.setItem !== "function") return false;
-      storage.setItem(STORAGE_KEY, JSON.stringify(store));
+      storage = window.localStorage;
+    } catch (error) {
+      recordLocalStoreFailure({ stage: "write", kind: localStoreWriteFailureKind(error), error });
+      return false;
+    }
+    if (!storage || typeof storage.setItem !== "function") {
+      recordLocalStoreFailure({ stage: "write", kind: "write_unavailable" });
+      return false;
+    }
+    let serialized = "";
+    try {
+      serialized = JSON.stringify(store);
+    } catch (error) {
+      recordLocalStoreFailure({ stage: "serialize", kind: "serialize_failed", error });
+      return false;
+    }
+    try {
+      storage.setItem(STORAGE_KEY, serialized);
+      clearLocalStoreFailure();
       return true;
-    } catch {
+    } catch (error) {
+      recordLocalStoreFailure({
+        stage: "write",
+        kind: localStoreWriteFailureKind(error),
+        error,
+        byteSize: localStoreUtf8ByteLength(serialized),
+      });
       return false;
     }
   }
@@ -571,7 +676,7 @@
   }
 
   function persistenceFailureFeedback() {
-    return `<div class="maturity-v24-feedback is-error" role="alert" data-maturity-persistence-feedback><strong>保存失败</strong><span>本地存储当前不可用，请保留页面并检查浏览器或 App 存储权限后重试。</span></div>`;
+    return `<div class="maturity-v24-feedback is-error" role="alert" data-maturity-persistence-feedback><strong>保存失败</strong><span>${escapeHtml(localStoreFailureMessage("当前修改"))}</span></div>`;
   }
 
   function syncPersistenceFeedback(detail) {
@@ -2949,28 +3054,101 @@
     return layout;
   }
 
+  function maturityAdaptiveScale() {
+    const scale = Number(document.documentElement?.dataset?.sapdUiScale);
+    return Number.isFinite(scale) && scale > 0 ? scale : 1;
+  }
+
+  function maturityLogicalPoint(clientX, clientY, origin = { left: 0, top: 0 }, adaptiveScale = maturityAdaptiveScale()) {
+    const scale = Number.isFinite(Number(adaptiveScale)) && Number(adaptiveScale) > 0 ? Number(adaptiveScale) : 1;
+    return {
+      x: (Number(clientX) - Number(origin?.left || 0)) / scale,
+      y: (Number(clientY) - Number(origin?.top || 0)) / scale,
+    };
+  }
+
+  function maturityLogicalRectSize(rect, adaptiveScale = maturityAdaptiveScale()) {
+    const scale = Number.isFinite(Number(adaptiveScale)) && Number(adaptiveScale) > 0 ? Number(adaptiveScale) : 1;
+    return {
+      width: Number(rect?.width || 0) / scale,
+      height: Number(rect?.height || 0) / scale,
+    };
+  }
+
+  function maturityContextMenuPosition(clientX, clientY, { widthInset = 238, heightInset = 264 } = {}, adaptiveScale = maturityAdaptiveScale()) {
+    const point = maturityLogicalPoint(clientX, clientY, undefined, adaptiveScale);
+    const viewport = maturityLogicalRectSize({ width: window.innerWidth, height: window.innerHeight }, adaptiveScale);
+    return {
+      x: Math.max(12, Math.min(Math.max(12, viewport.width - widthInset), point.x)),
+      y: Math.max(12, Math.min(Math.max(12, viewport.height - heightInset), point.y)),
+    };
+  }
+
+  function fitMaturityContextMenuToViewport(menu, { viewportMargin = 12 } = {}) {
+    if (!menu?.getBoundingClientRect) return false;
+    const rect = menu.getBoundingClientRect();
+    const viewportHeight = Number(window.innerHeight || 0);
+    if (!viewportHeight || !Number.isFinite(rect.top) || !Number.isFinite(rect.bottom)) return false;
+    const scale = maturityAdaptiveScale();
+    const minimumTop = Math.max(0, Number(viewportMargin || 0));
+    const maximumBottom = Math.max(minimumTop, viewportHeight - minimumTop);
+    let nextPhysicalTop = rect.top;
+    if (rect.bottom > maximumBottom) nextPhysicalTop -= rect.bottom - maximumBottom;
+    if (nextPhysicalTop < minimumTop) nextPhysicalTop = minimumTop;
+    const currentLogicalTop = Number.parseFloat(menu.style.top);
+    const logicalTop = Number.isFinite(currentLogicalTop) ? currentLogicalTop : rect.top / scale;
+    const nextLogicalTop = logicalTop + (nextPhysicalTop - rect.top) / scale;
+    if (Math.abs(nextLogicalTop - logicalTop) > 0.01) menu.style.top = `${Math.max(0, nextLogicalTop)}px`;
+    return true;
+  }
+
+  function maturityLogicalWheelDelta(delta, deltaMode, viewport, adaptiveScale = maturityAdaptiveScale()) {
+    const scale = Number.isFinite(Number(adaptiveScale)) && Number(adaptiveScale) > 0 ? Number(adaptiveScale) : 1;
+    const rawViewportHeight = viewport?.getBoundingClientRect?.().height || window.innerHeight || scale;
+    const rawUnit = deltaMode === 1 ? 16 * scale : deltaMode === 2 ? Math.max(rawViewportHeight, scale) : 1;
+    return Number(delta || 0) * rawUnit / scale;
+  }
+
+  function closestTemplateContextTarget(event, selector) {
+    const direct = event.target?.closest?.(selector);
+    if (direct) return direct;
+    const path = typeof event.composedPath === "function" ? event.composedPath() : [];
+    for (const candidate of path) {
+      if (candidate?.matches?.(selector)) return candidate;
+      const ancestor = candidate?.closest?.(selector);
+      if (ancestor) return ancestor;
+    }
+    const hit = Number.isFinite(event.clientX) && Number.isFinite(event.clientY)
+      ? document.elementFromPoint(event.clientX, event.clientY)
+      : null;
+    return hit?.closest?.(selector) || null;
+  }
+
   function positionTemplateMindmapViewport(detail, selected, { fit = false } = {}) {
     const viewport = model.root?.querySelector("[data-template-mindmap-viewport]");
     const stage = viewport?.querySelector("[data-template-mindmap-stage]");
     if (!viewport || !stage || !detail) return false;
     const layout = templateMindmapLayout(detail, selected);
     const rect = viewport.getBoundingClientRect();
-    if (!rect.width || !rect.height) return false;
-    const toolbarHeight = viewport.querySelector(".maturity-v41-mindmap-toolbar")?.getBoundingClientRect().height || 58;
-    const toolbarInset = Math.min(rect.height * 0.32, Math.max(78, toolbarHeight + 24));
-    const usableHeight = Math.max(180, rect.height - toolbarInset);
+    const adaptiveScale = maturityAdaptiveScale();
+    const logicalRect = maturityLogicalRectSize(rect, adaptiveScale);
+    if (!logicalRect.width || !logicalRect.height) return false;
+    const toolbarRect = viewport.querySelector(".maturity-v41-mindmap-toolbar")?.getBoundingClientRect();
+    const toolbarHeight = maturityLogicalRectSize(toolbarRect, adaptiveScale).height || 58;
+    const toolbarInset = Math.min(logicalRect.height * 0.32, Math.max(78, toolbarHeight + 24));
+    const usableHeight = Math.max(180, logicalRect.height - toolbarInset);
     const zoom = fit
-      ? Math.max(0.05, Math.min(0.82, Math.min((rect.width - 52) / layout.stageWidth, (usableHeight - 36) / layout.stageHeight)))
+      ? Math.max(0.05, Math.min(0.82, Math.min((logicalRect.width - 52) / layout.stageWidth, (usableHeight - 36) / layout.stageHeight)))
       : Math.max(0.05, Math.min(1.3, Number(model.templateMindmapZoom || 0.5)));
     const target = templateLayoutNode(layout, selected?.type || "TEMPLATE", selected?.id || detail.template.id) || layout.root;
     model.templateMindmapZoom = Math.round(zoom * 100) / 100;
     if (fit) {
-      model.templateMindmapPanX = Math.round((rect.width - layout.stageWidth * model.templateMindmapZoom) / 2);
+      model.templateMindmapPanX = Math.round((logicalRect.width - layout.stageWidth * model.templateMindmapZoom) / 2);
       model.templateMindmapPanY = Math.round(toolbarInset + (usableHeight - layout.stageHeight * model.templateMindmapZoom) / 2);
     } else {
       const anchorX = target === layout.root
         ? 34 + target.width * model.templateMindmapZoom / 2
-        : rect.width * 0.58;
+        : logicalRect.width * 0.58;
       model.templateMindmapPanX = Math.round(anchorX - (target.x + target.width / 2) * model.templateMindmapZoom);
       model.templateMindmapPanY = Math.round(toolbarInset + usableHeight / 2 - (target.y + 26) * model.templateMindmapZoom);
     }
@@ -3283,13 +3461,13 @@
     const canRemove = record.type !== "TEMPLATE";
     return `<div class="maturity-v40-context-menu" role="menu" aria-label="${escapeHtml(templateNodeLabel(record.type, record.node))} 操作" style="left:${Math.max(12, Number(menu.x || 0))}px;top:${Math.max(12, Number(menu.y || 0))}px">
       <header><span>${escapeHtml(record.type === "TEMPLATE" ? "自定义模板" : record.type === "DRAFT" ? "自由节点" : record.type === "FOCUS" ? "关注点" : record.type === "SERVICE" ? "安全技术服务" : record.type)}</span><strong>${escapeHtml(record.node.name || "未命名")}</strong></header>
-      <button type="button" role="menuitem" data-maturity-action="edit-template-node">编辑属性<span>↵</span></button>
-      ${record.type === "TEMPLATE" ? `<button type="button" role="menuitem" data-maturity-action="begin-template-inline-child" data-template-parent-type="TEMPLATE" data-template-parent-id="${escapeHtml(record.id)}" data-template-child-type="L0">新增能力 L0<span>＋</span></button><button type="button" role="menuitem" data-maturity-action="begin-template-inline-child" data-template-parent-type="TEMPLATE" data-template-parent-id="${escapeHtml(record.id)}" data-template-child-type="L1">新增根级能力 L1<span>＋</span></button>` : canAddChild ? `<button type="button" role="menuitem" data-maturity-action="add-template-child">新增下级<span>＋</span></button>` : ""}
-      ${canAddSibling ? `<button type="button" role="menuitem" data-maturity-action="add-template-sibling">新增同级<span>⇥</span></button>` : ""}
-      ${childCount ? `<button type="button" role="menuitem" data-maturity-action="toggle-template-node-collapse" data-template-node-type="${record.type}" data-template-node-id="${escapeHtml(record.id)}">${expanded ? "收起" : "展开"}全部下级<span>${childCount}</span></button>` : ""}
-      <button type="button" role="menuitem" data-maturity-action="copy-template-subtree">${record.type === "TEMPLATE" ? "复制完整模板" : record.type === "DRAFT" ? "复制自由节点" : "复制节点及全部下级"}<span>⌘D</span></button>
-      ${canMove ? `<button type="button" role="menuitem" data-maturity-action="move-template-node" data-direction="-1">上移<span>⌃</span></button><button type="button" role="menuitem" data-maturity-action="move-template-node" data-direction="1">下移<span>⌄</span></button>` : ""}
-      ${canRemove ? `<button class="is-danger" type="button" role="menuitem" data-maturity-action="remove-template-node">${record.type === "DRAFT" ? "移除自由节点" : "从模板移除"}<span>⌫</span></button>` : ""}
+      <button type="button" role="menuitem" data-maturity-action="edit-template-node">编辑属性</button>
+      ${record.type === "TEMPLATE" ? `<button type="button" role="menuitem" data-maturity-action="begin-template-inline-child" data-template-parent-type="TEMPLATE" data-template-parent-id="${escapeHtml(record.id)}" data-template-child-type="L0">新增能力 L0</button><button type="button" role="menuitem" data-maturity-action="begin-template-inline-child" data-template-parent-type="TEMPLATE" data-template-parent-id="${escapeHtml(record.id)}" data-template-child-type="L1">新增根级能力 L1</button>` : canAddChild ? `<button type="button" role="menuitem" data-maturity-action="add-template-child">新增下级</button>` : ""}
+      ${canAddSibling ? `<button type="button" role="menuitem" data-maturity-action="add-template-sibling">新增同级</button>` : ""}
+      ${childCount ? `<button type="button" role="menuitem" data-maturity-action="toggle-template-node-collapse" data-template-node-type="${record.type}" data-template-node-id="${escapeHtml(record.id)}">${expanded ? "收起" : "展开"}全部下级（${childCount}）</button>` : ""}
+      <button type="button" role="menuitem" data-maturity-action="copy-template-subtree">${record.type === "TEMPLATE" ? "复制完整模板" : record.type === "DRAFT" ? "复制自由节点" : "复制节点及全部下级"}</button>
+      ${canMove ? `<button type="button" role="menuitem" data-maturity-action="move-template-node" data-direction="-1">上移</button><button type="button" role="menuitem" data-maturity-action="move-template-node" data-direction="1">下移</button>` : ""}
+      ${canRemove ? `<button class="is-danger" type="button" role="menuitem" data-maturity-action="remove-template-node">${record.type === "DRAFT" ? "移除自由节点" : "从模板移除"}</button>` : ""}
     </div>`;
   }
 
@@ -3298,7 +3476,7 @@
     if (!menu) return "";
     return `<div class="maturity-v40-context-menu maturity-v41-canvas-context-menu" role="menu" aria-label="画布空白位置操作" style="left:${Math.max(12, Number(menu.x || 0))}px;top:${Math.max(12, Number(menu.y || 0))}px">
       <header><span>画布操作</span><strong>在此处创建自由节点</strong></header>
-      <button type="button" role="menuitem" data-maturity-action="start-add-loose-node">新增自由节点<span>＋</span></button>
+      <button type="button" role="menuitem" data-maturity-action="start-add-loose-node">新增自由节点</button>
     </div>`;
   }
 
@@ -6379,7 +6557,7 @@
     model.details[workspaceId] = detail;
     if (!persistDetail(detail)) {
       delete model.details[workspaceId];
-      showToast("模板草稿未保存，请检查本地存储空间后重试", "error");
+      showToast(localStoreFailureMessage("模板草稿"), "error");
       return false;
     }
     model.activeTab = "template";
@@ -8961,8 +9139,13 @@
     if (action === "remove-custom-focus") removeCustomFocus(detail, actionTarget.dataset.focusId);
     if (action === "start-add-loose-node") {
       const menu = model.templateCanvasContextMenu;
+      const logicalViewport = maturityLogicalRectSize({ width: window.innerWidth, height: window.innerHeight });
       model.templateCanvasContextMenu = null;
-      model.templateLooseComposer = menu ? { ...menu, x: Math.min(window.innerWidth - 310, menu.x), y: Math.min(window.innerHeight - 286, menu.y) } : null;
+      model.templateLooseComposer = menu ? {
+        ...menu,
+        x: Math.max(14, Math.min(logicalViewport.width - 310, menu.x)),
+        y: Math.max(14, Math.min(logicalViewport.height - 286, menu.y)),
+      } : null;
       render();
       window.setTimeout(() => document.getElementById("maturityLooseNodeName")?.select(), 0);
     }
@@ -9564,40 +9747,46 @@
   }
 
   function handleTemplateContextMenu(event) {
-    const target = event.target.closest?.("[data-template-node-type][data-template-node-id]");
+    const target = closestTemplateContextTarget(event, "[data-template-node-type][data-template-node-id]");
     const detail = activeDetail();
     if (!detail || detail.project.readOnly || model.activeTab !== "template") return;
     if (!target) {
-      const viewport = event.target.closest?.("[data-template-mindmap-viewport]");
+      const viewport = closestTemplateContextTarget(event, "[data-template-mindmap-viewport]");
       if (!viewport || event.target.closest?.(".maturity-v41-floating-panel")) return;
       event.preventDefault();
       const rect = viewport.getBoundingClientRect();
+      const adaptiveScale = maturityAdaptiveScale();
+      const logicalPoint = maturityLogicalPoint(event.clientX, event.clientY, rect, adaptiveScale);
+      const menuPosition = maturityContextMenuPosition(event.clientX, event.clientY, { widthInset: 238, heightInset: 160 }, adaptiveScale);
       const zoom = Number(model.templateMindmapZoom || 0.5);
       const layout = templateMindmapLayout(detail, selectedTemplateNode(detail));
       model.templateContextMenu = null;
       model.templateCanvasContextMenu = {
-        x: Math.min(window.innerWidth - 238, event.clientX),
-        y: Math.min(window.innerHeight - 160, event.clientY),
-        stageX: Math.max(24, Math.min(layout.stageWidth - 260, (event.clientX - rect.left - Number(model.templateMindmapPanX || 0)) / zoom)),
-        stageY: Math.max(64, Math.min(layout.stageHeight - 100, (event.clientY - rect.top - Number(model.templateMindmapPanY || 0)) / zoom)),
+        x: menuPosition.x,
+        y: menuPosition.y,
+        stageX: Math.max(24, Math.min(layout.stageWidth - 260, (logicalPoint.x - Number(model.templateMindmapPanX || 0)) / zoom)),
+        stageY: Math.max(64, Math.min(layout.stageHeight - 100, (logicalPoint.y - Number(model.templateMindmapPanY || 0)) / zoom)),
       };
       render();
+      fitMaturityContextMenuToViewport(model.root?.querySelector(".maturity-v41-canvas-context-menu"));
       window.setTimeout(() => model.root?.querySelector(".maturity-v41-canvas-context-menu button")?.focus(), 0);
       return;
     }
     event.preventDefault();
     model.selectedTemplateNodeType = target.dataset.templateNodeType || "";
     model.selectedTemplateNodeId = target.dataset.templateNodeId || "";
+    const menuPosition = maturityContextMenuPosition(event.clientX, event.clientY, { widthInset: 238, heightInset: 332 });
     model.templateContextMenu = {
       type: model.selectedTemplateNodeType,
       id: model.selectedTemplateNodeId,
-      x: Math.min(window.innerWidth - 238, event.clientX),
-      y: Math.min(window.innerHeight - 264, event.clientY),
+      x: menuPosition.x,
+      y: menuPosition.y,
     };
     model.templateCanvasContextMenu = null;
     model.templateLooseComposer = null;
     selectedTemplateNode(detail);
     render();
+    fitMaturityContextMenuToViewport(model.root?.querySelector(".maturity-v40-context-menu:not(.maturity-v41-canvas-context-menu)"));
     window.setTimeout(() => model.root?.querySelector(".maturity-v40-context-menu button")?.focus(), 0);
   }
 
@@ -9701,11 +9890,16 @@
   function zoomTemplateMindmapAt(viewport, nextZoom, clientX, clientY) {
     if (!viewport) return false;
     const rect = viewport.getBoundingClientRect();
-    if (!rect.width || !rect.height) return false;
+    const adaptiveScale = maturityAdaptiveScale();
+    const logicalRect = maturityLogicalRectSize(rect, adaptiveScale);
+    if (!logicalRect.width || !logicalRect.height) return false;
     const previousZoom = Math.max(0.05, Number(model.templateMindmapZoom || 0.5));
     const zoom = Math.max(0.05, Math.min(1.3, Math.round(Number(nextZoom || previousZoom) * 1000) / 1000));
-    const anchorX = Number.isFinite(clientX) ? clientX - rect.left : rect.width / 2;
-    const anchorY = Number.isFinite(clientY) ? clientY - rect.top : rect.height / 2;
+    const anchor = Number.isFinite(clientX) && Number.isFinite(clientY)
+      ? maturityLogicalPoint(clientX, clientY, rect, adaptiveScale)
+      : { x: logicalRect.width / 2, y: logicalRect.height / 2 };
+    const anchorX = anchor.x;
+    const anchorY = anchor.y;
     const stageX = (anchorX - Number(model.templateMindmapPanX || 0)) / previousZoom;
     const stageY = (anchorY - Number(model.templateMindmapPanY || 0)) / previousZoom;
     model.templateMindmapZoom = zoom;
@@ -9726,16 +9920,17 @@
     event.preventDefault();
     event.stopPropagation();
     if (model.templateMindmapGesture) return;
-    const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? Math.max(viewport.clientHeight, 1) : 1;
+    const adaptiveScale = maturityAdaptiveScale();
+    const deltaX = maturityLogicalWheelDelta(event.deltaX, event.deltaMode, viewport, adaptiveScale);
+    const deltaY = maturityLogicalWheelDelta(event.deltaY, event.deltaMode, viewport, adaptiveScale);
     if (event.ctrlKey || event.metaKey) {
-      const delta = Number(event.deltaY || 0) * unit;
-      const factor = Math.exp(-delta * 0.008);
+      const factor = Math.exp(-deltaY * 0.008);
       zoomTemplateMindmapAt(viewport, Number(model.templateMindmapZoom || 0.5) * factor, event.clientX, event.clientY);
       markTemplateGestureActive(viewport);
       return;
     }
-    model.templateMindmapPanX -= Number(event.deltaX || 0) * unit;
-    model.templateMindmapPanY -= Number(event.deltaY || 0) * unit;
+    model.templateMindmapPanX -= deltaX;
+    model.templateMindmapPanY -= deltaY;
     applyTemplateMindmapTransform(viewport);
   }
 
@@ -9793,6 +9988,7 @@
       startY: event.clientY,
       originX: Number(model.templateMindmapPanX || 0),
       originY: Number(model.templateMindmapPanY || 0),
+      adaptiveScale: maturityAdaptiveScale(),
       active: true,
       viewport,
     };
@@ -9804,8 +10000,8 @@
   function handleTemplateMindmapPointerMove(event) {
     const state = model.templateMindmapPointerDrag;
     if (!state || state.pointerId !== event.pointerId) return;
-    model.templateMindmapPanX = state.originX + event.clientX - state.startX;
-    model.templateMindmapPanY = state.originY + event.clientY - state.startY;
+    model.templateMindmapPanX = state.originX + (event.clientX - state.startX) / state.adaptiveScale;
+    model.templateMindmapPanY = state.originY + (event.clientY - state.startY) / state.adaptiveScale;
     applyTemplateMindmapTransform(state.viewport);
     event.preventDefault();
   }

@@ -272,6 +272,8 @@
       retry_service: "请重新启动 MCP 服务",
       change_port: "请修改本地端口后重试",
       unlock_keychain: "请解锁 macOS“登录”钥匙串后重试",
+      repair_keychain_access: "请使用 App 内“修复访问权限”",
+      view_diagnostics: "请查看诊断信息；系统不会自动重置证书",
     }[text(action).trim()] || (action ? "请按页面提示处理后重试" : "无需操作");
   }
 
@@ -347,7 +349,23 @@
         state,
         label: "安全存储暂不可用",
         tone: "warning",
-        message: "当前用户安全存储暂时无法读取；已运行的 MCP 会保持服务，请解锁后重新启动。",
+        message: "macOS 登录钥匙串或当前用户会话暂不可用；已运行的 MCP 会保持服务，请完成系统解锁后重试。",
+      };
+    }
+    if (state === "error" && reason === "CERTIFICATE_SECRET_ACCESS_DENIED") {
+      return {
+        state,
+        label: "钥匙串访问被拒绝",
+        tone: "warning",
+        message: "当前证书仍然有效，但 SAPD Wiki 无法读取对应口令条目；可在 App 内修复访问权限，不会重建证书或授权。",
+      };
+    }
+    if (state === "error" && reason === "CERTIFICATE_SECRET_BACKEND_FAILURE") {
+      return {
+        state,
+        label: "钥匙串状态异常",
+        tone: "error",
+        message: "无法确认 macOS 钥匙串状态；系统不会自动重置证书、私钥或客户端授权。",
       };
     }
     const presentations = {
@@ -373,6 +391,7 @@
       certificate_provision: { value: "certificate_provision", label: "建立本机安全连接" },
       certificate_rotate: { value: "certificate_rotate", label: "更新证书" },
       certificate_repair_trust: { value: "certificate_repair_trust", label: "修复安全连接" },
+      certificate_repair_secret_access: { value: "certificate_repair_secret_access", label: "修复访问权限" },
     };
     const action = actions[nextAction];
     return action && capabilities[action.value] !== false ? action : null;
@@ -820,6 +839,9 @@
       create_managed_identity: "生成仅用于本机 127.0.0.1 的 CA 与服务器证书",
       install_current_user_trust: "在当前用户范围建立受限 HTTPS 信任",
       replace_current_user_trust: "以新证书替换本应用此前管理的当前用户信任",
+      repair_current_item_access: "只修复当前证书对应的一条钥匙串口令记录",
+      preserve_managed_identity: "保留现有 CA、服务器证书、私钥文件和证书指纹",
+      preserve_client_authorization: "保留 OAuth 客户端、Refresh Token 与只读授权",
     }[text(effect).trim()] || "更新一项本机安全连接配置";
   }
 
@@ -828,7 +850,14 @@
       CERTIFICATE_TRUST_CONFIRMATION_TIMEOUT: "等待系统确认超时。请重新操作，并在 2 分钟内于系统提示中选择允许。",
       CERTIFICATE_TRUST_USER_DENIED: "系统未允许写入当前用户信任。请重新操作，并在系统提示中选择允许。",
       CERTIFICATE_TRUST_VERIFY_FAILED: "证书已写入，但 127.0.0.1 安全连接校验未通过；系统已自动回滚。",
-      SECRET_STORE_UNAVAILABLE: "macOS“登录”钥匙串当前锁定或无法验证；请在“钥匙串访问”中解锁“登录”钥匙串后重试，不要再次重置。",
+      SECRET_STORE_UNAVAILABLE: "macOS“登录”钥匙串当前不可用，请确认当前用户会话已解锁后重试。",
+      SECRET_STORE_LOCKED_OR_SESSION_UNAVAILABLE: "macOS“登录”钥匙串或当前用户会话尚未解锁，请先完成系统解锁后重试。",
+      SECRET_INTERACTION_NOT_ALLOWED: "macOS 当前无法显示钥匙串系统确认，请保持 SAPD Wiki 在前台后重试。",
+      SECRET_AUTH_OR_ACCESS_DENIED: "SAPD Wiki 对当前证书口令条目的访问被拒绝，请使用页面中的“修复访问权限”。",
+      SECRET_ACCESS_REPAIR_CANCELLED: "钥匙串访问权限未修改；如需继续，请重新操作并在 macOS 系统提示中确认。",
+      SECRET_ACCESS_REPAIR_FAILED: "钥匙串访问权限修复未完成，原证书、口令和客户端授权均保持不变。",
+      KEY_STORE_ACCESS_DENIED: "SAPD Wiki 对当前证书口令条目的访问被拒绝，请使用“修复访问权限”。",
+      KEY_STORE_BACKEND_FAILURE: "无法确认 macOS 钥匙串状态；系统不会重置证书或客户端授权。",
       SECRET_WRITE_FAILED: "证书密钥未能保存到当前用户安全存储；系统已自动回滚。",
     }[text(code).trim()] || "";
   }
@@ -838,14 +867,23 @@
     const action = text(preview.action).trim();
     const provision = action === "certificate_provision";
     const repair = action === "certificate_repair_trust";
-    const title = provision ? "建立本机安全连接？" : repair ? "修复本机安全连接？" : "更新本机安全证书？";
-    const button = provision ? "生成并建立信任" : repair ? "确认修复" : "确认更新";
+    const accessRepair = action === "certificate_repair_secret_access";
+    const title = provision
+      ? "建立本机安全连接？"
+      : accessRepair
+        ? "修复钥匙串访问权限？"
+        : repair
+          ? "修复本机安全连接？"
+          : "更新本机安全证书？";
+    const button = provision ? "生成并建立信任" : accessRepair || repair ? "确认修复" : "确认更新";
     return `
       <div class="system-settings-dialog-backdrop" data-mcp-dialog>
         <section class="system-settings-dialog" role="dialog" aria-modal="true" aria-labelledby="mcpCertificateTitle" aria-describedby="mcpCertificateDescription">
           <span>SECURE CONNECTION</span>
           <h2 id="mcpCertificateTitle">${escapeHtml(title)}</h2>
-          <p id="mcpCertificateDescription">SAPD Wiki 将自动完成证书字段，不需要填写姓名、组织、邮箱、路径或有效期。</p>
+          <p id="mcpCertificateDescription">${accessRepair
+            ? "SAPD Wiki 只会修复当前证书口令条目的访问控制，不读取或替换登录密码，也不会重新生成证书。"
+            : "SAPD Wiki 将自动完成证书字段，不需要填写姓名、组织、邮箱、路径或有效期。"}</p>
           <dl class="system-settings-certificate-confirmation">
             <div><dt>连接地址</dt><dd>127.0.0.1</dd></div>
             <div><dt>信任范围</dt><dd>当前用户</dd></div>
@@ -855,7 +893,9 @@
           <ul class="system-settings-reset-effects">
             ${list(preview.effects).map((effect) => `<li>${escapeHtml(certificateEffectLabel(effect))}</li>`).join("")}
           </ul>
-          <p>${certificate.trust_backend === "fake_current_user_trust"
+          <p>${accessRepair
+            ? "macOS 会显示系统授权提示。取消或失败时原条目保持不变；不会要求在“钥匙串访问”中手工编辑。"
+            : certificate.trust_backend === "fake_current_user_trust"
             ? "当前为 Web 隔离验证，不会修改真实系统证书库。"
             : "确认后将修改当前用户的本机信任设置；操作系统可能弹出确认提示，请在 2 分钟内选择允许。不会写入系统级或其他用户证书库。"}</p>
           <div class="system-settings-actions">

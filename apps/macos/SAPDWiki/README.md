@@ -71,8 +71,8 @@ apps/macos/SAPDWiki/script/package_dmg.sh
 产物：
 
 ```text
-apps/macos/SAPDWiki/dist/license/SAPD-Wiki-<version>-license-<timestamp>-mac-arm64.dmg
-apps/macos/SAPDWiki/dist/no-license/SAPD-Wiki-<version>-no-license-<timestamp>-mac-arm64.dmg
+apps/macos/SAPDWiki/dist/releases/<version>/license/SAPD-Wiki-<version>-license-<timestamp>-mac-arm64.dmg
+apps/macos/SAPDWiki/dist/releases/<version>/no-license/SAPD-Wiki-<version>-no-license-<timestamp>-mac-arm64.dmg
 ```
 
 从下一次构建开始，DMG 根目录会同时包含 `SAPD Wiki.app` 和指向

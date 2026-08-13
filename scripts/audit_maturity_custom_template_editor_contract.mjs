@@ -195,6 +195,66 @@ requireContract(
 );
 
 requireContract(
+  includesAll(component, [
+    "function maturityAdaptiveScale()",
+    "function maturityLogicalPoint(clientX, clientY, origin",
+    "function maturityLogicalRectSize(rect",
+    "function maturityContextMenuPosition(clientX, clientY",
+    "function fitMaturityContextMenuToViewport(menu",
+    "function maturityLogicalWheelDelta(delta, deltaMode, viewport",
+    "function closestTemplateContextTarget(event, selector)",
+    "document.elementFromPoint(event.clientX, event.clientY)",
+    "maturityLogicalRectSize(rect, adaptiveScale)",
+    "maturityContextMenuPosition(event.clientX, event.clientY",
+    'fitMaturityContextMenuToViewport(model.root?.querySelector(".maturity-v40-context-menu:not(.maturity-v41-canvas-context-menu)"))',
+    'fitMaturityContextMenuToViewport(model.root?.querySelector(".maturity-v41-canvas-context-menu"))',
+    "maturityLogicalWheelDelta(event.deltaX, event.deltaMode, viewport, adaptiveScale)",
+    "(event.clientX - state.startX) / state.adaptiveScale",
+  ]),
+  "成熟度脑图必须只在视口坐标进入组件逻辑坐标和图谱模型时应用自适应缩放。",
+);
+
+requireContract(
+  includesAll(component, [
+    'data-maturity-action="edit-template-node">编辑属性</button>',
+    'data-maturity-action="add-template-child">新增下级</button>',
+    'data-maturity-action="add-template-sibling">新增同级</button>',
+    'data-maturity-action="copy-template-subtree"',
+    'data-maturity-action="move-template-node" data-direction="-1">上移</button>',
+    'data-maturity-action="move-template-node" data-direction="1">下移</button>',
+    'data-maturity-action="remove-template-node"',
+    '${expanded ? "收起" : "展开"}全部下级（${childCount}）',
+    'data-maturity-action="start-add-loose-node">新增自由节点</button>',
+  ])
+    && !component.includes("编辑属性<span>↵</span>")
+    && !component.includes("<span>＋</span>")
+    && !component.includes("<span>⇥</span>")
+    && !component.includes("<span>⌘D</span>")
+    && !component.includes("<span>⌃</span>")
+    && !component.includes("<span>⌄</span>")
+    && !component.includes("<span>⌫</span>"),
+  "右键菜单必须保留完整文字业务动作和下级数量，同时移除右栏快捷键与装饰符号。",
+);
+
+requireContract(
+  includesAll(component, [
+    "let localStoreFailure = null",
+    "function localStoreFailureSnapshot()",
+    "function localStoreFailureMessage(subject",
+    'kind: "read_unavailable"',
+    'kind: "read_invalid_json"',
+    'kind: "read_invalid_structure"',
+    'kind: "serialize_failed"',
+    '"quota_exceeded"',
+    '"write_dom_exception"',
+    '"write_unknown"',
+    "byteSize",
+    "为保护现有数据，本次未写入",
+  ]),
+  "本地成熟度存储必须保留中性失败分类和安全提示，不得把所有失败误报为容量问题。",
+);
+
+requireContract(
   includesAll(app, [
     "function bindSpecializedWheelSurfaces(root = document)",
     'viewport.addEventListener("wheel", handleEnvironmentBasemapWheel, { passive: false })',

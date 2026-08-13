@@ -476,6 +476,7 @@ def _verify_mounted_app(
         info = plistlib.load(handle)
     expected_info = {
         "CFBundleShortVersionString": version,
+        "CFBundleIconFile": "AppIcon.icns",
         "SAPDWikiDisplayVersion": version,
         "SAPDWikiLicenseMode": variant,
     }
@@ -483,6 +484,17 @@ def _verify_mounted_app(
         actual = str(info.get(key) or "")
         if actual != expected:
             raise RuntimeError(f"{variant} Info.plist mismatch: {key}={actual}; expected={expected}")
+
+    icon = app / "Contents" / "Resources" / str(info["CFBundleIconFile"])
+    if icon.is_symlink() or not icon.is_file():
+        raise RuntimeError(f"{variant} App icon resource is missing or unsafe: {icon}")
+    icon_header = icon.read_bytes()[:8]
+    if (
+        len(icon_header) != 8
+        or icon_header[:4] != b"icns"
+        or int.from_bytes(icon_header[4:], "big") != icon.stat().st_size
+    ):
+        raise RuntimeError(f"{variant} App icon resource is not a valid ICNS container: {icon}")
 
     manifest_path = runtime / "data" / "base" / "base-manifest.json"
     try:
@@ -512,6 +524,20 @@ def _verify_mounted_app(
         raise RuntimeError(f"{variant} mounted frontend is not the current source projection")
 
     subprocess.run(["codesign", "--verify", "--deep", "--strict", str(app)], check=True)
+    keychain_helper = app / "Contents" / "Helpers" / "SAPDWikiKeychainRepair"
+    if (
+        keychain_helper.is_symlink()
+        or not keychain_helper.is_file()
+        or not os.access(keychain_helper, os.X_OK)
+    ):
+        raise RuntimeError(
+            f"{variant} Keychain access repair helper is missing, unsafe, or not executable"
+        )
+    if architecture not in _macho_architectures(keychain_helper):
+        raise RuntimeError(
+            f"{variant} Keychain access repair helper does not support {architecture}"
+        )
+    keychain_helper_identity = stable_macho_code_identity(keychain_helper)
     if not current_backend.is_file() or sha256_file(backend) != sha256_file(current_backend):
         raise RuntimeError(f"{variant} backend is not the current-source release binary")
     _verify_user_database(runtime / "data" / "user" / "sapd_wiki_user.sqlite3")
@@ -537,6 +563,10 @@ def _verify_mounted_app(
         "app_stable_code_sha256": str(code_identity["sha256"]),
         "app_code_signature_offset": int(code_identity["signature_offset"]),
         "app_code_signature_size": int(code_identity["signature_size"]),
+        "keychain_helper_stable_code_sha256": str(
+            keychain_helper_identity["sha256"]
+        ),
+        "app_icon_sha256": sha256_file(icon),
         "runtime_core_sha256": _runtime_core_digest(runtime),
         "content_asset_database_sha256": content_asset_sha256,
     }
@@ -584,6 +614,10 @@ def main() -> None:
     verified = [verify_variant(version, build_stamp, architecture, variant) for variant in VARIANTS]
     if len({item["app_stable_code_sha256"] for item in verified}) != 1:
         raise RuntimeError("license variants contain different stable App code identities")
+    if len({item["keychain_helper_stable_code_sha256"] for item in verified}) != 1:
+        raise RuntimeError(
+            "license variants contain different Keychain helper code identities"
+        )
     if len({item["runtime_core_sha256"] for item in verified}) != 1:
         raise RuntimeError("license variants contain different core Runtime payloads")
     print(f"result=pass version={version} build_stamp={build_stamp} artifacts={len(verified)}")
@@ -592,6 +626,7 @@ def main() -> None:
             f"variant={item['variant']} sha256={item['dmg_sha256']} "
             f"app_binary_sha256={item['app_binary_sha256']} "
             f"app_stable_code_sha256={item['app_stable_code_sha256']} "
+            f"keychain_helper_stable_code_sha256={item['keychain_helper_stable_code_sha256']} "
             f"path={item['path'].relative_to(ROOT)}"
         )
 

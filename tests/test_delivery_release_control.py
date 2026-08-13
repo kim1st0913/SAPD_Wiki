@@ -730,7 +730,7 @@ class ResourceProbe(unittest.TestCase):
             seed.mkdir()
             stamp = "20260805-120000Z"
             architecture = platform.machine()
-            historical = root / "dist/license" / f"SAPD-Wiki-0.4.1-license-{stamp}-mac-{architecture}.dmg"
+            historical = root / "dist/releases/0.4.1/license" / f"SAPD-Wiki-0.4.1-license-{stamp}-mac-{architecture}.dmg"
             historical.parent.mkdir(parents=True)
             historical.write_bytes(b"historical-dmg")
             result = subprocess.run(
@@ -751,6 +751,15 @@ class ResourceProbe(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("refusing to overwrite existing historical DMG", result.stderr)
             self.assertEqual(historical.read_bytes(), b"historical-dmg")
+
+    def test_package_script_separates_release_artifacts_from_packaging_work(self) -> None:
+        source = (ROOT / "apps/macos/SAPDWiki/script/package_dmg.sh").read_text(encoding="utf-8")
+
+        self.assertIn('RELEASES_DIR="${SAPD_WIKI_RELEASES_DIR:-$DIST_DIR/releases}"', source)
+        self.assertIn('PACKAGE_WORK_DIR="${SAPD_WIKI_PACKAGE_WORK_DIR:-$APP_ROOT/.build/packaging}"', source)
+        self.assertIn('output_dir="$RELEASES_DIR/$APP_VERSION/$variant"', source)
+        self.assertIn('staging_dir="$PACKAGE_WORK_DIR/dmg-staging-$variant"', source)
+        self.assertIn('"SAPD_WIKI_DIST_DIR=$PACKAGE_WORK_DIR"', source)
 
     def test_package_image_staging_is_external_and_cleaned_on_exit(self) -> None:
         source = (ROOT / "apps/macos/SAPDWiki/script/package_dmg.sh").read_text(encoding="utf-8")
@@ -824,6 +833,21 @@ class ResourceProbe(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("required content asset database does not exist", result.stderr)
             self.assertEqual(app.stat().st_mtime_ns if app.exists() else None, before_mtime)
+
+    def test_macos_app_build_embeds_declared_icon_before_signing(self) -> None:
+        script = ROOT / "apps/macos/SAPDWiki/script/build_and_run.sh"
+        source = script.read_text(encoding="utf-8")
+        icon = ROOT / "apps/macos/SAPDWiki/Resources/AppIcon.icns"
+        icon_bytes = icon.read_bytes()
+
+        self.assertEqual(icon_bytes[:4], b"icns")
+        self.assertEqual(int.from_bytes(icon_bytes[4:8], "big"), len(icon_bytes))
+        self.assertIn('APP_ICON_SOURCE="$APP_ROOT/Resources/AppIcon.icns"', source)
+        self.assertIn("<key>CFBundleIconFile</key>", source)
+        self.assertIn("<string>AppIcon.icns</string>", source)
+        copy_icon = source.index('cp "$APP_ICON_SOURCE" "$APP_RESOURCES/AppIcon.icns"')
+        sign_app = source.index('sign_path "$APP_BUNDLE"')
+        self.assertLess(copy_icon, sign_app)
 
     def test_package_signal_handler_exits_before_releasing_the_lock(self) -> None:
         source = (ROOT / "apps/macos/SAPDWiki/script/package_dmg.sh").read_text(encoding="utf-8")

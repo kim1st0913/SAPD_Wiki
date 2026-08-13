@@ -8,12 +8,24 @@ let package = Package(
         .macOS(.v13)
     ],
     products: [
-        .executable(name: "SAPDWiki", targets: ["SAPDWiki"])
+        .executable(name: "SAPDWiki", targets: ["SAPDWiki"]),
+        .executable(
+            name: "SAPDWikiKeychainRepair",
+            targets: ["SAPDWikiKeychainRepair"]
+        )
     ],
     targets: [
         .executableTarget(
             name: "SAPDWiki",
             path: "Sources/SAPDWiki"
+        ),
+        .executableTarget(
+            name: "SAPDWikiKeychainRepair",
+            path: "Sources/SAPDWikiKeychainRepair",
+            linkerSettings: [
+                .linkedFramework("Foundation"),
+                .linkedFramework("Security")
+            ]
         )
     ]
 )

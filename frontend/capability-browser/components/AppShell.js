@@ -984,6 +984,8 @@
     const certificateReason = text(certificate.reason_code).trim();
     const certificateStoreUnavailable = certificateState === "error"
       && certificateReason === "CERTIFICATE_SECRET_STORE_UNAVAILABLE";
+    const certificateAccessDenied = certificateState === "error"
+      && certificateReason === "CERTIFICATE_SECRET_ACCESS_DENIED";
     const remainingDays = certificate.remaining_days == null
       ? Number.NaN
       : Number(certificate.remaining_days);
@@ -999,12 +1001,17 @@
       clock_invalid: "系统时间异常",
       rotating: "更新中",
       recovery_required: "需要恢复",
-      error: certificateStoreUnavailable ? "安全存储暂不可用" : "状态异常",
+      error: certificateStoreUnavailable
+        ? "安全存储暂不可用"
+        : certificateAccessDenied
+          ? "钥匙串访问被拒绝"
+          : "状态异常",
     };
     const certificateDanger = ["expired", "trust_missing", "trust_conflict", "key_unavailable", "clock_invalid", "recovery_required"].includes(certificateState)
-      || (certificateState === "error" && !certificateStoreUnavailable);
+      || (certificateState === "error" && !certificateStoreUnavailable && !certificateAccessDenied);
     const certificateWarning = ["expiring", "renewal_required", "rotating"].includes(certificateState)
-      || certificateStoreUnavailable;
+      || certificateStoreUnavailable
+      || certificateAccessDenied;
     const serviceDanger = error || serviceState === "error";
     const serviceTone = serviceState === "ready" ? "ok" : "neutral";
     const lastSuccessAt = text(snapshot?.last_success_at || statusSnapshot.last_success_at).trim();

@@ -169,6 +169,7 @@ _CERTIFICATE_ACTIONS = frozenset(
         "certificate_provision",
         "certificate_rotate",
         "certificate_repair_trust",
+        "certificate_repair_secret_access",
         "certificate_view_details",
         "certificate_reset",
     }
@@ -178,6 +179,7 @@ _CERTIFICATE_MUTATION_ACTIONS = frozenset(
         "certificate_provision",
         "certificate_rotate",
         "certificate_repair_trust",
+        "certificate_repair_secret_access",
     }
 )
 _CERTIFICATE_EFFECTS = frozenset(
@@ -185,6 +187,9 @@ _CERTIFICATE_EFFECTS = frozenset(
         "create_managed_identity",
         "install_current_user_trust",
         "replace_current_user_trust",
+        "repair_current_item_access",
+        "preserve_managed_identity",
+        "preserve_client_authorization",
     }
 )
 _FINGERPRINT_RE = re.compile(r"^(?:[0-9A-F]{2}:){31}[0-9A-F]{2}$")
@@ -750,6 +755,7 @@ class ControlService:
                     "certificate_provision",
                     "certificate_rotate",
                     "certificate_repair_trust",
+                    "certificate_repair_secret_access",
                     "certificate_view_details",
                     "certificate_reset",
                 }
@@ -784,6 +790,12 @@ class ControlService:
                 ),
                 "certificate_repair_trust": require_bool(
                     capabilities.get("certificate_repair_trust", False)
+                ),
+                "certificate_repair_secret_access": require_bool(
+                    capabilities.get(
+                        "certificate_repair_secret_access",
+                        False,
+                    )
                 ),
                 "certificate_view_details": require_bool(
                     capabilities.get("certificate_view_details", False)

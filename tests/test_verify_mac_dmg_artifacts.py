@@ -105,6 +105,7 @@ class VerifyMacDmgArtifactsTests(unittest.TestCase):
         shared = {
             "runtime_core_sha256": "r" * 64,
             "app_stable_code_sha256": "c" * 64,
+            "keychain_helper_stable_code_sha256": "h" * 64,
             "path": ROOT / "artifact.dmg",
             "dmg_sha256": "d" * 64,
         }
@@ -329,10 +330,20 @@ class VerifyMacDmgArtifactsTests(unittest.TestCase):
             (contents / "MacOS/SAPDWiki").write_bytes(
                 signed_macho(b"app binary", b"test signature")
             )
+            keychain_helper = contents / "Helpers/SAPDWikiKeychainRepair"
+            keychain_helper.parent.mkdir()
+            keychain_helper.write_bytes(
+                signed_macho(b"keychain helper", b"test helper signature")
+            )
+            keychain_helper.chmod(0o755)
+            icon_payload = b"sapd-wiki-test-icon"
+            app_icon = contents / "Resources/AppIcon.icns"
+            app_icon.write_bytes(b"icns" + struct.pack(">I", 8 + len(icon_payload)) + icon_payload)
             with (contents / "Info.plist").open("wb") as handle:
                 plistlib.dump(
                     {
                         "CFBundleShortVersionString": "0.4.0",
+                        "CFBundleIconFile": "AppIcon.icns",
                         "SAPDWikiDisplayVersion": "0.4.0",
                         "SAPDWikiLicenseMode": "license",
                     },
@@ -355,12 +366,35 @@ class VerifyMacDmgArtifactsTests(unittest.TestCase):
             self.assertRegex(evidence["app_stable_code_sha256"], r"^[0-9a-f]{64}$")
             self.assertGreater(evidence["app_code_signature_offset"], 0)
             self.assertGreater(evidence["app_code_signature_size"], 0)
+            self.assertRegex(
+                evidence["keychain_helper_stable_code_sha256"],
+                r"^[0-9a-f]{64}$",
+            )
+            self.assertEqual(evidence["app_icon_sha256"], verifier.sha256_file(app_icon))
             self.assertRegex(evidence["runtime_core_sha256"], r"^[0-9a-f]{64}$")
             self.assertEqual(evidence["content_asset_database_sha256"], verifier.sha256_file(content_asset))
             commands = [call.args[0] for call in run.call_args_list]
             self.assertIn(["codesign", "--verify", "--deep", "--strict", str(app)], commands)
             self.assertTrue(any(command[-1] == "--check-only" for command in commands))
             smoke.assert_called_once()
+
+            keychain_helper.unlink()
+            with (
+                patch.object(verifier, "_macho_architectures", return_value={"arm64"}),
+                patch.object(verifier.subprocess, "run"),
+                self.assertRaisesRegex(RuntimeError, "Keychain access repair helper"),
+            ):
+                verifier._verify_mounted_app(
+                    volume,
+                    version="0.4.0",
+                    variant="license",
+                    architecture="arm64",
+                    current_backend=current_backend,
+                )
+            keychain_helper.write_bytes(
+                signed_macho(b"keychain helper", b"test helper signature")
+            )
+            keychain_helper.chmod(0o755)
 
             manifest_path = runtime / "data/base/base-manifest.json"
             manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -381,12 +415,61 @@ class VerifyMacDmgArtifactsTests(unittest.TestCase):
                 plistlib.dump(
                     {
                         "CFBundleShortVersionString": "0.4.0",
+                        "CFBundleIconFile": "AppIcon.icns",
                         "SAPDWikiDisplayVersion": "0.4.0",
                         "SAPDWikiLicenseMode": "no-license",
                     },
                     handle,
                 )
             with self.assertRaisesRegex(RuntimeError, "SAPDWikiLicenseMode"):
+                verifier._verify_mounted_app(
+                    volume,
+                    version="0.4.0",
+                    variant="license",
+                    architecture="arm64",
+                    current_backend=current_backend,
+                )
+
+            with (contents / "Info.plist").open("wb") as handle:
+                plistlib.dump(
+                    {
+                        "CFBundleShortVersionString": "0.4.0",
+                        "SAPDWikiDisplayVersion": "0.4.0",
+                        "SAPDWikiLicenseMode": "license",
+                    },
+                    handle,
+                )
+            with self.assertRaisesRegex(RuntimeError, "CFBundleIconFile"):
+                verifier._verify_mounted_app(
+                    volume,
+                    version="0.4.0",
+                    variant="license",
+                    architecture="arm64",
+                    current_backend=current_backend,
+                )
+
+            with (contents / "Info.plist").open("wb") as handle:
+                plistlib.dump(
+                    {
+                        "CFBundleShortVersionString": "0.4.0",
+                        "CFBundleIconFile": "AppIcon.icns",
+                        "SAPDWikiDisplayVersion": "0.4.0",
+                        "SAPDWikiLicenseMode": "license",
+                    },
+                    handle,
+                )
+            app_icon.unlink()
+            with self.assertRaisesRegex(RuntimeError, "App icon resource is missing"):
+                verifier._verify_mounted_app(
+                    volume,
+                    version="0.4.0",
+                    variant="license",
+                    architecture="arm64",
+                    current_backend=current_backend,
+                )
+
+            app_icon.write_bytes(b"not-an-icns-file")
+            with self.assertRaisesRegex(RuntimeError, "not a valid ICNS"):
                 verifier._verify_mounted_app(
                     volume,
                     version="0.4.0",

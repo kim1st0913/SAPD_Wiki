@@ -67,7 +67,11 @@ AUDIT_DISPLAY_LIMIT = 30
 AUDIT_GROUP_WINDOW_SECONDS = 24 * 60 * 60
 AUDIT_GROUPABLE_EVENT_TYPES = frozenset({"TOKEN_REFRESHED", "TOOL_CALL"})
 CERTIFICATE_SECRET_STORE_UNAVAILABLE = "CERTIFICATE_SECRET_STORE_UNAVAILABLE"
+CERTIFICATE_SECRET_ACCESS_DENIED = "CERTIFICATE_SECRET_ACCESS_DENIED"
+CERTIFICATE_SECRET_BACKEND_FAILURE = "CERTIFICATE_SECRET_BACKEND_FAILURE"
 KEY_STORE_TEMPORARILY_UNAVAILABLE = "KEY_STORE_TEMPORARILY_UNAVAILABLE"
+KEY_STORE_ACCESS_DENIED = "KEY_STORE_ACCESS_DENIED"
+KEY_STORE_BACKEND_FAILURE = "KEY_STORE_BACKEND_FAILURE"
 
 
 def _iso(value: float | None) -> str | None:
@@ -869,6 +873,13 @@ class DevSidecarSupervisor:
                         "certificate_provision": True,
                         "certificate_rotate": True,
                         "certificate_repair_trust": True,
+                        "certificate_repair_secret_access": bool(
+                            getattr(
+                                self._certificate_secret_provider,
+                                "access_repair_available",
+                                False,
+                            )
+                        ),
                         "certificate_view_details": True,
                         "certificate_reset": True,
                     },
@@ -952,12 +963,26 @@ class DevSidecarSupervisor:
                     and certificate["reason_code"]
                     == CERTIFICATE_SECRET_STORE_UNAVAILABLE
                 )
+                secret_access_denied = (
+                    certificate["state"] == "error"
+                    and certificate["reason_code"]
+                    == CERTIFICATE_SECRET_ACCESS_DENIED
+                )
+                secret_backend_failed = (
+                    certificate["state"] == "error"
+                    and certificate["reason_code"]
+                    == CERTIFICATE_SECRET_BACKEND_FAILURE
+                )
                 self._desired_state = "enabled"
                 self._service_state = "error"
                 self._recoverable_error = {
                     "code": (
                         KEY_STORE_TEMPORARILY_UNAVAILABLE
                         if secret_store_unavailable
+                        else KEY_STORE_ACCESS_DENIED
+                        if secret_access_denied
+                        else KEY_STORE_BACKEND_FAILURE
+                        if secret_backend_failed
                         else "KEY_PASSPHRASE_UNAVAILABLE"
                         if certificate["state"] == "key_unavailable"
                         else "CERTIFICATE_NOT_READY"
@@ -965,6 +990,10 @@ class DevSidecarSupervisor:
                     "recovery_action": (
                         "retry_service"
                         if secret_store_unavailable
+                        else "repair_keychain_access"
+                        if secret_access_denied
+                        else "view_diagnostics"
+                        if secret_backend_failed
                         else "reset_certificate"
                         if certificate["state"] == "key_unavailable"
                         else "configure_certificate"
@@ -1247,6 +1276,7 @@ class DevSidecarSupervisor:
             "certificate_provision",
             "certificate_rotate",
             "certificate_repair_trust",
+            "certificate_repair_secret_access",
         }
         if action not in allowed_actions:
             raise GatewayActionError("ACTION_REJECTED")
@@ -1272,15 +1302,35 @@ class DevSidecarSupervisor:
                     "expired",
                 },
                 "certificate_repair_trust": {"trust_missing"},
+                "certificate_repair_secret_access": {"error"},
             }
             if certificate["state"] not in allowed_states[action]:
                 raise GatewayActionError("ACTION_REJECTED")
+            if (
+                action == "certificate_repair_secret_access"
+                and (
+                    certificate.get("reason_code")
+                    != CERTIFICATE_SECRET_ACCESS_DENIED
+                    or not getattr(
+                        self._certificate_secret_provider,
+                        "access_repair_available",
+                        False,
+                    )
+                )
+            ):
+                raise GatewayActionError("ACTION_REJECTED")
+            current = self._certificate_identity.load_manifest()
             confirmation_id = f"certificate:{secrets.token_urlsafe(24)}"
             expires_at = now + 120
             self._prepared_certificate_actions[confirmation_id] = {
                 "expires_at": expires_at,
                 "action": action,
                 "generation_id": certificate.get("generation_id"),
+                "passphrase_reference_sha256": (
+                    sha256(current.passphrase_reference.encode("utf-8")).hexdigest()
+                    if current is not None
+                    else None
+                ),
                 "trust_snapshot_digest": (
                     self._certificate_lifecycle.snapshot_digest()
                 ),
@@ -1297,6 +1347,11 @@ class DevSidecarSupervisor:
                 ],
                 "certificate_repair_trust": [
                     "install_current_user_trust",
+                ],
+                "certificate_repair_secret_access": [
+                    "repair_current_item_access",
+                    "preserve_managed_identity",
+                    "preserve_client_authorization",
                 ],
             }
             return {
@@ -1333,6 +1388,12 @@ class DevSidecarSupervisor:
             if (
                 prepared["generation_id"]
                 != (current.generation_id if current is not None else None)
+                or prepared["passphrase_reference_sha256"]
+                != (
+                    sha256(current.passphrase_reference.encode("utf-8")).hexdigest()
+                    if current is not None
+                    else None
+                )
                 or prepared["trust_snapshot_digest"]
                 != self._certificate_lifecycle.snapshot_digest()
             ):
@@ -1359,6 +1420,20 @@ class DevSidecarSupervisor:
                             journal.last_error_code
                             or "CERTIFICATE_TRUST_REPAIR_FAILED"
                         )
+                elif action == "certificate_repair_secret_access":
+                    if current is None:
+                        raise GatewayActionError("ACTION_REJECTED")
+                    repair_access = getattr(
+                        self._certificate_secret_provider,
+                        "repair_access",
+                        None,
+                    )
+                    if not callable(repair_access):
+                        raise SecretCustodyError(
+                            "SECRET_ACCESS_REPAIR_UNAVAILABLE"
+                        )
+                    repair_access(current.passphrase_reference)
+                    journal = None
                 else:
                     raise GatewayActionError("ACTION_REJECTED")
             except (
@@ -1378,18 +1453,65 @@ class DevSidecarSupervisor:
                     "code": error_code,
                     "recovery_action": (
                         "unlock_keychain"
-                        if error_code == "SECRET_STORE_UNAVAILABLE"
+                        if error_code
+                        in {
+                            "SECRET_STORE_UNAVAILABLE",
+                            "SECRET_STORE_LOCKED_OR_SESSION_UNAVAILABLE",
+                        }
+                        else "repair_keychain_access"
+                        if error_code
+                        in {
+                            "SECRET_AUTH_OR_ACCESS_DENIED",
+                            "SECRET_ACCESS_REPAIR_CANCELLED",
+                            "SECRET_INTERACTION_NOT_ALLOWED",
+                            "SECRET_ACCESS_REPAIR_FAILED",
+                        }
                         else "configure_certificate"
                     ),
                 }
+                if action == "certificate_repair_secret_access":
+                    self._store.append_audit(
+                        {
+                            "occurred_at": time.time(),
+                            "event_type": "KEYCHAIN_ACCESS_REPAIR",
+                            "result_code": error_code,
+                            "correlation_id": sha256(
+                                confirmation_id.encode("utf-8")
+                            ).hexdigest(),
+                            "versions": {
+                                "profile": self._certificate_identity.profile,
+                                "generation_id": (
+                                    current.generation_id
+                                    if current is not None
+                                    else None
+                                ),
+                            },
+                        }
+                    )
                 self._state_version += 1
                 raise GatewayActionError("ACTION_REJECTED") from exc
             self._prepared_certificate_actions.pop(confirmation_id, None)
+            if action == "certificate_repair_secret_access":
+                self._store.append_audit(
+                    {
+                        "occurred_at": time.time(),
+                        "event_type": "KEYCHAIN_ACCESS_REPAIR",
+                        "result_code": "SUCCESS",
+                        "correlation_id": sha256(
+                            confirmation_id.encode("utf-8")
+                        ).hexdigest(),
+                        "versions": {
+                            "profile": self._certificate_identity.profile,
+                            "generation_id": current.generation_id,
+                        },
+                    }
+                )
+                self._recoverable_error = None
             self._state_version += 1
-            return {
-                **self._action_result(self._state_version),
-                "operation_id": journal.operation_id,
-            }
+            result = self._action_result(self._state_version)
+            if journal is not None:
+                result = {**result, "operation_id": journal.operation_id}
+            return result
 
     def prepare_reset(
         self,

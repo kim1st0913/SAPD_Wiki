@@ -17,9 +17,11 @@ DIST_DIR="${SAPD_WIKI_DIST_DIR:-$APP_ROOT/dist}"
 APP_BUNDLE="$DIST_DIR/$APP_NAME.app"
 APP_CONTENTS="$APP_BUNDLE/Contents"
 APP_MACOS="$APP_CONTENTS/MacOS"
+APP_HELPERS="$APP_CONTENTS/Helpers"
 APP_RESOURCES="$APP_CONTENTS/Resources"
 APP_BINARY="$APP_MACOS/$EXECUTABLE_NAME"
 INFO_PLIST="$APP_CONTENTS/Info.plist"
+APP_ICON_SOURCE="$APP_ROOT/Resources/AppIcon.icns"
 RUNTIME_WORK="$APP_ROOT/.build/runtime-work"
 BACKEND_WORK="$APP_ROOT/.build/backend-work"
 BACKEND_SOURCE_STAMP="$BACKEND_WORK/backend-source.sha256"
@@ -260,6 +262,11 @@ if [[ ! -f "$CONTENT_ASSET_DB" ]]; then
   exit 1
 fi
 
+if [[ ! -f "$APP_ICON_SOURCE" ]]; then
+  echo "app icon does not exist: $APP_ICON_SOURCE" >&2
+  exit 1
+fi
+
 kill_existing_app() {
   local runtime_backend="$HOME/Library/Application Support/SAPD Wiki/Runtime/SAPD-Wiki-Backend"
   pkill -x "$EXECUTABLE_NAME" >/dev/null 2>&1 || true
@@ -353,6 +360,8 @@ write_info_plist() {
   <string>$APP_NAME</string>
   <key>CFBundleDisplayName</key>
   <string>$APP_NAME</string>
+  <key>CFBundleIconFile</key>
+  <string>AppIcon.icns</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>CFBundleShortVersionString</key>
@@ -414,8 +423,13 @@ stage_app_bundle() {
   local build_bin_dir
   build_bin_dir="$(swift build --package-path "$APP_ROOT" --show-bin-path)"
   local build_binary="$build_bin_dir/$EXECUTABLE_NAME"
+  local keychain_repair_binary="$build_bin_dir/SAPDWikiKeychainRepair"
   if [[ ! -x "$build_binary" ]]; then
     echo "SwiftPM did not produce executable: $build_binary" >&2
+    exit 1
+  fi
+  if [[ ! -x "$keychain_repair_binary" ]]; then
+    echo "SwiftPM did not produce Keychain repair helper: $keychain_repair_binary" >&2
     exit 1
   fi
 
@@ -428,15 +442,21 @@ stage_app_bundle() {
   write_runtime_fingerprint "$runtime_bundle"
 
   rm -rf "$APP_BUNDLE"
-  mkdir -p "$APP_MACOS" "$APP_RESOURCES"
+  mkdir -p "$APP_MACOS" "$APP_HELPERS" "$APP_RESOURCES"
   cp "$build_binary" "$APP_BINARY"
+  cp "$keychain_repair_binary" "$APP_HELPERS/SAPDWikiKeychainRepair"
+  cp "$APP_ICON_SOURCE" "$APP_RESOURCES/AppIcon.icns"
   chmod +x "$APP_BINARY"
+  chmod +x "$APP_HELPERS/SAPDWikiKeychainRepair"
   write_info_plist
   cp -R "$runtime_bundle" "$APP_RESOURCES/Runtime"
   if command -v xattr >/dev/null 2>&1; then
     xattr -cr "$APP_BUNDLE" >/dev/null 2>&1 || true
   fi
   if command -v codesign >/dev/null 2>&1; then
+    sign_path "$APP_HELPERS/SAPDWikiKeychainRepair" >/dev/null 2>&1 || {
+      echo "warning: Keychain repair helper codesign failed; continuing with unsigned local helper" >&2
+    }
     sign_macho_tree "$APP_RESOURCES/Runtime" || {
       echo "warning: nested runtime codesign failed; continuing with existing signatures" >&2
     }

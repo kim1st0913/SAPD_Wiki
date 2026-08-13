@@ -46,6 +46,7 @@ target/
 apps/macos/SAPDWiki/.build/
 apps/macos/SAPDWiki/apps/**/.build/
 apps/electron/.build/
+apps/electron/releases/
 *.dmg
 
 # Python artifacts

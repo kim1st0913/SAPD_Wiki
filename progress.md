@@ -30,6 +30,12 @@
   Bash、权限及手工触发合同通过；本机无 pwsh / actionlint，未做 PowerShell 专用解析或 Windows
   Runtime 验收。当前无排队或运行中 Run；私有远端仍是 `e46f8384…`，旧 watcher 在补丁推送前
   仍可能再次触发，私有 README 的“自动检查”说明也待同步。
+- `公开源码与私有手工打包合同已推送`：公开仓提交
+  `4f9090440c5e295bf7ac289c67e99990690adf61` 含精确 5 文件，成熟度 63 项、P2 43 项、文档治理、
+  5173 guard 与 GitHub 数据边界通过；私有仓提交
+  `966c2f64af149db3cc2a6c3398868159561d9493` 含 README、删除 watcher、收紧 installer 三项。
+  远端已确认无 schedule，Windows installer 仅 `workflow_dispatch`；两仓 main / origin 均 0/0，
+  推送未触发 Windows Run。上一条“未上线”记录作为执行前阶段证据保留，当前状态以本条为准。
 
 ## 2026-08-13
 

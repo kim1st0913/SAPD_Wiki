@@ -9,8 +9,9 @@
 
 ## 1. Git 与工作区
 
-- 当前分支 `main`，HEAD / `origin/main` 为
-  `4f9090440c5e295bf7ac289c67e99990690adf61`，`0 / 0`；这是当前 0.4.1 最新源码 SHA。
+- 当前分支 `main`，main / origin 保持 `0 / 0`。当前 0.4.1 最新产品源码 checkpoint 为
+  `4f9090440c5e295bf7ac289c67e99990690adf61`；其后的提交只更新状态文档，不作为 Windows
+  构建的 `source_sha`。
 - tracked 工作树干净；只保留 `data/` 与两张 generated basemap 三项既有 untracked。不得覆盖或
   批量加入。
 - `data/`、两张 generated basemap、DMG、Setup、SQLite、恢复包、导出和构建缓存不进入 Git。

@@ -9599,10 +9599,48 @@
     model.root?.querySelectorAll(".is-template-drop-candidate").forEach((node) => node.classList.remove("is-template-drop-candidate"));
   }
 
+  function templateRectSnapshot(rect) {
+    return {
+      top: Number(rect?.top || 0),
+      right: Number(rect?.right || 0),
+      bottom: Number(rect?.bottom || 0),
+      left: Number(rect?.left || 0),
+      width: Number(rect?.width || 0),
+      height: Number(rect?.height || 0),
+    };
+  }
+
+  function refreshTemplateDropCandidateRects(state) {
+    if (!state?.dropCandidates) return;
+    state.dropCandidateRects = state.dropCandidates.map((element) => ({
+      element,
+      rect: templateRectSnapshot(element.getBoundingClientRect()),
+    }));
+    state.dropCandidateRectMap = new Map(state.dropCandidateRects.map((entry) => [entry.element, entry.rect]));
+    state.dropCandidateRectsDirty = false;
+    if (state.dragMetrics) state.dragMetrics.rectRebuilds += 1;
+  }
+
+  function shiftTemplateDropCandidateRects(state, deltaX, deltaY) {
+    if (!state?.dropCandidateRects?.length || (!deltaX && !deltaY)) return;
+    state.dropCandidateRects.forEach((entry) => {
+      entry.rect.top += deltaY;
+      entry.rect.right += deltaX;
+      entry.rect.bottom += deltaY;
+      entry.rect.left += deltaX;
+    });
+  }
+
+  function templateDropRect(state, dropTarget) {
+    if (!dropTarget) return null;
+    if (state?.dropCandidateRectsDirty) refreshTemplateDropCandidateRects(state);
+    return state?.dropCandidateRectMap?.get(dropTarget) || templateRectSnapshot(dropTarget.getBoundingClientRect());
+  }
+
   function templateDropMagnetPoint(state, dropTarget, clientX, clientY) {
     const pointer = { x: clientX + 16, y: clientY + 14 };
     if (!dropTarget) return pointer;
-    const rect = dropTarget.getBoundingClientRect();
+    const rect = templateDropRect(state, dropTarget);
     const isParentTarget = templateQuickChildType(dropTarget.dataset.templateDropType || "") === (state.visualType || state.type);
     const ghostWidth = Math.min(250, Math.max(180, window.innerWidth - 32));
     const ghostHeight = 62;
@@ -9650,17 +9688,20 @@
       model.root?.querySelector("[data-template-visual-editor]")?.classList.add("is-template-drag-active");
     }
     const magnet = templateDropMagnetPoint(state, dropTarget, clientX, clientY);
-    const targetName = dropTarget?.querySelector("strong")?.textContent?.trim() || templateTypeName(dropTarget?.dataset.templateDropType || "");
     state.ghost.style.setProperty("--maturity-drag-x", `${Math.round(magnet.x)}px`);
     state.ghost.style.setProperty("--maturity-drag-y", `${Math.round(magnet.y)}px`);
-    state.ghost.classList.toggle("is-over-target", Boolean(dropTarget));
-    state.ghost.classList.toggle("is-parent-snap", Boolean(dropTarget && magnet.isParentTarget));
-    if (state.ghostHint) {
+    const parentSnap = Boolean(dropTarget && magnet.isParentTarget);
+    if (state.ghostDropTarget !== dropTarget || state.ghostParentSnap !== parentSnap) {
+      const targetName = dropTarget?.querySelector("strong")?.textContent?.trim() || templateTypeName(dropTarget?.dataset.templateDropType || "");
+      state.ghost.classList.toggle("is-over-target", Boolean(dropTarget));
+      state.ghost.classList.toggle("is-parent-snap", parentSnap);
       state.ghostHint.textContent = dropTarget
-        ? magnet.isParentTarget
+        ? parentSnap
           ? `松开吸附到「${targetName}」下级`
           : "松开调整至此位置"
         : "移动节点及全部下级";
+      state.ghostDropTarget = dropTarget;
+      state.ghostParentSnap = parentSnap;
     }
   }
 
@@ -9676,20 +9717,23 @@
 
   function markTemplateDropCandidates(detail, state) {
     clearTemplateDropCandidates();
+    state.dropCandidates = [];
     model.root?.querySelectorAll("[data-template-drop-type][data-template-drop-id]").forEach((candidate) => {
       if (templateDropIsValid(detail, state.type, state.id, candidate.dataset.templateDropType || "", candidate.dataset.templateDropId || "")) {
         candidate.classList.add("is-template-drop-candidate");
+        state.dropCandidates.push(candidate);
       }
     });
+    refreshTemplateDropCandidateRects(state);
   }
 
   function templateDropTargetAt(detail, state, clientX, clientY) {
+    if (state.dropCandidateRectsDirty) refreshTemplateDropCandidateRects(state);
     const direct = document.elementFromPoint(clientX, clientY)?.closest?.("[data-template-drop-type][data-template-drop-id]");
     if (direct && templateDropIsValid(detail, state.type, state.id, direct.dataset.templateDropType || "", direct.dataset.templateDropId || "")) return direct;
     let nearest = null;
     let nearestDistance = 88;
-    model.root?.querySelectorAll(".is-template-drop-candidate").forEach((candidate) => {
-      const rect = candidate.getBoundingClientRect();
+    state.dropCandidateRects?.forEach(({ element: candidate, rect }) => {
       if (!rect.width || !rect.height || rect.bottom < 0 || rect.top > window.innerHeight || rect.right < 0 || rect.left > window.innerWidth) return;
       const distanceX = Math.max(rect.left - clientX, 0, clientX - rect.right);
       const distanceY = Math.max(rect.top - clientY, 0, clientY - rect.bottom);
@@ -9702,25 +9746,142 @@
     return nearest;
   }
 
-  function panTemplateCanvasNearPointer(clientX, clientY) {
-    const viewport = model.root?.querySelector("[data-template-mindmap-viewport]");
-    const stage = viewport?.querySelector("[data-template-mindmap-stage]");
-    if (!viewport || !stage) return;
-    const rect = viewport.getBoundingClientRect();
+  function templateAutoPanDelta(state) {
+    if (!state?.viewport || !state?.stage) return { x: 0, y: 0 };
+    if (!state.viewportRect || state.viewportRectDirty) {
+      state.viewportRect = templateRectSnapshot(state.viewport.getBoundingClientRect());
+      state.viewportRectDirty = false;
+    }
+    const rect = state.viewportRect;
+    const clientX = state.latestClientX;
+    const clientY = state.latestClientY;
     if (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) return;
     const edge = 52;
-    const deltaX = clientX < rect.left + edge ? 14 : clientX > rect.right - edge ? -14 : 0;
-    const deltaY = clientY < rect.top + edge ? 14 : clientY > rect.bottom - edge ? -14 : 0;
-    if (!deltaX && !deltaY) return;
-    model.templateMindmapPanX += deltaX;
-    model.templateMindmapPanY += deltaY;
-    stage.style.transform = `translate(${model.templateMindmapPanX}px, ${model.templateMindmapPanY}px) scale(${Number(model.templateMindmapZoom || 0.5)})`;
+    return {
+      x: clientX < rect.left + edge ? 14 : clientX > rect.right - edge ? -14 : 0,
+      y: clientY < rect.top + edge ? 14 : clientY > rect.bottom - edge ? -14 : 0,
+    };
+  }
+
+  function cancelTemplateDragFrames(state) {
+    if (!state) return;
+    if (state.moveFrame) window.cancelAnimationFrame(state.moveFrame);
+    if (state.autoPanFrame) window.cancelAnimationFrame(state.autoPanFrame);
+    state.moveFrame = 0;
+    state.autoPanFrame = 0;
+  }
+
+  function updateTemplateDropTargetState(state, dropTarget) {
+    if (state.currentDropTarget === dropTarget) return;
+    state.currentDropTarget?.classList.remove("is-template-drop-target", "is-template-parent-drop-target");
+    state.currentDropTarget = dropTarget;
+    if (dropTarget) {
+      dropTarget.classList.add("is-template-drop-target");
+      if (templateQuickChildType(dropTarget.dataset.templateDropType || "") === state.visualType) {
+        dropTarget.classList.add("is-template-parent-drop-target");
+      }
+    }
+    if (state.dragMetrics) state.dragMetrics.targetMutations += 1;
+  }
+
+  function templateDragNow() {
+    return window.performance?.now?.() ?? Date.now();
+  }
+
+  function scheduleTemplateDragFrame(detail, state) {
+    if (!state?.active || state.moveFrame || state.cancelled) return;
+    state.moveFrame = window.requestAnimationFrame(() => {
+      state.moveFrame = 0;
+      if (model.templateMouseDrag !== state || !state.active || state.cancelled) return;
+      const startedAt = templateDragNow();
+      const dropTarget = templateDropTargetAt(detail, state, state.latestClientX, state.latestClientY);
+      updateTemplateDropTargetState(state, dropTarget);
+      renderTemplateDragGhost(state, state.latestClientX, state.latestClientY, dropTarget);
+      if (state.dragMetrics) {
+        state.dragMetrics.frameDurations.push(templateDragNow() - startedAt);
+        state.dragMetrics.eventLatencies.push(Math.max(0, startedAt - state.latestEventTime));
+      }
+    });
+  }
+
+  function scheduleTemplateAutoPan(detail, state) {
+    if (!state?.active || state.cancelled) return;
+    const delta = templateAutoPanDelta(state) || { x: 0, y: 0 };
+    if (!delta.x && !delta.y) {
+      if (state.autoPanFrame) window.cancelAnimationFrame(state.autoPanFrame);
+      state.autoPanFrame = 0;
+      return;
+    }
+    if (state.autoPanFrame) return;
+    const run = () => {
+      state.autoPanFrame = 0;
+      if (model.templateMouseDrag !== state || !state.active || state.cancelled) return;
+      const nextDelta = templateAutoPanDelta(state) || { x: 0, y: 0 };
+      if (!nextDelta.x && !nextDelta.y) return;
+      model.templateMindmapPanX += nextDelta.x;
+      model.templateMindmapPanY += nextDelta.y;
+      state.stage.style.transform = `translate(${Math.round(model.templateMindmapPanX)}px, ${Math.round(model.templateMindmapPanY)}px) scale(${Number(model.templateMindmapZoom || 0.5)})`;
+      const screenScale = Number(state.adaptiveScale || 1);
+      shiftTemplateDropCandidateRects(state, nextDelta.x * screenScale, nextDelta.y * screenScale);
+      scheduleTemplateDragFrame(detail, state);
+      state.autoPanFrame = window.requestAnimationFrame(run);
+    };
+    state.autoPanFrame = window.requestAnimationFrame(run);
+  }
+
+  function invalidateTemplateDragGeometry(state = model.templateMouseDrag) {
+    if (!state?.active) return;
+    state.dropCandidateRectsDirty = true;
+    state.viewportRectDirty = true;
+    scheduleTemplateDragFrame(state.detail, state);
+    scheduleTemplateAutoPan(state.detail, state);
+  }
+
+  function percentile(values, ratio) {
+    if (!values?.length) return 0;
+    const sorted = [...values].sort((a, b) => a - b);
+    return sorted[Math.min(sorted.length - 1, Math.max(0, Math.ceil(sorted.length * ratio) - 1))];
+  }
+
+  function startTemplateDragMetrics(state) {
+    if (!state?.dragMetrics || !window.PerformanceObserver?.supportedEntryTypes?.includes?.("longtask")) return;
+    const collect = (entries) => entries.forEach((entry) => state.dragMetrics.longTasks.push(Number(entry.duration || 0)));
+    state.dragMetrics.longTaskSupported = true;
+    state.dragMetricsObserver = new window.PerformanceObserver((list) => collect(list.getEntries()));
+    state.dragMetricsObserver.observe({ type: "longtask", buffered: false });
+  }
+
+  function reportTemplateDragMetrics(state, outcome) {
+    if (!state?.dragMetrics || state.dragMetrics.reported) return;
+    state.dragMetrics.reported = true;
+    state.dragMetricsObserver?.takeRecords?.().forEach((entry) => state.dragMetrics.longTasks.push(Number(entry.duration || 0)));
+    state.dragMetricsObserver?.disconnect?.();
+    const durations = state.dragMetrics.frameDurations;
+    const latencies = state.dragMetrics.eventLatencies;
+    const summary = {
+      outcome,
+      moveEvents: state.dragMetrics.moveEvents,
+      dragFrames: durations.length,
+      durationP95: Math.round(percentile(durations, 0.95) * 100) / 100,
+      durationP99: Math.round(percentile(durations, 0.99) * 100) / 100,
+      latencyP50: Math.round(percentile(latencies, 0.5) * 100) / 100,
+      latencyP95: Math.round(percentile(latencies, 0.95) * 100) / 100,
+      rectRebuilds: state.dragMetrics.rectRebuilds,
+      targetMutations: state.dragMetrics.targetMutations,
+      longTaskSupported: state.dragMetrics.longTaskSupported,
+      longTaskCount: state.dragMetrics.longTasks.length,
+      maxLongTask: Math.round(Math.max(0, ...state.dragMetrics.longTasks) * 100) / 100,
+    };
+    document.documentElement.dataset.maturityDragMetrics = JSON.stringify(summary);
+    console.info("[maturity-drag-metrics]", JSON.stringify(summary));
   }
 
   function clearTemplateMouseDrag(state) {
+    cancelTemplateDragFrames(state);
     state?.ghost?.remove();
     if (state) state.ghost = null;
     if (state) state.ghostHint = null;
+    if (state) state.currentDropTarget = null;
     document.body.classList.remove("is-template-node-dragging");
     clearTemplateDropTargets();
     clearTemplateDropCandidates();
@@ -9805,49 +9966,87 @@
         : target.dataset.templateNodeType || "",
       startX: event.clientX,
       startY: event.clientY,
+      latestClientX: event.clientX,
+      latestClientY: event.clientY,
+      latestEventTime: Number(event.timeStamp || templateDragNow()),
       active: false,
       source: target,
       preventSelection,
+      moveFrame: 0,
+      autoPanFrame: 0,
+      cancelled: false,
+      currentDropTarget: null,
+      ghostDropTarget: null,
+      ghostParentSnap: false,
+      dropCandidateRectsDirty: false,
+      viewportRectDirty: false,
+      dragMetrics: new URLSearchParams(window.location.search).has("maturityDragMetrics") ? {
+        moveEvents: 0,
+        frameDurations: [],
+        eventLatencies: [],
+        rectRebuilds: 0,
+        targetMutations: 0,
+        longTaskSupported: false,
+        longTasks: [],
+        reported: false,
+      } : null,
     };
     model.templateMouseDrag = state;
     document.addEventListener("selectstart", preventSelection);
+    const invalidateGeometry = () => invalidateTemplateDragGeometry(state);
+    state.invalidateGeometry = invalidateGeometry;
+    window.addEventListener("resize", invalidateGeometry);
+    window.addEventListener("scroll", invalidateGeometry, true);
     const move = (moveEvent) => {
       if (model.templateMouseDrag !== state) return;
       if (!state.active && Math.hypot(moveEvent.clientX - state.startX, moveEvent.clientY - state.startY) < 7) return;
-      const active = activeDetail();
-      if (!active) return;
       if (!state.active) {
+        const active = activeDetail();
+        if (!active) return;
+        state.detail = active;
+        state.viewport = model.root?.querySelector("[data-template-mindmap-viewport]");
+        state.stage = state.viewport?.querySelector("[data-template-mindmap-stage]");
+        state.adaptiveScale = maturityAdaptiveScale();
+        state.viewportRect = state.viewport ? templateRectSnapshot(state.viewport.getBoundingClientRect()) : null;
         markTemplateDropCandidates(active, state);
         state.source?.classList.add("is-template-dragging");
+        clearTemplateTextSelection();
+        startTemplateDragMetrics(state);
       }
       state.active = true;
       model.templateDragState = { type: state.type, id: state.id };
       moveEvent.preventDefault();
-      clearTemplateTextSelection();
-      panTemplateCanvasNearPointer(moveEvent.clientX, moveEvent.clientY);
-      clearTemplateDropTargets();
-      const dropTarget = templateDropTargetAt(active, state, moveEvent.clientX, moveEvent.clientY);
-      if (dropTarget) {
-        dropTarget.classList.add("is-template-drop-target");
-        if (templateQuickChildType(dropTarget.dataset.templateDropType || "") === state.visualType) {
-          dropTarget.classList.add("is-template-parent-drop-target");
-        }
-      }
-      renderTemplateDragGhost(state, moveEvent.clientX, moveEvent.clientY, dropTarget);
+      state.latestClientX = moveEvent.clientX;
+      state.latestClientY = moveEvent.clientY;
+      state.latestEventTime = Number(moveEvent.timeStamp || templateDragNow());
+      if (state.dragMetrics) state.dragMetrics.moveEvents += 1;
+      scheduleTemplateDragFrame(state.detail, state);
+      scheduleTemplateAutoPan(state.detail, state);
     };
-    const finish = (upEvent) => {
+    const removeDocumentListeners = () => {
       document.removeEventListener("mousemove", move);
       document.removeEventListener("mouseup", finish);
       document.removeEventListener("selectstart", preventSelection);
+      window.removeEventListener("resize", invalidateGeometry);
+      window.removeEventListener("scroll", invalidateGeometry, true);
+    };
+    const finish = (upEvent) => {
+      removeDocumentListeners();
+      cancelTemplateDragFrames(state);
       if (model.templateMouseDrag !== state) return;
       model.templateMouseDrag = null;
       if (!state.active) {
+        reportTemplateDragMetrics(state, "click");
         clearTemplateMouseDrag(state);
         return;
       }
       upEvent.preventDefault();
-      const active = activeDetail();
+      state.latestClientX = upEvent.clientX;
+      state.latestClientY = upEvent.clientY;
+      state.latestEventTime = Number(upEvent.timeStamp || templateDragNow());
+      const active = state.detail || activeDetail();
       const dropTarget = active ? templateDropTargetAt(active, state, upEvent.clientX, upEvent.clientY) : null;
+      reportTemplateDragMetrics(state, dropTarget ? "drop" : "miss");
       clearTemplateMouseDrag(state);
       model.suppressTemplateClick = true;
       window.setTimeout(() => { model.suppressTemplateClick = false; }, 0);
@@ -9858,10 +10057,11 @@
       }
     };
     state.cancel = () => {
-      document.removeEventListener("mousemove", move);
-      document.removeEventListener("mouseup", finish);
-      document.removeEventListener("selectstart", preventSelection);
+      state.cancelled = true;
+      removeDocumentListeners();
+      cancelTemplateDragFrames(state);
       if (model.templateMouseDrag === state) model.templateMouseDrag = null;
+      reportTemplateDragMetrics(state, "cancel");
       clearTemplateMouseDrag(state);
     };
     document.addEventListener("mousemove", move);
@@ -9905,7 +10105,9 @@
     model.templateMindmapZoom = zoom;
     model.templateMindmapPanX = anchorX - stageX * zoom;
     model.templateMindmapPanY = anchorY - stageY * zoom;
-    return applyTemplateMindmapTransform(viewport);
+    const transformed = applyTemplateMindmapTransform(viewport);
+    invalidateTemplateDragGeometry();
+    return transformed;
   }
 
   function markTemplateGestureActive(viewport) {
@@ -9932,6 +10134,7 @@
     model.templateMindmapPanX -= deltaX;
     model.templateMindmapPanY -= deltaY;
     applyTemplateMindmapTransform(viewport);
+    invalidateTemplateDragGeometry();
   }
 
   function handleTemplateGestureStart(event) {

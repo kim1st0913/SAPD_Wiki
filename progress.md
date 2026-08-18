@@ -2,12 +2,44 @@
 
 > 状态：`active / recent milestones`
 >
-> 更新日期：2026-08-13
+> 更新日期：2026-08-18
 
 本页只保留最近的重要结果；历史记录从 `docs/05-archive/progress-history/` 进入。
 
+## 2026-08-18
+
+- `stable 5173 Runtime 恢复 PASS`：清理旧监听并恢复 PID 8893；项目根目录、正式 base / content
+  双库、真实用户库、data root、export root、`stable` 标签和 persistent CurrentUser MCP 身份全部
+  匹配，home / health / workspace 与三条 Batch 1 projection 均为 200。一次受沙箱阻止的本地连接
+  曾被误判为服务失效，获准的回环验收已排除该误判。真实用户库 SHA-256 前后保持
+  `0e3db1224b4c2044bcd0dfe4a7fbe9e3e5a28cf081a8ab1ff0b2622030c0af81`。
+- `成熟度脑图拖动第一阶段主控验收 PASS`：document 高频 mousemove 由 rAF 合并，候选矩形按失效
+  条件缓存，drop target 仅在变化时更新，ghost 跟手延迟和全页 dragging 样式重算已收窄，边缘平移
+  使用独立帧循环。运行态 5.34 秒内 14,717 次 mousemove 合并为 330 帧，p95=0.4 ms、p99=0.5 ms、
+  Long Task=0；同级移动、46px / 88px 跨层级吸附、持久化、自动平移和滚动通过。写集保留未提交。
+- `Windows watcher 根因确认`：私有提交 `e46f8384…` 后的 schedule watcher 仍锁定旧
+  `windows-data-20260727-r1`，并把失败结论视为下一轮可自动重试，造成 Run 32100869419、
+  32102863152、32104736344 连续触发。最新 Run 使用正确 public SHA `d2a644c4`，但旧数据只有
+  51 个 measure 且缺两份 workbench JSON，因此在 Phase 2 门禁停止；没有 Runtime / Setup /
+  Internal Release，正式数据和用户库未写入。修正由指定 Windows 专用任务在隔离 checkout 处理，
+  未获 commit / push / dispatch 授权前不改变远端状态。
+- `Windows 改为严格手工打包 / 本地补丁 PASS / 未上线`：按用户更正的产品合同删除
+  `watch-public-main.yml`，彻底移除 schedule、空闲期 manifest / hash 检查和自动 dispatch；只保留
+  人工 `windows-installer.yml` 入口。人工构建启动后才一次性校验 archive / base / content SHA、
+  不可变 Release、manifest 与 `user.status=not_included`。精确差异 `+41 / -123`，Workflow YAML、
+  Bash、权限及手工触发合同通过；本机无 pwsh / actionlint，未做 PowerShell 专用解析或 Windows
+  Runtime 验收。当前无排队或运行中 Run；私有远端仍是 `e46f8384…`，旧 watcher 在补丁推送前
+  仍可能再次触发，私有 README 的“自动检查”说明也待同步。
+
 ## 2026-08-13
 
+- `Windows workflow Artifact 峰值优化已提交 / 未 dispatch`：Run 31687536086 日志复核确认
+  Delivery Data 下载、分片大小与 SHA-256 校验均成功，唯一失败点为约 198 MB 中间 Artifact
+  上传命中配额。私有仓提交 `e46f8384bc5c1175eac4786b6a3971b485240b17` 删除该中间
+  Artifact，build 直接读取不可变私有 Release；执行公开源码的 job 只有 `contents:read`，
+  无发布权限，令牌只显式注入首个受控下载步骤。安装器 Artifact 保留期改为 1 天，发布成功后
+  由独立 `actions:write` job 按上传返回的 artifact ID 精确删除。YAML、固定 Action SHA、
+  job 权限与边界断言通过；未触发 Runner、未生成 Setup / Release，正式数据和用户库未写入。
 - `成熟度高分辨率与存储诊断主控验收 PASS`：源码区分 viewport 与逻辑坐标，只在进入图谱模型
   时按 adaptive scale 换算；`elementFromPoint` 保持原始坐标。右键菜单删除快捷装饰，保留业务
   动作和下级数量；渲染后按真实矩形二次收口。主控隔离复验 1920×1080 与 3008×1092，后者

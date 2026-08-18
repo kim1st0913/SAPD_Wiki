@@ -11933,13 +11933,17 @@ tbody[data-radar-group="M"] > .maturity-v23-heat-group > th i { background: #4f8
 
 [data-template-draggable="true"],
 body.is-template-node-dragging,
-body.is-template-node-dragging * {
+body.is-template-node-dragging .maturity-v41-mindmap-viewport,
+body.is-template-node-dragging .maturity-v41-mindmap-viewport *,
+body.is-template-node-dragging .maturity-v44-drag-ghost,
+body.is-template-node-dragging .maturity-v44-drag-ghost * {
   -webkit-user-select: none;
   user-select: none;
 }
 
 body.is-template-node-dragging,
-body.is-template-node-dragging * {
+body.is-template-node-dragging .maturity-v41-mindmap-viewport,
+body.is-template-node-dragging .maturity-v41-mindmap-viewport * {
   cursor: grabbing !important;
 }
 
@@ -11981,7 +11985,6 @@ body.is-template-node-dragging * {
   pointer-events: none;
   transform: translate3d(var(--maturity-drag-x, 0), var(--maturity-drag-y, 0), 0);
   will-change: transform;
-  transition: transform 54ms linear;
 }
 
 .maturity-v44-drag-ghost-card {

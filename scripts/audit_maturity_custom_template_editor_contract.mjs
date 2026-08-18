@@ -141,6 +141,10 @@ requireContract(
     "function animateTemplateNodeDrop(type, id)",
     "function templateDropTargetAt(detail, state, clientX, clientY)",
     "function markTemplateDropCandidates(detail, state)",
+    "function scheduleTemplateDragFrame(detail, state)",
+    "function scheduleTemplateAutoPan(detail, state)",
+    "function cancelTemplateDragFrames(state)",
+    "function refreshTemplateDropCandidateRects(state)",
     "移动节点及全部下级",
     "松开吸附到",
     "nearestDistance = 88",
@@ -155,15 +159,34 @@ requireContract(
 requireContract(
   includesAll(component, [
     "document.elementFromPoint(clientX, clientY)",
-    "templateDropTargetAt(active, state, moveEvent.clientX, moveEvent.clientY)",
+    "state.latestClientX = moveEvent.clientX",
+    "state.latestClientY = moveEvent.clientY",
+    "scheduleTemplateDragFrame(state.detail, state)",
     "templateDropTargetAt(active, state, upEvent.clientX, upEvent.clientY)",
+    "cancelTemplateDragFrames(state);",
+    "state.dropCandidateRects?.forEach(({ element: candidate, rect })",
+    "shiftTemplateDropCandidateRects(state, nextDelta.x * screenScale, nextDelta.y * screenScale)",
     "Math.hypot(moveEvent.clientX - state.startX, moveEvent.clientY - state.startY) < 7",
     "function clearTemplateTextSelection()",
     "clearTemplateTextSelection();",
     "function handleTemplateSelectStart(event)",
     'root.addEventListener("selectstart", handleTemplateSelectStart)',
+  ]) && !component.includes("panTemplateCanvasNearPointer(moveEvent.clientX")
+    && !component.includes('model.root?.querySelectorAll(".is-template-drop-candidate").forEach((candidate) => {'),
+  "拖拽必须合并到单一动画帧、缓存候选矩形，并在 mouseup 用最新真实坐标重新命中。",
+);
+
+requireContract(
+  includesAll(component, [
+    "state.cancelled = true",
+    "window.cancelAnimationFrame(state.moveFrame)",
+    "window.cancelAnimationFrame(state.autoPanFrame)",
+    'window.removeEventListener("resize", invalidateGeometry)',
+    'window.removeEventListener("scroll", invalidateGeometry, true)',
+    "state.currentDropTarget === dropTarget",
+    "state.ghostDropTarget !== dropTarget || state.ghostParentSnap !== parentSnap",
   ]),
-  "拖拽必须持续读取真实鼠标坐标，确保离开源节点后仍能命中画布父级并完成换父级。",
+  "Escape、取消、卸载和 mouseup 必须停止拖动及自动平移帧，且目标未变化时不得重复切换样式与提示。",
 );
 
 requireContract(
@@ -999,6 +1022,17 @@ requireContract(
     "@media (prefers-reduced-motion: reduce)",
   ]),
   "评估模板编辑器必须使用 Apple Shell 脑图画布、悬浮工具、右键菜单和响应式/减弱动画规则。",
+);
+
+requireContract(
+  includesAll(styles, [
+    "body.is-template-node-dragging .maturity-v41-mindmap-viewport",
+    "body.is-template-node-dragging .maturity-v41-mindmap-viewport *",
+    "transform: translate3d(var(--maturity-drag-x, 0), var(--maturity-drag-y, 0), 0)",
+    "will-change: transform",
+  ]) && !styles.includes("transition: transform 54ms linear")
+    && !styles.includes("body.is-template-node-dragging * {"),
+  "节点拖动必须取消 ghost 位移延迟，并把禁止选择和 grabbing 光标限制在脑图交互面内。",
 );
 
 requireContract(

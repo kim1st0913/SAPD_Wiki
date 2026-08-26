@@ -1,0 +1,274 @@
+name: Build public Windows Code Bundle
+run-name: Windows Code Bundle ${{ inputs.app_version }} / ${{ inputs.source_sha }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_sha:
+        description: Exact approved product source checkpoint selected for this packaging request
+        required: true
+        type: string
+      app_version:
+        description: Exact application version from the approved private packaging lock
+        required: true
+        type: string
+
+permissions: {}
+
+concurrency:
+  group: windows-code-bundle-${{ inputs.source_sha }}-${{ inputs.app_version }}
+  cancel-in-progress: false
+
+env:
+  WORKFLOW_SHA: ${{ github.sha }}
+  SOURCE_SHA: ${{ inputs.source_sha }}
+  APP_VERSION: ${{ inputs.app_version }}
+  CODE_BUNDLE_WORKFLOW: .github/workflows/windows-code-bundle.yml
+  ORCHESTRATION_ROOT: ${{ github.workspace }}\orchestration
+  PRODUCT_ROOT: ${{ github.workspace }}\product-source
+  PYTHONUTF8: "1"
+
+jobs:
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    outputs:
+      artifact_id: ${{ steps.upload.outputs.artifact-id }}
+      artifact_digest: ${{ steps.upload.outputs.artifact-digest }}
+      archive_name: ${{ steps.bundle.outputs.archive_name }}
+      archive_sha256: ${{ steps.bundle.outputs.archive_sha256 }}
+      manifest_sha256: ${{ steps.bundle.outputs.manifest_sha256 }}
+    steps:
+      - name: Checkout trusted orchestration revision
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          path: orchestration
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Enforce protected-main workflow provenance and product ancestry
+        shell: pwsh
+        working-directory: orchestration
+        run: |
+          $ErrorActionPreference = "Stop"
+          if ($env:WORKFLOW_SHA -notmatch '^[0-9a-f]{40}$') {
+            throw "workflow SHA must be a full lowercase Git SHA"
+          }
+          if ($env:SOURCE_SHA -notmatch '^[0-9a-f]{40}$') {
+            throw "source_sha must be a full lowercase Git SHA"
+          }
+          if ($env:GITHUB_REF -ne "refs/heads/main") {
+            throw "Windows Code Bundle must be dispatched from protected public main"
+          }
+          if ((git rev-parse HEAD).Trim() -ne $env:WORKFLOW_SHA) {
+            throw "exact trusted orchestration checkout failed"
+          }
+          if (git status --porcelain) {
+            throw "trusted orchestration checkout is dirty"
+          }
+          python scripts\windows_code_bundle.py ancestry `
+            --repo-root . `
+            --workflow-sha $env:WORKFLOW_SHA `
+            --source-sha $env:SOURCE_SHA
+
+      - name: Checkout exact approved product source revision
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ inputs.source_sha }}
+          path: product-source
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Enforce clean exact product source and version
+        shell: pwsh
+        working-directory: product-source
+        run: |
+          $ErrorActionPreference = "Stop"
+          if ((git rev-parse HEAD).Trim() -ne $env:SOURCE_SHA) {
+            throw "exact product source checkout failed"
+          }
+          if (git status --porcelain) {
+            throw "product source checkout is dirty"
+          }
+          $package = Get-Content apps\electron\package.json -Raw | ConvertFrom-Json
+          if ($package.version -ne $env:APP_VERSION) {
+            throw "Electron version does not match approved app version"
+          }
+
+      - name: Select locked Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.11.9"
+
+      - name: Test trusted Code Bundle orchestration helper
+        shell: pwsh
+        working-directory: orchestration
+        run: |
+          $ErrorActionPreference = "Stop"
+          python -u -m unittest -v tests.test_windows_code_bundle
+
+      - name: Select locked Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: "22.22.0"
+
+      - name: Install locked public build dependencies
+        shell: pwsh
+        working-directory: product-source
+        run: |
+          $ErrorActionPreference = "Stop"
+          python -m pip install `
+            "pyinstaller==6.21.0" `
+            "openpyxl>=3.1.0" `
+            "cryptography==49.0.0" `
+            "mcp[cli]==1.28.1" `
+            "rfc8785==0.1.4" `
+            "uvicorn==0.51.0"
+          npm ci --prefix apps\electron
+
+      - name: Run source-only Windows security and transport gates
+        timeout-minutes: 20
+        shell: pwsh
+        working-directory: product-source
+        env:
+          PYTHONPATH: ${{ github.workspace }}\product-source\src
+        run: |
+          $ErrorActionPreference = "Stop"
+          python -u -m unittest -v `
+            tests.mcp_certificate.test_platform_secrets `
+            tests.mcp_certificate.test_platform_trust_contract.PlatformTrustContractTests.test_windows_contract_never_accepts_local_machine_records `
+            tests.mcp_certificate.test_platform_trust_contract.PlatformTrustContractTests.test_windows_install_and_remove_are_exact_current_user_root `
+            tests.mcp_certificate.test_path_security `
+            tests.mcp_certificate.test_windows_native_security.WindowsNativeSecurityTests `
+            tests.mcp_certificate.test_windows_native_security.WindowsRealNativeSecurityTests.test_real_dpapi_round_trip_is_current_user_only `
+            tests.mcp_sidecar.test_secret_transport `
+            tests.mcp_sidecar.test_windows_secret_transport_contract `
+            tests.mcp_sidecar.test_dev_supervisor `
+            tests.mcp_integration.test_bundle_mcp_runtime `
+            tests.test_prepare_windows_electron_runtime `
+            tests.test_windows_delivery_data
+          python -u -c `
+            "from sapd_wiki.local_mcp.windows_current_user_trust import CtypesWindowsCertificateStoreNativeApi; api=CtypesWindowsCertificateStoreNativeApi(); certificates=api.list_certificates(store_location='CurrentUser', store_name='Root'); assert isinstance(certificates, list); assert all(isinstance(value, bytes) and value for value in certificates); print(f'CurrentUser Root native read gate: {len(certificates)} certificates')"
+
+      - name: Run public data boundary and Electron gates
+        timeout-minutes: 10
+        shell: pwsh
+        working-directory: product-source
+        run: |
+          $ErrorActionPreference = "Stop"
+          python scripts\check_github_data_boundary.py
+          npm test --prefix apps\electron
+
+      - name: Package and normalize native Windows backend
+        shell: pwsh
+        working-directory: product-source
+        run: |
+          $ErrorActionPreference = "Stop"
+          $sourceEpoch = (git show -s --format=%ct $env:SOURCE_SHA).Trim()
+          $env:SOURCE_DATE_EPOCH = $sourceEpoch
+          $env:PYTHONHASHSEED = "1"
+          .\scripts\package_backend_windows.ps1 `
+            -OutputDir dist\windows-backend `
+            -SourceRevision $env:SOURCE_SHA
+          $backendRoot = Resolve-Path dist\windows-backend\backend\win-x64
+          $recordFiles = @(
+            Get-ChildItem $backendRoot -File -Recurse -Filter RECORD |
+              Where-Object { $_.DirectoryName -like "*.dist-info" }
+          )
+          foreach ($recordFile in $recordFiles) {
+            $stableLines = @(
+              Get-Content $recordFile.FullName |
+                Where-Object { $_ -notmatch '^\.\./\.\./Scripts/[^,]+\.exe,' }
+            )
+            [System.IO.File]::WriteAllText(
+              $recordFile.FullName,
+              (($stableLines -join "`n") + "`n"),
+              [System.Text.UTF8Encoding]::new($false)
+            )
+          }
+          python -c `
+            "from pathlib import Path; from scripts.package_backend_pyinstaller import write_windows_build_info; write_windows_build_info(Path(r'dist/windows-backend/backend/win-x64'), '$env:SOURCE_SHA')"
+          & (Join-Path $backendRoot "SAPD-Wiki-Backend.exe") --help
+          if ($LASTEXITCODE -ne 0) { throw "Backend --help failed" }
+          & (Join-Path $backendRoot "SAPD-Wiki-Backend.exe") --mcp-sidecar --help
+          if ($LASTEXITCODE -ne 0) { throw "MCP sidecar --help failed" }
+
+      - name: Build and independently verify data-free Code Bundle
+        id: bundle
+        shell: pwsh
+        working-directory: orchestration
+        run: |
+          $ErrorActionPreference = "Stop"
+          python scripts\windows_code_bundle.py build `
+            --repo-root $env:PRODUCT_ROOT `
+            --backend-root (Join-Path $env:PRODUCT_ROOT "dist\windows-backend\backend\win-x64") `
+            --output-dir dist\windows-code-bundle `
+            --workflow-sha $env:WORKFLOW_SHA `
+            --source-sha $env:SOURCE_SHA `
+            --app-version $env:APP_VERSION `
+            --repository $env:GITHUB_REPOSITORY `
+            --workflow $env:CODE_BUNDLE_WORKFLOW `
+            --workflow-ref $env:GITHUB_WORKFLOW_REF `
+            --run-id $env:GITHUB_RUN_ID `
+            --run-attempt $env:GITHUB_RUN_ATTEMPT
+          $result = Get-Content dist\windows-code-bundle\code-bundle-output.json -Raw | ConvertFrom-Json
+          python scripts\windows_code_bundle.py verify `
+            --archive (Join-Path dist\windows-code-bundle $result.archive) `
+            --manifest dist\windows-code-bundle\code-bundle-manifest.json `
+            --expected-workflow-sha $env:WORKFLOW_SHA `
+            --expected-source-sha $env:SOURCE_SHA `
+            --expected-app-version $env:APP_VERSION `
+            --expected-repository $env:GITHUB_REPOSITORY `
+            --expected-workflow $env:CODE_BUNDLE_WORKFLOW `
+            --expected-run-id $env:GITHUB_RUN_ID
+          "archive_name=$($result.archive)" >> $env:GITHUB_OUTPUT
+          "archive_sha256=$($result.archiveSha256)" >> $env:GITHUB_OUTPUT
+          "manifest_sha256=$($result.manifestSha256)" >> $env:GITHUB_OUTPUT
+
+      - name: Upload exact public Code Bundle
+        id: upload
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: windows-code-bundle-${{ inputs.source_sha }}
+          path: |
+            orchestration/dist/windows-code-bundle/${{ steps.bundle.outputs.archive_name }}
+            orchestration/dist/windows-code-bundle/code-bundle-manifest.json
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+
+  attest:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      - name: Download exact artifact without executing public payload
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          artifact-ids: ${{ needs.build.outputs.artifact_id }}
+          merge-multiple: true
+          path: attest-input
+
+      - name: Verify actual archive digest before signing
+        shell: bash
+        env:
+          ARCHIVE_NAME: ${{ needs.build.outputs.archive_name }}
+          ARCHIVE_SHA256: ${{ needs.build.outputs.archive_sha256 }}
+        run: |
+          set -euo pipefail
+          archive="attest-input/${ARCHIVE_NAME}"
+          [[ -f "$archive" ]]
+          actual="$(sha256sum "$archive" | awk '{print $1}')"
+          [[ "$actual" == "$ARCHIVE_SHA256" ]]
+
+      - name: Attest exact Code Bundle archive
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6
+        with:
+          subject-path: attest-input/${{ needs.build.outputs.archive_name }}

@@ -1,28 +1,23 @@
 name: Build public Windows Code Bundle
-run-name: Windows Code Bundle ${{ inputs.app_version }} / ${{ inputs.source_sha }}
+run-name: Windows Code Bundle / ${{ inputs.source_sha }}
 
 on:
   workflow_dispatch:
     inputs:
       source_sha:
-        description: Exact approved product source checkpoint selected for this packaging request
-        required: true
-        type: string
-      app_version:
-        description: Exact application version from the approved private packaging lock
+        description: "Internal orchestrator input: exact approved product source checkpoint; do not enter manually"
         required: true
         type: string
 
 permissions: {}
 
 concurrency:
-  group: windows-code-bundle-${{ inputs.source_sha }}-${{ inputs.app_version }}
+  group: windows-code-bundle-${{ inputs.source_sha }}
   cancel-in-progress: false
 
 env:
   WORKFLOW_SHA: ${{ github.sha }}
   SOURCE_SHA: ${{ inputs.source_sha }}
-  APP_VERSION: ${{ inputs.app_version }}
   CODE_BUNDLE_WORKFLOW: .github/workflows/windows-code-bundle.yml
   ORCHESTRATION_ROOT: ${{ github.workspace }}\orchestration
   PRODUCT_ROOT: ${{ github.workspace }}\product-source
@@ -40,6 +35,8 @@ jobs:
       archive_name: ${{ steps.bundle.outputs.archive_name }}
       archive_sha256: ${{ steps.bundle.outputs.archive_sha256 }}
       manifest_sha256: ${{ steps.bundle.outputs.manifest_sha256 }}
+      policy_sha256: ${{ steps.build-policy.outputs.policy_sha256 }}
+      app_version: ${{ steps.bundle.outputs.app_version }}
     steps:
       - name: Checkout trusted orchestration revision
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -82,7 +79,7 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
-      - name: Enforce clean exact product source and version
+      - name: Resolve application version from exact clean product source
         shell: pwsh
         working-directory: product-source
         run: |
@@ -94,21 +91,40 @@ jobs:
             throw "product source checkout is dirty"
           }
           $package = Get-Content apps\electron\package.json -Raw | ConvertFrom-Json
-          if ($package.version -ne $env:APP_VERSION) {
-            throw "Electron version does not match approved app version"
+          $packageLock = Get-Content apps\electron\package-lock.json -Raw | ConvertFrom-Json
+          $rootLockPackage = $packageLock.packages.PSObject.Properties[""].Value
+          if ($package.version -notmatch '^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$') {
+            throw "Electron package version is invalid"
           }
+          if ($packageLock.version -ne $package.version -or $rootLockPackage.version -ne $package.version) {
+            throw "Electron package and lock versions are inconsistent"
+          }
+          "APP_VERSION=$($package.version)" >> $env:GITHUB_ENV
 
       - name: Select locked Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
         with:
           python-version: "3.11.9"
 
+      - name: Verify deterministic Windows Build Policy
+        id: build-policy
+        shell: pwsh
+        working-directory: orchestration
+        run: |
+          $ErrorActionPreference = "Stop"
+          $result = python scripts\windows_policy.py verify `
+            --manifest .github\windows-build-policy.json `
+            --root $env:ORCHESTRATION_ROOT | ConvertFrom-Json
+          "policy_sha256=$($result.policySha256)" >> $env:GITHUB_OUTPUT
+
       - name: Test trusted Code Bundle orchestration helper
         shell: pwsh
         working-directory: orchestration
         run: |
           $ErrorActionPreference = "Stop"
-          python -u -m unittest -v tests.test_windows_code_bundle
+          python -u -m unittest -v `
+            tests.test_windows_code_bundle `
+            tests.test_windows_policy
 
       - name: Select locked Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
@@ -120,13 +136,8 @@ jobs:
         working-directory: product-source
         run: |
           $ErrorActionPreference = "Stop"
-          python -m pip install `
-            "pyinstaller==6.21.0" `
-            "openpyxl>=3.1.0" `
-            "cryptography==49.0.0" `
-            "mcp[cli]==1.28.1" `
-            "rfc8785==0.1.4" `
-            "uvicorn==0.51.0"
+          python -m pip install --require-hashes --only-binary=:all: `
+            -r (Join-Path $env:ORCHESTRATION_ROOT "requirements\windows-build-py311-x64.lock")
           npm ci --prefix apps\electron
 
       - name: Run source-only Windows security and transport gates
@@ -206,6 +217,8 @@ jobs:
             --repo-root $env:PRODUCT_ROOT `
             --backend-root (Join-Path $env:PRODUCT_ROOT "dist\windows-backend\backend\win-x64") `
             --output-dir dist\windows-code-bundle `
+            --policy-manifest .github\windows-build-policy.json `
+            --build-lock requirements\windows-build-py311-x64.lock `
             --workflow-sha $env:WORKFLOW_SHA `
             --source-sha $env:SOURCE_SHA `
             --app-version $env:APP_VERSION `
@@ -218,6 +231,7 @@ jobs:
           python scripts\windows_code_bundle.py verify `
             --archive (Join-Path dist\windows-code-bundle $result.archive) `
             --manifest dist\windows-code-bundle\code-bundle-manifest.json `
+            --expected-policy-sha256 ${{ steps.build-policy.outputs.policy_sha256 }} `
             --expected-workflow-sha $env:WORKFLOW_SHA `
             --expected-source-sha $env:SOURCE_SHA `
             --expected-app-version $env:APP_VERSION `
@@ -227,6 +241,7 @@ jobs:
           "archive_name=$($result.archive)" >> $env:GITHUB_OUTPUT
           "archive_sha256=$($result.archiveSha256)" >> $env:GITHUB_OUTPUT
           "manifest_sha256=$($result.manifestSha256)" >> $env:GITHUB_OUTPUT
+          "app_version=$env:APP_VERSION" >> $env:GITHUB_OUTPUT
 
       - name: Upload exact public Code Bundle
         id: upload

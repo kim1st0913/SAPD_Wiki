@@ -15,8 +15,11 @@ from pathlib import Path, PurePosixPath
 
 
 SCHEMA_VERSION = "sapd-windows-code-bundle-v1"
+INSTANCE_SCHEMA_VERSION = "sapd-windows-code-bundle-instance-v1"
 PLATFORM = "win-x64"
 MANIFEST_NAME = "code-bundle-manifest.json"
+BUILD_POLICY_PATH = "build-policy/windows-build-policy.json"
+BUILD_LOCK_PATH = "build-policy/windows-build-py311-x64.lock"
 MAX_FILES = 50_000
 MAX_UNCOMPRESSED_BYTES = 3 * 1024 * 1024 * 1024
 APP_VERSION_RE = re.compile(r"^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$")
@@ -216,6 +219,13 @@ def copy_backend(backend_root: Path, target_root: Path) -> None:
         shutil.copyfile(source, target)
 
 
+def copy_control_file(source: Path, target: Path, label: str) -> None:
+    if source.is_symlink() or not source.is_file():
+        raise ValueError(f"{label} must be a regular file")
+    target.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(source, target)
+
+
 def file_records(bundle_root: Path) -> list[dict[str, object]]:
     records = []
     total_bytes = 0
@@ -285,6 +295,11 @@ def build(args: argparse.Namespace) -> dict[str, object]:
     (bundle_root / "payload").mkdir(parents=True)
     copy_payload(repo_root, bundle_root / "payload")
     copy_backend(args.backend_root.resolve(), bundle_root / "native-backend" / PLATFORM)
+    policy_manifest = args.policy_manifest.resolve()
+    build_lock = args.build_lock.resolve()
+    copy_control_file(policy_manifest, bundle_root / BUILD_POLICY_PATH, "build policy manifest")
+    copy_control_file(build_lock, bundle_root / BUILD_LOCK_PATH, "Windows build lock")
+    policy_sha256 = sha256_file(policy_manifest)
 
     records = file_records(bundle_root)
     source_epoch = int(git_output(repo_root, "show", "-s", "--format=%ct", source_sha))
@@ -301,6 +316,7 @@ def build(args: argparse.Namespace) -> dict[str, object]:
         "build": {
             "workflowSha": workflow_sha,
             "sourceSha": source_sha,
+            "policySha256": policy_sha256,
             "repository": args.repository,
             "workflow": args.workflow,
             "workflowRef": args.workflow_ref,
@@ -308,7 +324,18 @@ def build(args: argparse.Namespace) -> dict[str, object]:
             "runAttempt": str(args.run_attempt),
             "runner": "windows-2022",
         },
+        "instance": {
+            "schemaVersion": INSTANCE_SCHEMA_VERSION,
+            "appVersion": args.app_version,
+            "workflowSha": workflow_sha,
+            "sourceSha": source_sha,
+            "sourceTree": git_output(repo_root, "rev-parse", f"{source_sha}^{{tree}}"),
+            "policySha256": policy_sha256,
+            "payloadCoverage": "all-selected-files-by-sha256",
+        },
         "components": {
+            "buildPolicy": BUILD_POLICY_PATH,
+            "windowsBuildLock": BUILD_LOCK_PATH,
             "frontend": "payload/frontend/capability-browser",
             "nativeBackend": f"native-backend/{PLATFORM}",
             "electronPackaging": "payload/apps/electron",
@@ -345,6 +372,7 @@ def build(args: argparse.Namespace) -> dict[str, object]:
         "manifestSha256": sha256_file(manifest_path),
         "treeSha256": manifest["treeSha256"],
         "fileCount": manifest["fileCount"],
+        "policySha256": policy_sha256,
         "workflowSha": workflow_sha,
         "sourceSha": source_sha,
     }
@@ -359,6 +387,7 @@ def verify_archive(
     archive_path: Path,
     manifest_path: Path,
     *,
+    expected_policy_sha256: str,
     expected_workflow_sha: str,
     expected_source_sha: str,
     expected_app_version: str,
@@ -367,6 +396,8 @@ def verify_archive(
     expected_run_id: str,
 ) -> dict[str, object]:
     validate_identity(expected_workflow_sha, expected_source_sha, expected_app_version)
+    if not re.fullmatch(r"[0-9a-f]{64}", expected_policy_sha256):
+        raise ValueError("expected policy SHA-256 is invalid")
     manifest_bytes = manifest_path.read_bytes()
     manifest = json.loads(manifest_bytes.decode("utf-8"))
     expected = {
@@ -383,12 +414,25 @@ def verify_archive(
     for field, value in {
         "workflowSha": expected_workflow_sha,
         "sourceSha": expected_source_sha,
+        "policySha256": expected_policy_sha256,
         "repository": expected_repository,
         "workflow": expected_workflow,
         "runId": str(expected_run_id),
     }.items():
         if build_identity.get(field) != value:
             raise ValueError(f"Code Bundle build identity mismatch: {field}")
+    instance = manifest.get("instance") or {}
+    expected_instance = {
+        "schemaVersion": INSTANCE_SCHEMA_VERSION,
+        "appVersion": expected_app_version,
+        "workflowSha": expected_workflow_sha,
+        "sourceSha": expected_source_sha,
+        "sourceTree": manifest.get("sourceTree"),
+        "policySha256": expected_policy_sha256,
+        "payloadCoverage": "all-selected-files-by-sha256",
+    }
+    if instance != expected_instance:
+        raise ValueError("Code Bundle instance identity mismatch")
     boundary = manifest.get("dataBoundary") or {}
     if not boundary or any(value != "not_included" for value in boundary.values()):
         raise ValueError("Code Bundle data boundary is not closed")
@@ -411,6 +455,9 @@ def verify_archive(
         if relative in declared or forbidden_path(relative, backend=relative.startswith("native-backend/")):
             raise ValueError(f"Code Bundle contains a forbidden or duplicate path: {relative}")
         declared[relative] = record
+    for required in (BUILD_POLICY_PATH, BUILD_LOCK_PATH):
+        if required not in declared:
+            raise ValueError(f"Code Bundle is missing required policy path: {required}")
     if tree_sha256(records) != manifest.get("treeSha256"):
         raise ValueError("Code Bundle tree digest mismatch")
 
@@ -441,6 +488,8 @@ def verify_archive(
                 raise ValueError(f"Code Bundle file digest mismatch: {relative}")
         if seen != {path.casefold() for path in declared}:
             raise ValueError("Code Bundle archive and manifest path sets differ")
+        if sha256_bytes(archive.read(BUILD_POLICY_PATH)) != expected_policy_sha256:
+            raise ValueError("embedded build policy digest mismatch")
     return {
         "archiveSha256": sha256_file(archive_path),
         "manifestSha256": sha256_file(manifest_path),
@@ -456,6 +505,8 @@ def main() -> int:
     build_parser.add_argument("--repo-root", type=Path, default=Path.cwd())
     build_parser.add_argument("--backend-root", type=Path, required=True)
     build_parser.add_argument("--output-dir", type=Path, required=True)
+    build_parser.add_argument("--policy-manifest", type=Path, required=True)
+    build_parser.add_argument("--build-lock", type=Path, required=True)
     build_parser.add_argument("--workflow-sha", required=True)
     build_parser.add_argument("--source-sha", required=True)
     build_parser.add_argument("--app-version", required=True)
@@ -468,6 +519,7 @@ def main() -> int:
     verify_parser = subparsers.add_parser("verify")
     verify_parser.add_argument("--archive", type=Path, required=True)
     verify_parser.add_argument("--manifest", type=Path, required=True)
+    verify_parser.add_argument("--expected-policy-sha256", required=True)
     verify_parser.add_argument("--expected-workflow-sha", required=True)
     verify_parser.add_argument("--expected-source-sha", required=True)
     verify_parser.add_argument("--expected-app-version", required=True)
@@ -485,6 +537,7 @@ def main() -> int:
         result = verify_archive(
             args.archive.resolve(),
             args.manifest.resolve(),
+            expected_policy_sha256=args.expected_policy_sha256,
             expected_workflow_sha=args.expected_workflow_sha,
             expected_source_sha=args.expected_source_sha,
             expected_app_version=args.expected_app_version,

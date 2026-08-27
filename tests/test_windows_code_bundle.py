@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import subprocess
 import tempfile
@@ -18,6 +19,17 @@ REAL_SOURCE_SHA = "4f9090440c5e295bf7ac289c67e99990690adf61"
 
 
 class WindowsCodeBundleTests(unittest.TestCase):
+    def _policy_files(self, root: Path) -> tuple[Path, Path, str]:
+        policy_path = root / "windows-build-policy.json"
+        lock_path = root / "windows-build-py311-x64.lock"
+        policy_path.write_text('{"schemaVersion":"test-policy"}\n', encoding="utf-8")
+        lock_path.write_text(
+            "test-package==1.0.0 --hash=sha256:" + ("0" * 64) + "\n",
+            encoding="utf-8",
+        )
+        digest = hashlib.sha256(policy_path.read_bytes()).hexdigest()
+        return policy_path, lock_path, digest
+
     def _repo(self, root: Path) -> tuple[Path, str]:
         repo = root / "repo"
         files = {
@@ -61,11 +73,14 @@ class WindowsCodeBundleTests(unittest.TestCase):
             root = Path(name)
             repo, source_sha = self._repo(root)
             output = root / "output"
+            policy_path, lock_path, policy_sha256 = self._policy_files(root)
             result = bundle.build(
                 argparse.Namespace(
                     repo_root=repo,
                     backend_root=self._backend(root, source_sha),
                     output_dir=output,
+                    policy_manifest=policy_path,
+                    build_lock=lock_path,
                     workflow_sha=WORKFLOW_SHA,
                     source_sha=source_sha,
                     app_version="0.4.1",
@@ -79,6 +94,7 @@ class WindowsCodeBundleTests(unittest.TestCase):
             verified = bundle.verify_archive(
                 output / str(result["archive"]),
                 output / bundle.MANIFEST_NAME,
+                expected_policy_sha256=policy_sha256,
                 expected_workflow_sha=WORKFLOW_SHA,
                 expected_source_sha=source_sha,
                 expected_app_version="0.4.1",
@@ -91,24 +107,83 @@ class WindowsCodeBundleTests(unittest.TestCase):
             self.assertEqual(manifest["workflowSha"], WORKFLOW_SHA)
             self.assertEqual(manifest["build"]["workflowSha"], WORKFLOW_SHA)
             self.assertEqual(manifest["build"]["sourceSha"], source_sha)
+            self.assertEqual(manifest["build"]["policySha256"], policy_sha256)
             self.assertEqual(manifest["sourceSha"], source_sha)
             self.assertNotEqual(manifest["build"]["workflowSha"], manifest["sourceSha"])
+            self.assertEqual(
+                manifest["instance"],
+                {
+                    "schemaVersion": bundle.INSTANCE_SCHEMA_VERSION,
+                    "appVersion": "0.4.1",
+                    "workflowSha": WORKFLOW_SHA,
+                    "sourceSha": source_sha,
+                    "sourceTree": manifest["sourceTree"],
+                    "policySha256": policy_sha256,
+                    "payloadCoverage": "all-selected-files-by-sha256",
+                },
+            )
             with zipfile.ZipFile(output / str(result["archive"])) as archive:
                 names = set(archive.namelist())
             self.assertIn("payload/frontend/capability-browser/index.html", names)
             self.assertIn("native-backend/win-x64/SAPD-Wiki-Backend.exe", names)
+            self.assertIn(bundle.BUILD_POLICY_PATH, names)
+            self.assertIn(bundle.BUILD_LOCK_PATH, names)
             self.assertNotIn(".git/config", names)
+            declared = {record["path"] for record in manifest["files"]}
+            self.assertEqual(names, declared)
+
+    def test_product_change_changes_instance_but_not_stable_policy(self) -> None:
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name)
+            policy_path, lock_path, policy_sha256 = self._policy_files(root)
+            manifests = []
+            for label, version in (("first", "0.4.1"), ("second", "0.4.2")):
+                repo, source_sha = self._repo(root / label)
+                package_path = repo / "apps/electron/package.json"
+                if version != "0.4.1":
+                    package_path.write_text(json.dumps({"version": version}), encoding="utf-8")
+                    subprocess.run(["git", "add", "apps/electron/package.json"], cwd=repo, check=True)
+                    subprocess.run(["git", "commit", "-qm", version], cwd=repo, check=True)
+                source_sha = subprocess.run(
+                    ["git", "rev-parse", "HEAD"], cwd=repo, check=True, capture_output=True, text=True
+                ).stdout.strip()
+                output = root / f"output-{label}"
+                result = bundle.build(
+                    argparse.Namespace(
+                        repo_root=repo,
+                        backend_root=self._backend(root / label, source_sha),
+                        output_dir=output,
+                        policy_manifest=policy_path,
+                        build_lock=lock_path,
+                        workflow_sha=WORKFLOW_SHA,
+                        source_sha=source_sha,
+                        app_version=version,
+                        repository="owner/public",
+                        workflow=".github/workflows/windows-code-bundle.yml",
+                        workflow_ref="owner/public/.github/workflows/windows-code-bundle.yml@refs/heads/main",
+                        run_id="123",
+                        run_attempt="1",
+                    )
+                )
+                self.assertEqual(result["policySha256"], policy_sha256)
+                manifests.append(json.loads((output / bundle.MANIFEST_NAME).read_text()))
+            self.assertNotEqual(manifests[0]["sourceSha"], manifests[1]["sourceSha"])
+            self.assertNotEqual(manifests[0]["instance"], manifests[1]["instance"])
+            self.assertNotEqual(manifests[0]["treeSha256"], manifests[1]["treeSha256"])
 
     def test_verify_rejects_tampered_payload(self) -> None:
         with tempfile.TemporaryDirectory() as name:
             root = Path(name)
             repo, source_sha = self._repo(root)
             output = root / "output"
+            policy_path, lock_path, policy_sha256 = self._policy_files(root)
             result = bundle.build(
                 argparse.Namespace(
                     repo_root=repo,
                     backend_root=self._backend(root, source_sha),
                     output_dir=output,
+                    policy_manifest=policy_path,
+                    build_lock=lock_path,
                     workflow_sha=WORKFLOW_SHA,
                     source_sha=source_sha,
                     app_version="0.4.1",
@@ -126,6 +201,7 @@ class WindowsCodeBundleTests(unittest.TestCase):
                 bundle.verify_archive(
                     archive_path,
                     output / bundle.MANIFEST_NAME,
+                    expected_policy_sha256=policy_sha256,
                     expected_workflow_sha=WORKFLOW_SHA,
                     expected_source_sha=source_sha,
                     expected_app_version="0.4.1",

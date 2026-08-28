@@ -102,7 +102,10 @@ class WindowsPolicyTests(unittest.TestCase):
             baseline = policy.build_document(policy_root)
             for relative in policy.REQUIRED_POLICY_PATHS:
                 target = policy_root / relative
-                target.write_bytes(target.read_bytes().replace(b"\n", b"\r\n"))
+                for _ in range(2):
+                    raw = target.read_bytes().replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+                    target.write_bytes(raw.replace(b"\n", b"\r\n"))
+                    self.assertNotIn(b"\r\r\n", target.read_bytes())
             self.assertEqual(policy.build_document(policy_root), baseline)
 
             manifest = root / "policy.json"

@@ -114,6 +114,33 @@ class WindowsPolicyTests(unittest.TestCase):
         self.assertNotIn("app_version:", dispatch_header)
         self.assertIn('"APP_VERSION=$($package.version)"', workflow)
 
+    def test_workflow_reads_package_lock_empty_root_with_hashtable_contract(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        workflow = (root / ".github/workflows/windows-code-bundle.yml").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("ConvertFrom-Json -AsHashtable", workflow)
+        self.assertIn("$rootLockPackage = $packageLock['packages']['']", workflow)
+        self.assertIn("$packageLock['version']", workflow)
+        self.assertIn("$rootLockPackage['version']", workflow)
+        self.assertIn("$packageLock -isnot [System.Collections.IDictionary]", workflow)
+        self.assertIn("$packageLock['packages'] -isnot [System.Collections.IDictionary]", workflow)
+        self.assertIn("$packageLock['packages'][''] -isnot [System.Collections.IDictionary]", workflow)
+        self.assertIn("$packageLock.Contains('packages')", workflow)
+        self.assertIn("$packageLock['packages'].Contains('')", workflow)
+        self.assertIn("$packageLock.Contains('version')", workflow)
+        self.assertIn("$rootLockPackage.Contains('version')", workflow)
+        self.assertNotIn("$packageLock.version", workflow)
+        self.assertNotIn("$rootLockPackage.version", workflow)
+
+        package = json.loads((root / "apps/electron/package.json").read_text(encoding="utf-8"))
+        package_lock = json.loads(
+            (root / "apps/electron/package-lock.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(package["version"], "0.4.1")
+        self.assertEqual(package_lock["version"], "0.4.1")
+        self.assertEqual(package_lock["packages"][""]["version"], "0.4.1")
+
     def test_stable_policy_excludes_product_identity_and_payload(self) -> None:
         with tempfile.TemporaryDirectory() as name:
             root = Path(name)

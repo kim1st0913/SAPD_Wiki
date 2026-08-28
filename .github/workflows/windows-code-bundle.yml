@@ -91,12 +91,27 @@ jobs:
             throw "product source checkout is dirty"
           }
           $package = Get-Content apps\electron\package.json -Raw | ConvertFrom-Json
-          $packageLock = Get-Content apps\electron\package-lock.json -Raw | ConvertFrom-Json
-          $rootLockPackage = $packageLock.packages.PSObject.Properties[""].Value
+          $packageLock = Get-Content apps\electron\package-lock.json -Raw | ConvertFrom-Json -AsHashtable
+          if ($packageLock -isnot [System.Collections.IDictionary]) {
+            throw "Electron package lock root must be a JSON object"
+          }
+          if (-not $packageLock.Contains('packages') -or $packageLock['packages'] -isnot [System.Collections.IDictionary]) {
+            throw "Electron package lock packages map is missing or invalid"
+          }
+          if (-not $packageLock['packages'].Contains('') -or $packageLock['packages'][''] -isnot [System.Collections.IDictionary]) {
+            throw "Electron package lock root package is missing or invalid"
+          }
+          $rootLockPackage = $packageLock['packages']['']
+          if (-not $packageLock.Contains('version') -or $packageLock['version'] -isnot [string] -or [string]::IsNullOrWhiteSpace($packageLock['version'])) {
+            throw "Electron package lock version is missing or invalid"
+          }
+          if (-not $rootLockPackage.Contains('version') -or $rootLockPackage['version'] -isnot [string] -or [string]::IsNullOrWhiteSpace($rootLockPackage['version'])) {
+            throw "Electron package lock root package version is missing or invalid"
+          }
           if ($package.version -notmatch '^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$') {
             throw "Electron package version is invalid"
           }
-          if ($packageLock.version -ne $package.version -or $rootLockPackage.version -ne $package.version) {
+          if ($packageLock['version'] -ne $package.version -or $rootLockPackage['version'] -ne $package.version) {
             throw "Electron package and lock versions are inconsistent"
           }
           "APP_VERSION=$($package.version)" >> $env:GITHUB_ENV

@@ -13,6 +13,11 @@ import zipfile
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 
+try:
+    from scripts import windows_policy
+except ImportError:  # Direct execution adds scripts/ rather than the repository root.
+    import windows_policy  # type: ignore[no-redef]
+
 
 SCHEMA_VERSION = "sapd-windows-code-bundle-v1"
 INSTANCE_SCHEMA_VERSION = "sapd-windows-code-bundle-instance-v1"
@@ -226,6 +231,15 @@ def copy_control_file(source: Path, target: Path, label: str) -> None:
     shutil.copyfile(source, target)
 
 
+def copy_canonical_policy(source: Path, target: Path) -> str:
+    if source.is_symlink() or not source.is_file():
+        raise ValueError("build policy manifest must be a regular file")
+    document, digest = windows_policy.load_manifest(source)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_bytes(windows_policy.canonical_bytes(document))
+    return digest
+
+
 def file_records(bundle_root: Path) -> list[dict[str, object]]:
     records = []
     total_bytes = 0
@@ -297,9 +311,11 @@ def build(args: argparse.Namespace) -> dict[str, object]:
     copy_backend(args.backend_root.resolve(), bundle_root / "native-backend" / PLATFORM)
     policy_manifest = args.policy_manifest.resolve()
     build_lock = args.build_lock.resolve()
-    copy_control_file(policy_manifest, bundle_root / BUILD_POLICY_PATH, "build policy manifest")
+    policy_sha256 = copy_canonical_policy(
+        policy_manifest,
+        bundle_root / BUILD_POLICY_PATH,
+    )
     copy_control_file(build_lock, bundle_root / BUILD_LOCK_PATH, "Windows build lock")
-    policy_sha256 = sha256_file(policy_manifest)
 
     records = file_records(bundle_root)
     source_epoch = int(git_output(repo_root, "show", "-s", "--format=%ct", source_sha))
@@ -488,7 +504,10 @@ def verify_archive(
                 raise ValueError(f"Code Bundle file digest mismatch: {relative}")
         if seen != {path.casefold() for path in declared}:
             raise ValueError("Code Bundle archive and manifest path sets differ")
-        if sha256_bytes(archive.read(BUILD_POLICY_PATH)) != expected_policy_sha256:
+        _, embedded_policy_sha256 = windows_policy.load_manifest_bytes(
+            archive.read(BUILD_POLICY_PATH)
+        )
+        if embedded_policy_sha256 != expected_policy_sha256:
             raise ValueError("embedded build policy digest mismatch")
     return {
         "archiveSha256": sha256_file(archive_path),

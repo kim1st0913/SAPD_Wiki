@@ -10,6 +10,7 @@ import zipfile
 from pathlib import Path
 
 from scripts import windows_code_bundle as bundle
+from scripts import windows_policy as policy
 
 
 SOURCE_SHA = "a" * 40
@@ -22,12 +23,14 @@ class WindowsCodeBundleTests(unittest.TestCase):
     def _policy_files(self, root: Path) -> tuple[Path, Path, str]:
         policy_path = root / "windows-build-policy.json"
         lock_path = root / "windows-build-py311-x64.lock"
-        policy_path.write_text('{"schemaVersion":"test-policy"}\n', encoding="utf-8")
+        document = policy.build_document(Path(__file__).resolve().parents[1])
+        canonical = policy.canonical_bytes(document)
+        policy_path.write_bytes(canonical)
         lock_path.write_text(
             "test-package==1.0.0 --hash=sha256:" + ("0" * 64) + "\n",
             encoding="utf-8",
         )
-        digest = hashlib.sha256(policy_path.read_bytes()).hexdigest()
+        digest = hashlib.sha256(canonical).hexdigest()
         return policy_path, lock_path, digest
 
     def _repo(self, root: Path) -> tuple[Path, str]:
@@ -170,6 +173,53 @@ class WindowsCodeBundleTests(unittest.TestCase):
             self.assertNotEqual(manifests[0]["sourceSha"], manifests[1]["sourceSha"])
             self.assertNotEqual(manifests[0]["instance"], manifests[1]["instance"])
             self.assertNotEqual(manifests[0]["treeSha256"], manifests[1]["treeSha256"])
+
+    def test_build_normalizes_embedded_policy_representation(self) -> None:
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name)
+            repo, source_sha = self._repo(root)
+            output = root / "output"
+            policy_path, lock_path, policy_sha256 = self._policy_files(root)
+            document = json.loads(policy_path.read_text(encoding="utf-8"))
+            policy_path.write_bytes(
+                (json.dumps(document, indent=2).replace("\n", "\r\n") + "\r\n").encode(
+                    "utf-8"
+                )
+            )
+            result = bundle.build(
+                argparse.Namespace(
+                    repo_root=repo,
+                    backend_root=self._backend(root, source_sha),
+                    output_dir=output,
+                    policy_manifest=policy_path,
+                    build_lock=lock_path,
+                    workflow_sha=WORKFLOW_SHA,
+                    source_sha=source_sha,
+                    app_version="0.4.1",
+                    repository="owner/public",
+                    workflow=".github/workflows/windows-code-bundle.yml",
+                    workflow_ref="owner/public/.github/workflows/windows-code-bundle.yml@refs/heads/main",
+                    run_id="123",
+                    run_attempt="1",
+                )
+            )
+            self.assertEqual(result["policySha256"], policy_sha256)
+            with zipfile.ZipFile(output / str(result["archive"])) as archive:
+                self.assertEqual(
+                    archive.read(bundle.BUILD_POLICY_PATH),
+                    policy.canonical_bytes(document),
+                )
+            bundle.verify_archive(
+                output / str(result["archive"]),
+                output / bundle.MANIFEST_NAME,
+                expected_policy_sha256=policy_sha256,
+                expected_workflow_sha=WORKFLOW_SHA,
+                expected_source_sha=source_sha,
+                expected_app_version="0.4.1",
+                expected_repository="owner/public",
+                expected_workflow=".github/workflows/windows-code-bundle.yml",
+                expected_run_id="123",
+            )
 
     def test_verify_rejects_tampered_payload(self) -> None:
         with tempfile.TemporaryDirectory() as name:

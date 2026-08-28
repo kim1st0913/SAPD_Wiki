@@ -70,17 +70,68 @@ class WindowsPolicyTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "symlink"):
                 policy.verify_manifest(manifest, policy_root)
 
-    def test_noncanonical_manifest_fails_closed(self) -> None:
+    def test_manifest_whitespace_and_line_endings_share_identity(self) -> None:
         with tempfile.TemporaryDirectory() as name:
             root = Path(name)
             policy_root = self._root(root)
             manifest = root / "policy.json"
-            manifest.write_text(
-                json.dumps(policy.build_document(policy_root), indent=2) + "\n",
-                encoding="utf-8",
+            document = policy.build_document(policy_root)
+            canonical = policy.canonical_bytes(document)
+            expected = policy.sha256_bytes(canonical)
+            representations = (
+                canonical,
+                json.dumps(document, indent=2).replace("\n", "\r\n").encode("utf-8")
+                + b"\r\n",
+                json.dumps(document, separators=(",", ":")).encode("utf-8"),
             )
-            with self.assertRaisesRegex(ValueError, "not canonical"):
+            for representation in representations:
+                with self.subTest(tail=representation[-8:]):
+                    manifest.write_bytes(representation)
+                    loaded, digest = policy.load_manifest(manifest)
+                    self.assertEqual(loaded, document)
+                    self.assertEqual(digest, expected)
+                    self.assertEqual(
+                        policy.verify_manifest(manifest, policy_root)["policySha256"],
+                        expected,
+                    )
+
+    def test_policy_text_line_endings_normalize_but_content_tampering_fails(self) -> None:
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name)
+            policy_root = self._root(root)
+            baseline = policy.build_document(policy_root)
+            for relative in policy.REQUIRED_POLICY_PATHS:
+                target = policy_root / relative
+                target.write_bytes(target.read_bytes().replace(b"\n", b"\r\n"))
+            self.assertEqual(policy.build_document(policy_root), baseline)
+
+            manifest = root / "policy.json"
+            manifest.write_bytes(policy.canonical_bytes(baseline))
+            target = policy_root / policy.REQUIRED_POLICY_PATHS[0]
+            target.write_bytes(target.read_bytes() + b"content-change\r\n")
+            with self.assertRaisesRegex(ValueError, "digest mismatch"):
+                policy.verify_manifest(manifest, policy_root)
+
+    def test_invalid_manifest_and_policy_text_fail_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name)
+            policy_root = self._root(root)
+            manifest = root / "policy.json"
+            manifest.write_bytes(b"{invalid")
+            with self.assertRaisesRegex(ValueError, "valid JSON"):
                 policy.load_manifest(manifest)
+
+            manifest.write_text('{"schemaVersion":"wrong"}', encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "fields are invalid"):
+                policy.load_manifest(manifest)
+
+            target = policy_root / policy.REQUIRED_POLICY_PATHS[0]
+            target.write_bytes(b"not-utf8:\xff")
+            with self.assertRaisesRegex(ValueError, "not UTF-8"):
+                policy.build_document(policy_root)
+            target.write_bytes(b"contains\x00nul")
+            with self.assertRaisesRegex(ValueError, "NUL"):
+                policy.build_document(policy_root)
 
     def test_windows_lock_is_fully_pinned_hashed_and_sorted(self) -> None:
         lock = Path(__file__).resolve().parents[1] / "requirements/windows-build-py311-x64.lock"

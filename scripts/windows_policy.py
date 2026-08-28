@@ -30,18 +30,28 @@ def sha256_bytes(value: bytes) -> str:
     return hashlib.sha256(value).hexdigest()
 
 
-def sha256_file(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
-
-
 def canonical_bytes(document: dict[str, object]) -> bytes:
     return (
         json.dumps(document, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n"
     ).encode("utf-8")
+
+
+def normalized_text_bytes(path: Path) -> bytes:
+    raw = path.read_bytes()
+    if b"\x00" in raw:
+        raise ValueError(f"policy text file contains NUL bytes: {path}")
+    try:
+        text = raw.decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise ValueError(f"policy text file is not UTF-8: {path}") from error
+    text = text.replace("\r\n", "\n")
+    if "\r" in text:
+        raise ValueError(f"policy text file uses unsupported line endings: {path}")
+    return text.encode("utf-8")
+
+
+def policy_file_sha256(path: Path) -> str:
+    return sha256_bytes(normalized_text_bytes(path))
 
 
 def safe_relative_path(value: str) -> PurePosixPath:
@@ -77,7 +87,7 @@ def build_document(root: Path) -> dict[str, object]:
     records = []
     for path in sorted(expected_paths()):
         source = checked_file(root, path)
-        records.append({"path": path, "sha256": sha256_file(source)})
+        records.append({"path": path, "sha256": policy_file_sha256(source)})
     return {
         "schemaVersion": SCHEMA_VERSION,
         "policyKind": POLICY_KIND,
@@ -124,13 +134,24 @@ def validate_document(document: object) -> list[dict[str, str]]:
     return normalized
 
 
-def load_manifest(path: Path) -> tuple[dict[str, object], str]:
-    raw = path.read_bytes()
-    document = json.loads(raw.decode("utf-8"))
-    if raw != canonical_bytes(document):
-        raise ValueError("policy manifest is not canonical JSON")
+def load_manifest_bytes(raw: bytes) -> tuple[dict[str, object], str]:
+    if b"\x00" in raw:
+        raise ValueError("policy manifest contains NUL bytes")
+    try:
+        text = raw.decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise ValueError("policy manifest is not UTF-8") from error
+    try:
+        document = json.loads(text)
+    except json.JSONDecodeError as error:
+        raise ValueError("policy manifest is not valid JSON") from error
     validate_document(document)
-    return document, sha256_bytes(raw)
+    canonical = canonical_bytes(document)
+    return document, sha256_bytes(canonical)
+
+
+def load_manifest(path: Path) -> tuple[dict[str, object], str]:
+    return load_manifest_bytes(path.read_bytes())
 
 
 def verify_manifest(
@@ -140,7 +161,7 @@ def verify_manifest(
     document, digest = load_manifest(manifest_path)
     for record in document["files"]:
         source = checked_file(root, str(record["path"]))
-        if sha256_file(source) != record["sha256"]:
+        if policy_file_sha256(source) != record["sha256"]:
             raise ValueError(f"policy file digest mismatch: {record['path']}")
     return {
         "schemaVersion": SCHEMA_VERSION,
@@ -165,7 +186,7 @@ def main() -> int:
         args.manifest.parent.mkdir(parents=True, exist_ok=True)
         args.manifest.write_bytes(canonical_bytes(document))
         result = {
-            "policySha256": sha256_file(args.manifest),
+            "policySha256": sha256_bytes(canonical_bytes(document)),
             "fileCount": len(document["files"]),
             "status": "built",
         }

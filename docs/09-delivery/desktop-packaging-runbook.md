@@ -2,7 +2,7 @@
 
 > 状态：`active / current source of truth`
 >
-> 更新日期：2026-08-03
+> 更新日期：2026-09-06
 >
 > 适用产物：macOS ARM64 DMG、Windows x64 NSIS `Setup.exe`
 
@@ -18,7 +18,7 @@
 
 1. 使用公开仓 `main` 的最新已推送代码；
 2. 检查正式基础库和内容资产库是否比当前私有 Delivery Data 更新；
-3. 数据有变化时先创建新的、不可变的私有 Delivery Data Release；
+3. 数据有变化时，先核对本轮是否已授权创建并上传新的不可变私有 Delivery Data Release；未授权时完成只读检查并报告差异，等待该写入范围明确后继续；
 4. 数据没有变化时复用当前已批准的数据 Release；
 5. 在 GitHub Windows Runner 上生成完整 `Setup.exe`；
 6. 上传到私有仓 `SAPD_Wiki_Delivery_Private` 的 Internal Prerelease；
@@ -85,24 +85,21 @@ macOS 不迁移到 GitHub Runner。DMG 继续在正式 Mac 主工作区本地构
 }
 ```
 
-当前 macOS 0.3.0 路径通过 `/usr/bin/security` 使用登录钥匙串；Keychain 暂时不可
+当前 macOS 0.4.1 路径通过 `/usr/bin/security` 使用登录钥匙串；Keychain 暂时不可
 访问时提示用户解锁并重试，不把它误判为证书永久失效。任何后续安全存储架构或正式
 签名 / 公证改造必须单独立项和验收。
 
 ## 4. Windows 打包流程
 
-### 4.1 自动入口（当前修复前仅允许手工 dispatch）
+### 4.1 手工入口
 
-设计上，私有仓 workflow 每 10 分钟检查一次公开仓 `main`。Electron、前端、Python backend、MCP、Windows 打包脚本或相关测试发生变化时应自动触发 Windows 构建；纯文档或 macOS-only 修改不触发。
+Windows Runner 只允许在用户明确下令打包后手工触发一次。私有仓已删除
+`watch-public-main.yml`；不得恢复 schedule、watcher、自动 dispatch 或失败自动重试。
+生产构建入口为手工 `windows-installer.yml`，并须显式传入精确版本、公开源码 SHA 和
+已批准的不可变 Delivery Data Release。构建失败后先报告证据和恢复选项，未经新指令不再次触发。
 
-当前私有仓生产 workflow 为 `watch-public-main.yml`、`windows-installer.yml`、
-`compare-windows-builds.yml` 和 `promote-windows-installer.yml`。公开仓原
-`build-windows-backend.yml` 已随 backend-only / Mac 手工组装链路退役，归档在
-`docs/05-archive/delivery-retired-2026-07/workflows/`，不得从 GitHub Actions 手工运行。
-
-2026-08-03 静态核对发现 watcher 尚未向 builder 传递必填 `app_version`。在私有仓修复并取得成功运行证据前，不得宣称自动触发健康；手工 dispatch 必须显式传入精确版本号。
-
-需要注意：GitHub watcher 看不到 Mac 上尚未发布的数据。用户说“我要打最新的包”时，Agent 必须先完成数据新鲜度检查，不能只等待 watcher。
+打包前先只读检查数据新鲜度。发现现有 Delivery Data 陈旧只形成结论，不自动授权创建、
+覆盖或上传新的数据 Release；当前打包请求明确包含最新数据写入范围时，才执行 4.3。
 
 ### 4.2 数据没有变化
 
@@ -146,7 +143,7 @@ macOS 不迁移到 GitHub Runner。DMG 继续在正式 Mac 主工作区本地构
 
 ### 4.5 用户需要下载什么
 
-打开私有仓 `SAPD_Wiki_Delivery_Private` 的最新 `internal-windows-*` Release，只下载：
+打开本轮成功构建记录对应的私有仓 `SAPD_Wiki_Delivery_Private` 的 `internal-windows-*` Release，核对精确源码 SHA、数据 Release 和安装包 SHA-256 后，只下载：
 
 ```text
 SAPD-Wiki-Setup-<version>-win-x64.exe
@@ -261,6 +258,8 @@ export 或用户数据库的位置。
 
 ### 5.4 macOS 实包校验
 
+当前 `verify_mac_dmg_artifacts.py` 主入口和 runner 的 `artifact-validation` 固定验证双变体，尚无单变体 CLI。单变体须按下列实包清单逐项取得证据；`--strict-current-source --variant=no-license` 只验证 staging，不代表镜像内容或 Runtime 已通过。缺少的实包证据须报告为未验证，不得为满足脚本而额外构建未授权变体。
+
 打包完成后至少确认：
 
 - `hdiutil verify` 通过；
@@ -283,7 +282,7 @@ Broker、Data Protection Keychain 和 `app` profile 强制门禁不属于当前�
 打包合同。首次安装用户 CA 信任时允许出现 macOS 系统认证面板；Keychain 暂时不可访问
 时应提示用户解锁，不得误判为证书永久失效，也不得删除或重建健康证书。
 
-下一次出包必须从同一当前源码重建 license / no-license 双 staging，并在最新实包内
+下一次出包必须从同一当前源码重建本轮授权变体的 staging，并在最新实包内
 验证首次建证、完全退出重开、锁屏 / 解锁后的明确恢复路径，以及 App MCP `28776` 的
 OAuth、五工具和 `TOOL_CALL` 审计。现有 0.3.0 安装包或 Web `28775` 的结果不能替代
 该验收。任何 Native Broker、Data Protection Keychain、Developer ID 或 notarization

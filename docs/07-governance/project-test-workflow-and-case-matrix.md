@@ -2,21 +2,23 @@
 
 本文档固定 SAPD Wiki 的工程测试流程。目标是让每个环节可以独立执行，也可以按发布链路完整执行；同时覆盖当前 macOS DMG 打包交付。
 
-后续 Codex 会话可以直接调用 `$sapd-wiki-project-test` skill 执行本流程；skill 负责轻量恢复、选择测试套件、保护禁止范围，并以本文档作为测试矩阵权威来源。
+后续 Codex 会话可以直接调用 `$sapd-wiki-project-test` skill；skill 负责按当前风险选择测试套件，并以本文档作为测试矩阵权威来源。项目范围、数据保护和授权边界由当前请求与 `AGENTS.md` 决定。
 
 ## 使用场景
 
 | 场景 | 执行入口 | 是否构建 DMG | 用途 |
 |---|---|---:|---|
-| 快速自检 | `node scripts/run_project_test_suite.mjs --suite quick` | 否 | 开工前、轻量修改后确认基础边界 |
+| 基础边界自检 | `node scripts/run_project_test_suite.mjs --suite quick` | 否 | 边界不明确、多文件修改或相关基础契约可能受影响时使用；不是每个小修的默认步骤 |
 | 提交前 | `node scripts/run_project_test_suite.mjs --suite pre-commit` | 否 | 代码 / 文档 / 契约修改进入 checkpoint 前 |
 | 打包前 | `node scripts/run_project_test_suite.mjs --suite pre-dmg --url http://127.0.0.1:5173` | 否 | 确认 5173、数据边界、用户库和交付契约可进入打包 |
 | 完整工程回归 | `node scripts/run_project_test_suite.mjs --full --url http://127.0.0.1:5173` | 否 | 覆盖当前工程主要自动验证（含 MCP 套件），不生成新产物 |
-| 发布完整链路 | `node scripts/run_project_test_suite.mjs --suite release-full --include-dmg-build --url http://127.0.0.1:5173` | 是 | 先执行含 MCP 的完整回归，再真实构建双 DMG；构建后还必须执行本文的 DMG 产物验收 |
+| 发布完整链路（双变体） | `node scripts/run_project_test_suite.mjs --suite release-full --include-dmg-build --url http://127.0.0.1:5173` | 是 | 仅在当前发布合同授权 `license` / `no-license` 双变体时使用；单变体按当前打包手册执行 |
 
 默认不启动系统 Chrome；只有用户明确批准真实浏览器回归时，才追加 `--allow-system-chrome`。
 
 ## 流程总览
+
+以下为完整工程 / 发布流程；局部修复只执行与变更相关的环节。发布范围内的必需门禁仍须完成。
 
 1. 范围确认：确认本轮是否涉及代码、前端、数据、用户库、导出或打包。工作区脏时，只 stage / 提交明确相关文件。
 2. 静态检查：先跑语法、脚本入口和交付契约静态审计。
@@ -24,9 +26,9 @@
 4. 业务数据契约：按变更范围执行能力、环境、LC-AP / LC-DT、字典引用、搜索索引等专项审计。
 5. 5173 运行态：固定只验 `http://127.0.0.1:5173/`；先确认服务，再跑内容 smoke 和页面 smoke。
 6. 用户写入链路：用户库 schema、批注、Issue、数据篮和导出只在临时库或明确测试库上验证，不污染真实用户库。
-7. 打包前闸门：DMG 与 5173 一致性契约、Runtime helper、base DB、空用户库模板和双变体规则必须通过。
-8. DMG 构建：发布链路必须强制重建 backend，生成 `license` / `no-license` 双 DMG。
-9. DMG 产物验收：校验 DMG、codesign、Info.plist、包内空用户库、Runtime `--check-only`、授权差异和核心页面 smoke。
+7. 打包前闸门：DMG 与 5173 一致性契约、Runtime helper、base DB、空用户库模板和本轮授权变体规则必须通过。
+8. DMG 构建：发布链路必须强制重建 backend，并只生成当前发布合同明确授权的变体。
+9. DMG 产物验收：逐个校验本轮授权的 DMG、codesign、Info.plist、包内空用户库、Runtime `--check-only` 和核心页面 smoke；仅在双变体范围内比较授权差异。
 10. 人工 UAT：只验证自动化不能覆盖的桌面窗口、授权弹窗、系统设置、文件保存位置、菜单和真实用户操作。
 
 ## 自动测试套件
@@ -45,13 +47,13 @@
 | `dmg-build` | 是，但需显式授权 | `SAPD_WIKI_REBUILD_BACKEND=1 apps/macos/SAPDWiki/script/package_dmg.sh` |
 | `artifact-validation` | 是，但需先完成本轮 DMG 构建 | 使用同一 `SAPD_WIKI_BUILD_STAMP` 验证本轮双 DMG、挂载内容、签名、版本 / 平台 / 架构、当前源码 backend、严格空用户库、Runtime 构建标记、关键文件 hash 和 `--check-only` |
 
-独立复验已有构建产物时，必须显式复用构建时间戳：
+独立复验已有双变体构建产物时，必须显式复用构建时间戳：
 
 ```bash
 node scripts/run_project_test_suite.mjs --suite artifact-validation --include-dmg-build --build-stamp YYYYMMDD-HHMMSSZ
 ```
 
-也可通过 `SAPD_WIKI_BUILD_STAMP` 传入；只有同时包含 `dmg-build` 的链路才自动生成新时间戳。
+也可通过 `SAPD_WIKI_BUILD_STAMP` 传入；只有同时包含 `dmg-build` 的链路才自动生成新时间戳。单变体复验按当前打包手册 5.4 逐项验收。现有 `artifact-validation` 和 `verify_mac_dmg_artifacts.py` 主入口固定检查双变体；`--variant=no-license` 仅适用于 staging 一致性审计，不能替代 DMG 实包验收。
 
 查询可用套件：
 
@@ -90,14 +92,14 @@ node scripts/run_project_test_suite.mjs --suite pre-dmg --dry-run
 | TC-019 | 用户写入 API | 数据篮、导出、工作台用户态变化 | 临时 Runtime 上创建、预览、导出、下载、删除闭环通过 | `node scripts/smoke_user_data_basket_api.mjs` |
 | TC-020 | 打包一致性 | 任意 DMG 前 | DMG 与 5173 同源构建输入；允许差异进入白名单 | `node scripts/audit_mac_dmg_browser_parity_contract.mjs` |
 | TC-021 | backend 构建输入 | 后端源码或 helper 变化 | helper 变化会触发 PyInstaller backend 重建；产物验收前后源码 hash 必须仍等于 backend source stamp | `node scripts/audit_mac_dmg_browser_parity_contract.mjs` + `artifact-validation:dmg` |
-| TC-022 | DMG 构建 | 发布完整链路 | 禁止 external backend fallback，强制生成同一 build stamp 的 `license` / `no-license` 双 DMG；同一轮双变体只构建一次当前源码 backend | `release-full` 的 `dmg-build:package` |
-| TC-023 | DMG 校验 | DMG 生成后 | 只接受本轮版本、架构和 build stamp 的两个 DMG；均通过校验并可只读挂载；Runtime manifest 版本 / 平台与 App Mach-O 架构一致 | `artifact-validation:dmg` |
+| TC-022 | DMG 构建 | 发布完整链路 | 禁止 external backend fallback，强制重建当前源码 backend，只生成当前发布合同授权的变体；双变体使用同一 build stamp 且只构建一次 backend | 双变体用 `release-full`；单变体按当前打包手册执行 |
+| TC-023 | DMG 校验 | DMG 生成后 | 只接受本轮授权变体且版本、架构和 build stamp 匹配的 DMG；每个均通过校验并可只读挂载；Runtime manifest 版本 / 平台与 App Mach-O 架构一致 | `artifact-validation:dmg` |
 | TC-024 | App 签名 | DMG 生成后 | DMG 挂载后的 `.app` 通过 codesign 验证 | `artifact-validation:dmg` 内执行 `codesign --verify --deep --strict` |
-| TC-025 | 授权变体 | DMG 生成后 | `license` 包启用授权；`no-license` 包不弹授权 | `plutil` 查 `SAPDWikiLicenseMode` + 人工打开验证 |
+| TC-025 | 授权变体 | DMG 生成后 | 每个授权变体的 `SAPDWikiLicenseMode` 与发布合同一致；只有双变体范围才要求比较授权差异 | `plutil` 查 `SAPDWikiLicenseMode` + 人工打开验证 |
 | TC-026 | 包内用户库 | DMG 生成后 | 包内 `sapd_wiki_user.sqlite3` 只含权威 `user_schema_0.3` 表和初始化元数据；全部业务表为空，不允许额外私有表 | `artifact-validation:dmg` 内执行只读 SQLite 全 schema / 全表检查 |
-| TC-027 | Runtime 健康 | DMG Runtime 复制到临时目录后 | Runtime 构建标记合法且双变体一致；不在启动时重算签名后的全树；`--check-only` 通过；API smoke 能访问核心路径 | `artifact-validation:dmg` + 临时 Runtime backend check |
+| TC-027 | Runtime 健康 | DMG Runtime 复制到临时目录后 | 每个 Runtime 构建标记合法；双变体范围还须彼此一致；不在启动时重算签名后的全树；`--check-only` 通过；API smoke 能访问核心路径 | 对本轮授权变体执行产物校验 + 临时 Runtime backend check |
 | TC-028 | 首次启动体验 | 人工 UAT | 用户选择父级保存位置后创建 `SAPDWiki/import`、分类 `SAPDWiki/export` 和内部 `SAPDWiki/Runtime`；设置页可查看并在 Finder 中打开 | 打开 DMG 内 App，按首次启动流程验证 |
-| TC-029 | 授权体验 | 人工 UAT | 授权版可跳过试用 / 输入 `Passc0de` 激活；无授权版不显示授权窗口 | 人工打开两个变体 |
+| TC-029 | 授权体验 | 人工 UAT | 本轮授权变体的授权行为与合同一致；双变体范围分别验证授权版激活和无授权版无窗口 | 人工打开本轮授权变体 |
 | TC-030 | 导出体验 | 人工 UAT | 评估报告、评分表、模板、Issue 和诊断包写入设置的导出根目录及对应分类子目录，前端显示真实完成路径 | 在 DMG App 中逐类执行导出 |
 | TC-031 | MCP Web 闭环 | MCP Web 控制面、Sidecar、OAuth 或 5173 生命周期变化 | Web 只管理自有 loopback Sidecar；5173 与 Sidecar 端口隔离；SIGTERM / restart 会停止子进程并释放临时 TLS/密钥；正式数据和用户库无副作用；`full` / `release-full` 不得跳过本套件 | `node scripts/run_project_test_suite.mjs --suite mcp`（也包含在 `full` / `release-full`） |
 | TC-032 | 报告与导出回归 | manifest、用户状态或 Issue 导出变化 | 多线程及多进程报告索引不丢记录；JSON 或 schema / project / artifact 语义损坏均不覆盖；保存先鉴权且单次读取快照；普通下载不要求 Token | `delivery:user-state-regressions` |
@@ -139,24 +141,25 @@ node scripts/run_project_test_suite.mjs --suite pre-dmg --dry-run
 node scripts/run_project_test_suite.mjs --suite pre-dmg --url http://127.0.0.1:5173
 ```
 
-构建双 DMG：
+当前发布合同授权双变体时，构建双 DMG：
 
 ```bash
 SAPD_WIKI_REBUILD_BACKEND=1 SAPD_WIKI_ALLOW_EXTERNAL_BACKEND=0 SAPD_WIKI_DMG_VARIANT=all SAPD_WIKI_BUILD_STAMP=<本轮时间戳> apps/macos/SAPDWiki/script/package_dmg.sh
 ```
 
-构建后必须记录：
+单变体发布不得使用 `release-full` 或上述 `VARIANT=all` 命令，应按 `docs/09-delivery/desktop-packaging-runbook.md` 传入明确变体，并执行同范围产物验收。
 
-- 授权版 DMG 路径、大小、SHA-256；
-- 无授权版 DMG 路径、大小、SHA-256；
+构建后必须记录本轮每个授权变体：
+
+- DMG 变体、路径、大小、SHA-256；
 - `Info.plist` 中 `CFBundleShortVersionString`、`SAPDWikiDisplayVersion`、`SAPDWikiLicenseMode`；
 - 包内用户库只含权威 `user_schema_0.3` schema 和初始化元数据，全部业务表为空且无额外表；
-- 两个 DMG 必须与本轮 `SAPD_WIKI_BUILD_STAMP`、版本和当前架构精确匹配，并通过 `hdiutil verify`；
-- 挂载后的两个 App 必须通过 `codesign --verify --deep --strict`，并核对 `CFBundleShortVersionString`、`SAPDWikiDisplayVersion`、`SAPDWikiLicenseMode`；
+- 每个 DMG 必须与本轮 `SAPD_WIKI_BUILD_STAMP`、版本和当前架构精确匹配，并通过 `hdiutil verify`；
+- 挂载后的 App 必须通过 `codesign --verify --deep --strict`，并核对 `CFBundleShortVersionString`、`SAPDWikiDisplayVersion`、`SAPDWikiLicenseMode`；
 - 挂载后的 Runtime manifest 必须匹配本轮版本 / 平台，App executable 必须支持目标架构；
 - 挂载后的 Runtime 必须匹配本轮当前源码 backend，验收前后 source stamp 均匹配，复制到临时目录后通过 `--check-only`；
-- 每个 Runtime 的构建指纹标记必须合法且两个变体一致；App executable、当前源码 backend、前端树、基础库和内容资产库继续分别核对 hash，不对签名后的 Runtime 执行启动全树重算；
-- 授权版 / 无授权版人工 UAT 差异。
+- 每个 Runtime 的构建指纹标记必须合法；双变体范围还必须彼此一致。App executable、当前源码 backend、前端树、基础库和内容资产库继续分别核对 hash，不对签名后的 Runtime 执行启动全树重算；
+- 当前授权变体的人工 UAT；双变体范围还需验证授权差异。
 
 验收失败时不得发布 DMG。5173 通过不能替代 DMG Runtime 通过；DMG 可打开也不能替代数据 / 用户库 / 授权模式验收。
 
@@ -173,6 +176,6 @@ SAPD_WIKI_REBUILD_BACKEND=1 SAPD_WIKI_ALLOW_EXTERNAL_BACKEND=0 SAPD_WIKI_DMG_VAR
 ## 维护规则
 
 - 新增长期测试必须优先接入 `scripts/run_project_test_suite.mjs`，再写入本文用例矩阵。
-- 单次小问题验证不新增长期用例；只在 `progress.md` 和完成反馈记录。
+- 单次小问题验证不新增长期用例，也不单独更新 `progress.md`；在本次完成反馈中记录即可。
 - 涉及发布、数据边界、用户库、搜索锚点、导出或 DMG 的回归，必须补长期用例或复用现有用例。
 - 本文由 `docs/07-governance/governance-index.md` 和 `docs/README.md` 索引；若未来接入 CI，可把本文件作为 CI 分层依据。

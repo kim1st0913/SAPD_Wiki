@@ -1987,3 +1987,16 @@ final result: passed
 - 既有报告历史未改写；报告表面巡检发现 `demo-project-002` 一份旧模型历史报告，不属于当前实时评分规则失败。
 
 final result: passed
+- 本文件保留历史验收；最新安全运行结果见下方 2026-09-07 专节，不将历史视口与计数当作本轮结果。
+
+## 安全运行知识图谱与七页重设计（2026-09-07）
+
+- 范围：01-000 唯一主轴、8 逻辑来源、43 节点 / 57 关系；MCRA 仅作关系表现参考。21 条跨材料关联及新增设计归纳仍待业务确认；原文、技术身份、28 张原图不转为审核题。
+- 预览：`http://127.0.0.1:5173/#/security-operations/overview`；PID 22252，guard PASS，候选 SHA 保持 `5fb801e33ef6bf907cd92179735c8ea34f47073a1f04b29fe73665fedeba68a6`。
+- 实际 1920 / 1280 CSS 宽度：graph / root / canvas 横向溢出均为 0；SVG viewBox 与 canvasRect 相同，1280 上图下详情。MCRA 第 61 页与最终实现截图已同输入比较；保留 Apple Shell / Morandi，不按 MCRA 产品内容造业务关系。
+- 交互通过：图谱搜索、自动展开对应要素、节点邻接高亮、返回图谱；01-000 第 1 章→1.1、调研第 3 章→4.1、资产专题→7.1 精确原文；来源材料回链；T-AS.AM-01 精确能力往返；威胁无结果不保留旧详情。
+- 最终 focus：漏洞目录 / 详情一致；缓存框架页进入数据价值视角自动定位第 2 页并选中，手动上一页保持第 1 页；未知 focus 不选择首项。console error=0。
+- 正文：104 正文标题、28 来源图；14 表格（9 HTML + 5 Markdown）、19 rowspan，原始 br 不裸露。3.4.2 和 5.1 精确定位；末图加载通过。API 校验 28 图字节保真，不声称已核验全部图意。
+- 测试：frontend 27 + helper 5，共 32/32；API 21 PASS + 1 SKIP（历史临时 WP1G 包缺失）。仅为定向 Web 证据，不等于全回归、实包或正式数据验收。
+- 留证：`/private/tmp/sapd-sok-graph-redesign-20260907/overview-delivery.png`、`document-table-final.png`、`document-last-figure-final.png`；详细矩阵见 `docs/06-implementation/security-operations-knowledge-overall-design-v2.md` 第 9 节。
+- 剩余边界：845 宽度、全量键盘 / 读屏、App / DMG 未验；53 个指标字段缺口继续系统暂缓；正式 apply / 本模块 MCP 激活、提交、推送、打包与发布未授权。未写正式库、用户库或来源文件。

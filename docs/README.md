@@ -2,7 +2,7 @@
 
 > 状态：`active / primary documentation index`
 >
-> 更新日期：2026-07-28
+> 更新日期：2026-08-21
 
 从场景进入，不按目录逐个阅读。历史文件只用于追溯，不能覆盖当前合同和代码。
 
@@ -60,6 +60,16 @@
 
 页面代码只能直接采用 `implementation-specs/` 中标记为 active /
 implementation-source 的规格。Stitch 输出、截图和旧 brief 只是参考。
+
+### 安全运行
+
+- [`06-implementation/security-operations-knowledge-prd-v1.md`](06-implementation/security-operations-knowledge-prd-v1.md)：产品范围、来源权威、内容版本和验收口径
+- [`02-data-model/security-operations-knowledge-data-and-mcp-contract-v1.md`](02-data-model/security-operations-knowledge-data-and-mcp-contract-v1.md)：对象、能力关系、威胁、指标、调研题、页面 API 与 MCP 增量合同
+- [`06-implementation/security-operations-knowledge-overall-design-v2.md`](06-implementation/security-operations-knowledge-overall-design-v2.md)：以 01-000 保护对象为唯一主轴的七页 candidate-only 图谱总体设计、来源关系、交互和验收矩阵
+- [`../frontend/design-handoff/implementation-specs/security-operations-knowledge-page-design-v1.md`](../frontend/design-handoff/implementation-specs/security-operations-knowledge-page-design-v1.md)：一级 `/security-operations` 与七个二级页面的 active 前端实施规格
+- [`06-implementation/security-operations-knowledge-execution-plan-v1.md`](06-implementation/security-operations-knowledge-execution-plan-v1.md)：主控工作包、依赖门、写集与验收矩阵
+
+当前索引状态为 candidate-only 图谱与七页实现协同中；总体思路仍以 01-000 保护对象主轴为准，01-010 只作为 document 完整正文基线候选。正式 apply / MCP 激活未授权；真实 UI、文档交接和整体验收由主控 QA 记录。
 
 ### 成熟度
 

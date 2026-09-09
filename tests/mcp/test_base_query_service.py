@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import sqlite3
 import tempfile
 import unittest
@@ -12,7 +13,12 @@ from sapd_wiki.local_mcp.base_query_service import (
     BaseKnowledgeQueryService,
 )
 from sapd_wiki.local_mcp.dev_fixture import create_dev_formal_base
-from sapd_wiki.local_mcp.errors import InvalidInputError, RuntimeBoundaryError
+from sapd_wiki.local_mcp.errors import (
+    CursorStaleError,
+    InvalidInputError,
+    ObjectNotAvailableError,
+    RuntimeBoundaryError,
+)
 from sapd_wiki.local_mcp.models import RequestContext
 from sapd_wiki.local_mcp.readonly_runtime import FormalBaseRuntimeContext
 
@@ -27,6 +33,7 @@ CONTRACT_ROOT = (
     / "base-knowledge"
     / "v1"
 )
+MQ_CASES = ROOT / "tests" / "fixtures" / "mcp" / "v1" / "security-operations-mq-cases.json"
 
 
 def sha256_file(path: Path) -> str:
@@ -92,6 +99,108 @@ class BaseKnowledgeQueryServiceTests(unittest.TestCase):
         self.assertTrue(
             contract["source_evidence_contract"]["supports_relation_ref"]
         )
+        self.assertEqual(
+            contract["relation_contract"]["binding_row_eligibility"],
+            "status_active_and_confidence_exact_or_manual",
+        )
+        self.assertEqual(
+            contract["tool_contract"]["query_contract_version"],
+            "1.1.0",
+        )
+        self.assertTrue(
+            contract["tool_contract"]["cursor_binds_all_filters"]
+        )
+        self.assertFalse(
+            contract["tool_contract"]["legacy_defaults"][
+                "include_bindings_omitted"
+            ]
+        )
+
+    def test_mq01_through_mq11_golden_cases_use_only_the_fixed_five_tools(self) -> None:
+        fixture = json.loads(MQ_CASES.read_text(encoding="utf-8"))
+        cases = fixture["cases"]
+        self.assertEqual([case["id"] for case in cases], [f"MQ-{index:02d}" for index in range(1, 12)])
+        fixed_tools = {
+            "search_knowledge",
+            "get_knowledge_object",
+            "get_related_knowledge",
+            "get_source_evidence",
+            "get_knowledge_version",
+        }
+        self.assertTrue(all(set(case["tools"]) <= fixed_tools for case in cases))
+        self.assertEqual(fixture["candidate_counts"]["survey_questions"], 458)
+        self.assertEqual(fixture["candidate_counts"]["network_foundation_questions"], 28)
+        serialized = json.dumps(fixture, ensure_ascii=False)
+        self.assertNotIn("/Users/", serialized)
+        self.assertNotIn("/private/", serialized)
+
+    def test_real_wp1h_candidate_remains_ineligible_for_formal_mcp_projection(self) -> None:
+        candidate_path_value = os.environ.get("SAPD_WP1H_CANDIDATE_BUNDLE")
+        if not candidate_path_value:
+            self.skipTest("set SAPD_WP1H_CANDIDATE_BUNDLE for the real candidate canary")
+        candidate_path = Path(candidate_path_value)
+        fixture = json.loads(MQ_CASES.read_text(encoding="utf-8"))
+        self.assertEqual(sha256_file(candidate_path), fixture["candidate_bundle_sha256"])
+        candidate = json.loads(candidate_path.read_text(encoding="utf-8"))
+        self.assertTrue(candidate["candidate_only"])
+        self.assertTrue(candidate["gate1_ready"])
+        self.assertFalse(candidate["formal_set_freeze_authorized"])
+        self.assertFalse(candidate["formal_apply_authorized"])
+        self.assertEqual(candidate["active_projection"]["relations"], [])
+        self.assertEqual(candidate["active_projection"]["bindings"], [])
+        self.assertEqual(candidate["active_projection"]["figure_descriptions"], [])
+        content_projection = candidate.get("content_projection")
+        self.assertIsInstance(content_projection, dict)
+        self.assertEqual(
+            len(candidate["content_sections"]),
+            fixture["candidate_counts"]["content_sections"],
+        )
+        self.assertEqual(
+            len(content_projection["section_index"]),
+            fixture["candidate_counts"]["content_sections"],
+        )
+        self.assertEqual(
+            len(content_projection["figure_index"]),
+            fixture["candidate_counts"]["content_figures_source_only"],
+        )
+        self.assertEqual(
+            len(content_projection["link_index"]),
+            fixture["candidate_counts"]["internal_link_occurrences"],
+        )
+        self.assertEqual(
+            len(content_projection["source_gap_projection"]),
+            fixture["candidate_counts"]["source_gaps"],
+        )
+        self.assertEqual(
+            candidate["capability_mapping_candidate_count"],
+            fixture["candidate_counts"]["capability_mapping_candidates"],
+        )
+        self.assertEqual(
+            sum(
+                relation["relation_type"]
+                in {
+                    "operationalizes_capability",
+                    "depends_on_capability",
+                    "validates_capability",
+                }
+                for relation in candidate["relations"]
+            ),
+            fixture["candidate_counts"]["capability_mapping_candidates"],
+        )
+        self.assertEqual(
+            sum(item["type"] == "survey_question" for item in candidate["items"]),
+            fixture["candidate_counts"]["survey_questions"],
+        )
+        self.assertEqual(
+            sum(item["type"] == "content_figure" for item in candidate["items"]),
+            fixture["candidate_counts"]["content_figures_source_only"],
+        )
+        available_refs = {item["canonical_ref"] for item in candidate["items"]}
+        available_refs.update(candidate["capability_catalog"]["referenced_targets"])
+        for case in fixture["cases"]:
+            reference = case.get("candidate_reference_ref")
+            if reference:
+                self.assertIn(reference, available_refs, case["id"])
 
     def test_search_includes_active_deprecated_and_internal_base_knowledge(self) -> None:
         response = self.service.search_knowledge(
@@ -111,6 +220,94 @@ class BaseKnowledgeQueryServiceTests(unittest.TestCase):
         self.assertFalse(
             any("metadata_json" in item or "source_file_id" in item for item in items)
         )
+
+    def test_search_filters_are_optional_composable_and_counted(self) -> None:
+        by_type = self.service.search_knowledge(
+            "common",
+            object_types=["fixture_internal_knowledge"],
+            request=self.request,
+        ).to_dict()["data"]
+        self.assertEqual(by_type["total_count"], 1)
+        self.assertEqual(
+            [item["canonical_ref"] for item in by_type["items"]],
+            ["fixture://objects/public-c"],
+        )
+        deprecated = self.service.search_knowledge(
+            "common",
+            category_codes=["standard"],
+            statuses=["deprecated"],
+            request=self.request,
+        ).to_dict()["data"]
+        self.assertEqual(deprecated["total_count"], 1)
+        self.assertEqual(deprecated["items"][0]["canonical_ref"], "fixture://objects/public-b")
+        with self.assertRaises(InvalidInputError):
+            self.service.search_knowledge(
+                "common",
+                object_types=["not-a-declared-or-present-type"],
+                request=self.request,
+            )
+        with self.assertRaises(InvalidInputError):
+            self.service.search_knowledge(
+                "common",
+                source_refs=["/Users/example/private.xlsx"],
+                request=self.request,
+            )
+
+    def test_search_source_and_edition_filters_use_business_metadata_only(self) -> None:
+        self.service.close()
+        connection = sqlite3.connect(self.database)
+        connection.execute(
+            """
+            UPDATE knowledge_items
+            SET metadata_json=?
+            WHERE id='object-a'
+            """,
+            (
+                json.dumps(
+                    {
+                        "control_objective": "Protect synthetic identities.",
+                        "source_refs": ["fixture://source/overall"],
+                        "edition_role": "integrated_edition",
+                        "file_path": "/private/synthetic/hidden.xlsx",
+                    }
+                ),
+            ),
+        )
+        connection.commit()
+        connection.close()
+        self.before_hash = sha256_file(self.database)
+        self.service = BaseKnowledgeQueryService.create(
+            base_database=self.database,
+            cursor_key=b"base-cursor-key-" + (b"x" * 32),
+        )
+        filtered = self.service.search_knowledge(
+            "common",
+            source_refs=["fixture://source/overall"],
+            edition_roles=["integrated_edition"],
+            request=self.request,
+        ).to_dict()["data"]
+        self.assertEqual(filtered["total_count"], 1)
+        self.assertEqual(filtered["items"][0]["canonical_ref"], "fixture://objects/public-a")
+        self.assertNotIn("file_path", json.dumps(filtered))
+
+    def test_filter_conditions_are_bound_into_search_cursor(self) -> None:
+        first = self.service.search_knowledge(
+            "common",
+            object_types=["fixture_standard_control"],
+            limit=1,
+            request=self.request,
+        ).to_dict()
+        self.assertTrue(first["page"]["has_more"])
+        cursor = first["page"]["next_cursor"]
+        with self.assertRaises(CursorStaleError):
+            self.service.search_knowledge(
+                "common",
+                object_types=["fixture_standard_control"],
+                statuses=["active"],
+                limit=1,
+                cursor=cursor,
+                request=self.request,
+            )
 
     def test_get_object_returns_full_business_content_and_sanitizes_technical_fields(
         self,
@@ -195,6 +392,13 @@ class BaseKnowledgeQueryServiceTests(unittest.TestCase):
             [item["relation_ref"] for item in direct],
             ["base_relation:fixture:a-to-b"],
         )
+
+    def test_security_operations_namespace_is_valid_but_unavailable_until_applied(self) -> None:
+        with self.assertRaises(ObjectNotAvailableError):
+            self.service.get_knowledge_object(
+                "sok:concept:overall-framework:protected-object-driven-operations",
+                request=self.request,
+            )
 
     def test_runtime_is_immutable_and_rejects_non_business_table_reads(self) -> None:
         runtime_root = self.root / "runtime-boundary"

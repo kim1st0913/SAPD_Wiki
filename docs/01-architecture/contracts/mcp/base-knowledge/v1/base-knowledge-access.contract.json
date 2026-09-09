@@ -56,11 +56,14 @@
   "relation_contract": {
     "table": "knowledge_relations",
     "content_table": "content_relations",
+    "content_binding_table": "content_bindings",
     "canonical_ref_namespaces": [
+      "sok:",
       "base_relation:",
       "base:content_document:"
     ],
     "row_eligibility": "all_rows_with_stable_ref_and_resolvable_endpoints",
+    "binding_row_eligibility": "status_active_and_confidence_exact_or_manual",
     "direct_relation_ref": true,
     "return_fields": [
       "stable_ref",
@@ -129,7 +132,28 @@
     ],
     "direct_sql": false,
     "response_bytes": 65536,
-    "content_trust": "untrusted_reference"
+    "content_trust": "untrusted_reference",
+    "query_contract_version": "1.1.0",
+    "optional_filters": {
+      "search_knowledge": [
+        "object_types",
+        "category_codes",
+        "source_refs",
+        "statuses",
+        "edition_roles"
+      ],
+      "get_related_knowledge": [
+        "relation_types",
+        "include_bindings",
+        "object_types"
+      ]
+    },
+    "legacy_defaults": {
+      "search_filters_omitted": "all_currently_allowed_rows",
+      "include_bindings_omitted": false
+    },
+    "cursor_binds_all_filters": true,
+    "unknown_object_type_is_invalid": true
   },
   "version_contract": {
     "base_manifest_digest": "always",

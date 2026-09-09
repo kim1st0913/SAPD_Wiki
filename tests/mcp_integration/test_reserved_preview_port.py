@@ -41,6 +41,74 @@ def load_dev_server_guard():
 
 
 class ReservedPreviewPortTests(unittest.TestCase):
+    def test_guard_loads_explicit_security_operations_runtime_binding(self) -> None:
+        guard = load_dev_server_guard()
+        runtime = guard.security_operations_runtime_config()
+        self.assertEqual(
+            runtime["security_operations_bundle_sha256"],
+            "5fb801e33ef6bf907cd92179735c8ea34f47073a1f04b29fe73665fedeba68a6",
+        )
+        self.assertEqual(
+            Path(runtime["security_operations_bundle"]),
+            ROOT
+            / "data"
+            / "database"
+            / "candidates"
+            / "security-operations-current"
+            / "candidate.bundle.json",
+        )
+
+    def test_guard_security_operations_status_requires_expected_digest(self) -> None:
+        guard = load_dev_server_guard()
+        digest = "a" * 64
+        response = {
+            "status": 200,
+            "ok": True,
+            "time_seconds": 0.01,
+            "json": {
+                "data": {
+                    "version": {"candidate_bundle_digest": f"sha256:{digest}"}
+                }
+            },
+        }
+        with patch.object(guard, "http_json_status", return_value=response):
+            status = guard.security_operations_route_status(
+                5173,
+                {"security_operations_bundle_sha256": digest},
+            )
+        self.assertIsNotNone(status)
+        self.assertTrue(status["ok"])
+
+    def test_guard_restarts_when_security_operations_candidate_is_unavailable(
+        self,
+    ) -> None:
+        guard = load_dev_server_guard()
+        expected = {
+            "runtime_label": "stable",
+            "project_root": str(ROOT),
+            "security_operations_bundle_sha256": "a" * 64,
+        }
+        health = {
+            "ok": True,
+            "json": {
+                "data": {
+                    "runtime": {
+                        "label": "stable",
+                        "settings_paths": {"data_root": str(ROOT)},
+                    }
+                }
+            },
+        }
+        self.assertTrue(
+            guard.existing_server_requires_restart(
+                [{"is_project_server": True}],
+                health,
+                expected,
+                None,
+                {"ok": False},
+            )
+        )
+
     def test_guard_batch1_projection_routes_all_200_pass(self) -> None:
         guard = load_dev_server_guard()
         responses = [

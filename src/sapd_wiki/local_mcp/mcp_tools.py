@@ -42,6 +42,11 @@ class KnowledgeService(Protocol):
         query: str,
         limit: int,
         cursor: str | None,
+        object_types: list[str] | None,
+        category_codes: list[str] | None,
+        source_refs: list[str] | None,
+        statuses: list[str] | None,
+        edition_roles: list[str] | None,
     ) -> MaybeAwaitableResult: ...
 
     def get_knowledge_object(
@@ -57,6 +62,9 @@ class KnowledgeService(Protocol):
         direction: Literal["outgoing", "incoming", "both"],
         limit: int,
         cursor: str | None,
+        relation_types: list[str] | None,
+        include_bindings: bool,
+        object_types: list[str] | None,
     ) -> MaybeAwaitableResult: ...
 
     def get_source_evidence(
@@ -85,6 +93,20 @@ def _normalize_text(value: str, *, field: str, allow_empty: bool = False) -> str
         raise ToolContractError(
             "INVALID_INPUT", f"{field} contains a control character"
         )
+    return normalized
+
+
+def _normalize_list(values: list[str] | None, *, field: str) -> list[str] | None:
+    if values is None:
+        return None
+    if len(values) > 32:
+        raise ToolContractError("INVALID_INPUT", f"{field} exceeds the entry limit")
+    normalized = [
+        _normalize_text(value, field=field)
+        for value in values
+    ]
+    if any(len(value) > 256 for value in normalized):
+        raise ToolContractError("INVALID_INPUT", f"{field} contains an oversized value")
     return normalized
 
 
@@ -246,18 +268,39 @@ class ToolRegistrar:
             query: Annotated[str, Field(min_length=1, max_length=1000)],
             limit: Annotated[int, Field(ge=1, le=15)] = 8,
             cursor: Annotated[str | None, Field(max_length=4096)] = None,
+            object_types: Annotated[list[str] | None, Field(max_length=32)] = None,
+            category_codes: Annotated[list[str] | None, Field(max_length=32)] = None,
+            source_refs: Annotated[list[str] | None, Field(max_length=32)] = None,
+            statuses: Annotated[list[str] | None, Field(max_length=32)] = None,
+            edition_roles: Annotated[list[str] | None, Field(max_length=32)] = None,
         ) -> dict[str, Any]:
             normalized = _normalize_text(query, field="query")
             safe_cursor = (
                 _normalize_text(cursor, field="cursor") if cursor is not None else None
             )
+            safe_object_types = _normalize_list(object_types, field="object_types")
+            safe_category_codes = _normalize_list(category_codes, field="category_codes")
+            safe_source_refs = _normalize_list(source_refs, field="source_refs")
+            safe_statuses = _normalize_list(statuses, field="statuses")
+            safe_edition_roles = _normalize_list(edition_roles, field="edition_roles")
+            arguments: dict[str, Any] = {
+                "query": normalized,
+                "limit": limit,
+                "cursor": safe_cursor,
+            }
+            optional = {
+                "object_types": safe_object_types,
+                "category_codes": safe_category_codes,
+                "source_refs": safe_source_refs,
+                "statuses": safe_statuses,
+                "edition_roles": safe_edition_roles,
+            }
+            arguments.update(
+                (name, value) for name, value in optional.items() if value is not None
+            )
             return await self._invoke(
                 "search_knowledge",
-                lambda: self.service.search_knowledge(
-                    query=normalized,
-                    limit=limit,
-                    cursor=safe_cursor,
-                ),
+                lambda: self.service.search_knowledge(**arguments),
                 normalized_query=normalized,
             )
 
@@ -293,19 +336,31 @@ class ToolRegistrar:
             direction: Literal["outgoing", "incoming", "both"] = "both",
             limit: Annotated[int, Field(ge=1, le=30)] = 15,
             cursor: Annotated[str | None, Field(max_length=4096)] = None,
+            relation_types: Annotated[list[str] | None, Field(max_length=32)] = None,
+            include_bindings: bool = False,
+            object_types: Annotated[list[str] | None, Field(max_length=32)] = None,
         ) -> dict[str, Any]:
             normalized = _normalize_text(canonical_ref, field="canonical_ref")
             safe_cursor = (
                 _normalize_text(cursor, field="cursor") if cursor is not None else None
             )
+            safe_relation_types = _normalize_list(relation_types, field="relation_types")
+            safe_object_types = _normalize_list(object_types, field="object_types")
+            arguments: dict[str, Any] = {
+                "canonical_ref": normalized,
+                "direction": direction,
+                "limit": limit,
+                "cursor": safe_cursor,
+            }
+            if safe_relation_types is not None:
+                arguments["relation_types"] = safe_relation_types
+            if include_bindings:
+                arguments["include_bindings"] = True
+            if safe_object_types is not None:
+                arguments["object_types"] = safe_object_types
             return await self._invoke(
                 "get_related_knowledge",
-                lambda: self.service.get_related_knowledge(
-                    canonical_ref=normalized,
-                    direction=direction,
-                    limit=limit,
-                    cursor=safe_cursor,
-                ),
+                lambda: self.service.get_related_knowledge(**arguments),
             )
 
         @self.server.tool(

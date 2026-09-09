@@ -91,6 +91,43 @@ _TOOL_LIMITS: Mapping[str, tuple[int, int, int]] = {
     "get_source_evidence": (8, 15, 8_000),
     "get_knowledge_version": (1, 1, 2_000),
 }
+_CONTENT_SECTION_TYPES = frozenset(
+    {
+        "docx_section",
+        "html_section",
+        "markdown_section",
+        "pdf_page",
+        "pptx_slide",
+        "xlsx_sheet",
+    }
+)
+_DECLARED_OBJECT_TYPES = frozenset(
+    {
+        "security_operations_concept",
+        "security_operations_activity",
+        "security_operations_perspective",
+        "security_operations_dimension",
+        "survey_instrument",
+        "survey_domain",
+        "survey_question",
+        "survey_evidence_requirement",
+        "threat_scenario",
+        "attack_technique",
+        "detection_rule",
+        "log_source_requirement",
+        "response_action",
+        "operations_metric",
+        "knowledge_claim",
+        "capability",
+        "capability_focus",
+        "content_document",
+        "content_section",
+        "content_figure",
+    }
+)
+_EDITION_ROLES = frozenset(
+    {"source_snapshot", "integrated_edition", "structured_projection"}
+)
 
 
 def _load_contract() -> dict[str, Any]:
@@ -131,9 +168,12 @@ def _load_contract() -> dict[str, Any]:
         or content_contract.get("optional_when_schema_absent") is not True
         or not isinstance(relation_contract, dict)
         or relation_contract.get("content_table") != "content_relations"
+        or relation_contract.get("content_binding_table") != "content_bindings"
+        or relation_contract.get("binding_row_eligibility")
+        != "status_active_and_confidence_exact_or_manual"
         or relation_contract.get("direct_relation_ref") is not True
         or relation_contract.get("canonical_ref_namespaces")
-        != ["base_relation:", "base:content_document:"]
+        != ["sok:", "base_relation:", "base:content_document:"]
         or not isinstance(evidence_contract, dict)
         or evidence_contract.get("content_table") != "content_source_evidence"
         or evidence_contract.get("supports_relation_ref") is not True
@@ -144,6 +184,29 @@ def _load_contract() -> dict[str, Any]:
         or version_contract.get("asset_manifest_digest")
         != "metadata_from_query_store_only"
         or version_contract.get("asset_blob_read") is not False
+        or tool_contract.get("query_contract_version") != "1.1.0"
+        or tool_contract.get("optional_filters")
+        != {
+            "search_knowledge": [
+                "object_types",
+                "category_codes",
+                "source_refs",
+                "statuses",
+                "edition_roles",
+            ],
+            "get_related_knowledge": [
+                "relation_types",
+                "include_bindings",
+                "object_types",
+            ],
+        }
+        or tool_contract.get("legacy_defaults")
+        != {
+            "search_filters_omitted": "all_currently_allowed_rows",
+            "include_bindings_omitted": False,
+        }
+        or tool_contract.get("cursor_binds_all_filters") is not True
+        or tool_contract.get("unknown_object_type_is_invalid") is not True
     ):
         raise PolicyBlockedError("base knowledge safety contract is incomplete")
     return payload
@@ -172,10 +235,127 @@ def _canonical_ref(value: Any) -> str:
     if not (
         normalized.startswith("base:")
         or normalized.startswith("base_relation:")
+        or normalized.startswith("sok:")
         or normalized.startswith("fixture://")
     ):
         raise InvalidInputError("canonical_ref is outside the base knowledge namespace")
     return normalized
+
+
+def _normalized_values(
+    values: Any,
+    *,
+    field: str,
+    maximum_entries: int = 32,
+    maximum_length: int = 256,
+    allowed: frozenset[str] | None = None,
+) -> tuple[str, ...]:
+    if values is None:
+        return ()
+    if isinstance(values, (str, bytes)) or not isinstance(values, (list, tuple)):
+        raise InvalidInputError(f"{field} must be an array of strings")
+    if len(values) > maximum_entries:
+        raise InvalidInputError(f"{field} exceeds the entry limit")
+    normalized = tuple(
+        sorted(
+            {
+                _normalized_text(value, maximum=maximum_length)
+                for value in values
+            }
+        )
+    )
+    if allowed is not None and not set(normalized) <= allowed:
+        raise InvalidInputError(f"{field} contains an unsupported value")
+    return normalized
+
+
+def _source_refs(values: Any) -> tuple[str, ...]:
+    normalized = _normalized_values(values, field="source_refs")
+    if any(
+        _looks_like_absolute_path(value)
+        or value.startswith("sha256:")
+        or not (value.startswith("sok-source:") or value.startswith("fixture://"))
+        for value in normalized
+    ):
+        raise InvalidInputError("source_refs must contain abstract source references")
+    return normalized
+
+
+def _metadata_values(metadata: Mapping[str, Any], *keys: str) -> frozenset[str]:
+    result: set[str] = set()
+    for key in keys:
+        value = metadata.get(key)
+        if isinstance(value, str) and value.strip():
+            result.add(value)
+        elif isinstance(value, list):
+            result.update(
+                str(item) for item in value if isinstance(item, str) and item.strip()
+            )
+    return frozenset(result)
+
+
+def _object_type_matches(actual: str, filters: tuple[str, ...]) -> bool:
+    if not filters:
+        return True
+    aliases = {actual}
+    if actual in _CONTENT_SECTION_TYPES:
+        aliases.add("content_section")
+    return bool(aliases & set(filters))
+
+
+def _matches_object_filters(
+    item: Mapping[str, Any],
+    *,
+    object_types: tuple[str, ...],
+    category_codes: tuple[str, ...],
+    source_refs: tuple[str, ...],
+    statuses: tuple[str, ...],
+    edition_roles: tuple[str, ...],
+) -> bool:
+    metadata = item.get("business_metadata")
+    business_metadata = metadata if isinstance(metadata, Mapping) else {}
+    if not _object_type_matches(str(item["object_type"]), object_types):
+        return False
+    if statuses:
+        item_statuses = {
+            str(item.get("status", "")),
+            *_metadata_values(
+                business_metadata,
+                "source_status",
+                "verification_status",
+                "extraction_status",
+            ),
+        }
+        if not item_statuses & set(statuses):
+            return False
+    if category_codes:
+        categories = {
+            str(item.get("category", "")),
+            *_metadata_values(
+                business_metadata,
+                "category",
+                "category_code",
+                "category_codes",
+                "metric_domain",
+                "activity_group",
+                "perspective_group",
+                "dimension_group",
+                "domain_ref",
+            ),
+        }
+        if not categories & set(category_codes):
+            return False
+    if source_refs and not (
+        _metadata_values(business_metadata, "source_ref", "source_refs")
+        & set(source_refs)
+    ):
+        return False
+    if edition_roles and not (
+        _metadata_values(business_metadata, "edition_role", "edition_roles")
+        & set(edition_roles)
+    ):
+        return False
+    return True
 
 
 def _like_literal(value: str) -> str:
@@ -277,6 +457,33 @@ class BaseKnowledgeRepository:
         if content_tables and content_tables != self._CONTENT_TABLES:
             raise PolicyBlockedError("content query schema is incomplete")
         self.content_enabled = content_tables == self._CONTENT_TABLES
+        self.bindings_enabled = "content_bindings" in tables
+        if self.bindings_enabled and not self.content_enabled:
+            raise PolicyBlockedError("content binding query schema is incomplete")
+
+    def allowed_object_types(self) -> frozenset[str]:
+        try:
+            base_types = {
+                str(row[0])
+                for row in self._connection.execute(
+                    "SELECT DISTINCT type FROM knowledge_items"
+                ).fetchall()
+                if row[0] is not None and str(row[0]).strip()
+            }
+            fragment_types = (
+                {
+                    str(row[0])
+                    for row in self._connection.execute(
+                        "SELECT DISTINCT fragment_type FROM content_fragments"
+                    ).fetchall()
+                    if row[0] is not None and str(row[0]).strip()
+                }
+                if self.content_enabled
+                else set()
+            )
+        except Exception as exc:
+            raise RuntimeBoundaryError("base knowledge type discovery failed") from exc
+        return frozenset(base_types | fragment_types | set(_DECLARED_OBJECT_TYPES))
 
     @property
     def _connection(self):
@@ -355,6 +562,35 @@ class BaseKnowledgeRepository:
             or int(content["pending_ocr"] or 0) != 0
         ):
             raise PolicyBlockedError("content knowledge projection is incomplete")
+        if self.bindings_enabled:
+            try:
+                bindings = self._connection.execute(
+                    """
+                    WITH content_refs AS (
+                      SELECT stable_ref FROM content_documents
+                      UNION
+                      SELECT stable_ref FROM content_fragments
+                    )
+                    SELECT COUNT(*) AS dangling
+                    FROM content_bindings AS binding
+                    WHERE binding.status='active'
+                      AND binding.confidence IN ('exact', 'manual')
+                      AND (
+                        binding.content_ref NOT IN (SELECT stable_ref FROM content_refs)
+                        OR binding.knowledge_ref NOT IN (
+                          SELECT stable_ref FROM knowledge_items
+                        )
+                      )
+                    """
+                ).fetchone()
+            except Exception as exc:
+                raise RuntimeBoundaryError(
+                    "active content binding integrity query failed"
+                ) from exc
+            if bindings is None or int(bindings["dangling"] or 0) != 0:
+                raise PolicyBlockedError(
+                    "active content binding endpoints are incomplete"
+                )
 
     @staticmethod
     def _object(row: Any, *, include_content: bool) -> dict[str, Any]:
@@ -429,6 +665,7 @@ class BaseKnowledgeRepository:
             "source_ref": str(row["source_stable_ref"]),
             "target_ref": str(row["target_stable_ref"]),
             "confidence": str(row["confidence"]),
+            "relation_owner": "knowledge_relation",
             "business_metadata": _parse_business_metadata(row["metadata_json"]),
         }
         if row["relation_label"] is not None and str(row["relation_label"]).strip():
@@ -443,6 +680,7 @@ class BaseKnowledgeRepository:
             "source_ref": str(row["source_ref"]),
             "target_ref": str(row["target_ref"]),
             "confidence": "exact",
+            "relation_owner": "content_relation",
             "business_metadata": _parse_business_metadata(row["metadata_json"]),
         }
         if row["relation_label"] is not None and str(row["relation_label"]).strip():
@@ -451,21 +689,50 @@ class BaseKnowledgeRepository:
             item["ordinal"] = int(row["ordinal"])
         return item
 
+    @staticmethod
+    def _binding_relation(row: Any) -> dict[str, Any]:
+        identity = "\u0000".join(
+            (
+                str(row["content_ref"]),
+                str(row["knowledge_ref"]),
+                str(row["binding_type"]),
+            )
+        ).encode("utf-8")
+        binding_type = str(row["binding_type"])
+        return {
+            "relation_ref": f"base:content_binding:{hashlib.sha256(identity).hexdigest()}",
+            "relation_type": binding_type,
+            "binding_type": binding_type,
+            "relation_owner": "content_binding",
+            "source_ref": str(row["content_ref"]),
+            "target_ref": str(row["knowledge_ref"]),
+            "confidence": str(row["confidence"]),
+            "business_metadata": _parse_business_metadata(row["metadata_json"]),
+        }
+
+    def object_type(self, canonical_ref: str) -> str | None:
+        item = self.get_object(canonical_ref)
+        return str(item["object_type"]) if item is not None else None
+
     def search(
         self,
         *,
         query: str,
         after_ref: str,
         limit: int,
-    ) -> list[dict[str, Any]]:
+        object_types: tuple[str, ...] = (),
+        category_codes: tuple[str, ...] = (),
+        source_refs: tuple[str, ...] = (),
+        statuses: tuple[str, ...] = (),
+        edition_roles: tuple[str, ...] = (),
+    ) -> tuple[list[dict[str, Any]], int]:
         literal = f"%{_like_literal(query)}%"
         try:
             base_rows = self._connection.execute(
                 """
-                SELECT stable_ref, type, code, title, description, category, status, metadata_json
+                SELECT stable_ref, type, code, title, category, status, metadata_json
                 FROM knowledge_items
-                WHERE stable_ref > ?
-                  AND (
+                WHERE (
                         lower(title) LIKE lower(?) ESCAPE '\\'
                      OR lower(COALESCE(code, '')) LIKE lower(?) ESCAPE '\\'
                      OR lower(COALESCE(description, '')) LIKE lower(?) ESCAPE '\\'
@@ -473,34 +740,32 @@ class BaseKnowledgeRepository:
                      OR lower(COALESCE(metadata_json, '')) LIKE lower(?) ESCAPE '\\'
                   )
                 ORDER BY stable_ref
-                LIMIT ?
                 """,
-                (after_ref, literal, literal, literal, literal, literal, limit),
+                (literal, literal, literal, literal, literal),
             ).fetchall()
         except Exception as exc:
             raise RuntimeBoundaryError("base knowledge search failed") from exc
-        results = [
-            self._object(row, include_content=False)
-            for row in base_rows
-        ]
+        results: list[dict[str, Any]] = []
+        for row in base_rows:
+            item = self._object(row, include_content=False)
+            item["business_metadata"] = _parse_business_metadata(row["metadata_json"])
+            results.append(item)
         if self.content_enabled:
             try:
                 document_rows = self._connection.execute(
                     """
                     SELECT
-                      stable_ref, title, format, semantic_source, parser,
-                      ocr_policy, logical_file_name, source_asset_hash, metadata_json
+                      stable_ref, title, format, semantic_source,
+                      logical_file_name, metadata_json
                     FROM content_documents
-                    WHERE stable_ref > ?
-                      AND (
+                    WHERE (
                             lower(title) LIKE lower(?) ESCAPE '\\'
                          OR lower(logical_file_name) LIKE lower(?) ESCAPE '\\'
                          OR lower(format) LIKE lower(?) ESCAPE '\\'
                       )
                     ORDER BY stable_ref
-                    LIMIT ?
                     """,
-                    (after_ref, literal, literal, literal, limit),
+                    (literal, literal, literal),
                 ).fetchall()
                 fragment_rows = self._connection.execute(
                     """
@@ -508,19 +773,14 @@ class BaseKnowledgeRepository:
                       fragment.stable_ref,
                       fragment.fragment_type,
                       fragment.title,
-                      fragment.body,
-                      fragment.notes,
                       fragment.ordinal,
-                      fragment.source_locator,
                       fragment.extraction_status,
-                      fragment.content_hash,
                       fragment.metadata_json,
                       document.stable_ref AS document_stable_ref
                     FROM content_fragments AS fragment
                     JOIN content_documents AS document
                       ON document.id=fragment.document_id
-                    WHERE fragment.stable_ref > ?
-                      AND (
+                    WHERE (
                         fragment.rowid IN (
                           SELECT rowid
                           FROM content_fragments_fts
@@ -528,37 +788,48 @@ class BaseKnowledgeRepository:
                         )
                         OR lower(COALESCE(fragment.title, ''))
                            LIKE lower(?) ESCAPE '\\'
-                        OR lower(COALESCE(fragment.body, ''))
-                           LIKE lower(?) ESCAPE '\\'
-                        OR lower(COALESCE(fragment.notes, ''))
-                           LIKE lower(?) ESCAPE '\\'
                       )
                     ORDER BY fragment.stable_ref
-                    LIMIT ?
                     """,
                     (
-                        after_ref,
                         _fts_query(query),
                         literal,
-                        literal,
-                        literal,
-                        limit,
                     ),
                 ).fetchall()
             except Exception as exc:
                 raise RuntimeBoundaryError("content knowledge search failed") from exc
-            results.extend(
-                self._content_document(row, include_content=False)
-                for row in document_rows
-            )
-            results.extend(
-                self._content_fragment(row, include_content=False)
-                for row in fragment_rows
-            )
-        return sorted(
-            results,
+            for row in document_rows:
+                item = self._content_document(row, include_content=False)
+                item["business_metadata"] = _parse_business_metadata(
+                    row["metadata_json"]
+                )
+                results.append(item)
+            for row in fragment_rows:
+                item = self._content_fragment(row, include_content=False)
+                item["business_metadata"] = _parse_business_metadata(
+                    row["metadata_json"]
+                )
+                results.append(item)
+        filtered = sorted(
+            (
+                item
+                for item in results
+                if _matches_object_filters(
+                    item,
+                    object_types=object_types,
+                    category_codes=category_codes,
+                    source_refs=source_refs,
+                    statuses=statuses,
+                    edition_roles=edition_roles,
+                )
+            ),
             key=lambda item: item["canonical_ref"],
-        )[:limit]
+        )
+        total_count = len(filtered)
+        page = [item for item in filtered if item["canonical_ref"] > after_ref][:limit]
+        for item in page:
+            item.pop("business_metadata", None)
+        return page, total_count
 
     def get_object(self, canonical_ref: str) -> dict[str, Any] | None:
         try:
@@ -824,7 +1095,30 @@ class BaseKnowledgeRepository:
             ).fetchone()
         except Exception as exc:
             raise RuntimeBoundaryError("content knowledge relation query failed") from exc
-        return self._content_relation(content) if content is not None else None
+        if content is not None:
+            return self._content_relation(content)
+        if not self.bindings_enabled:
+            return None
+        try:
+            bindings = self._connection.execute(
+                """
+                SELECT content_ref, knowledge_ref, binding_type, confidence, metadata_json
+                FROM content_bindings
+                WHERE status='active' AND confidence IN ('exact', 'manual')
+                ORDER BY content_ref, knowledge_ref, binding_type
+                """
+            ).fetchall()
+        except Exception as exc:
+            raise RuntimeBoundaryError("content binding query failed") from exc
+        return next(
+            (
+                projected
+                for row in bindings
+                if (projected := self._binding_relation(row))["relation_ref"]
+                == relation_ref
+            ),
+            None,
+        )
 
     def related(
         self,
@@ -833,14 +1127,17 @@ class BaseKnowledgeRepository:
         direction: str,
         after_ref: str,
         limit: int,
+        relation_types: tuple[str, ...] = (),
+        include_bindings: bool = False,
+        object_types: tuple[str, ...] = (),
     ) -> list[dict[str, Any]]:
         direct_relation = self.get_relation(canonical_ref)
         if direct_relation is not None:
-            return (
-                [direct_relation]
-                if direct_relation["relation_ref"] > after_ref and limit > 0
-                else []
-            )
+            candidates = [direct_relation]
+            reference_for_other_end = None
+        else:
+            candidates = []
+            reference_for_other_end = canonical_ref
         direction_sql = {
             "outgoing": "source.stable_ref = ?",
             "incoming": "target.stable_ref = ?",
@@ -866,11 +1163,9 @@ class BaseKnowledgeRepository:
                 JOIN knowledge_items AS source ON source.id = r.source_item_id
                 JOIN knowledge_items AS target ON target.id = r.target_item_id
                 WHERE {direction_sql}
-                  AND r.stable_ref > ?
                 ORDER BY r.stable_ref
-                LIMIT ?
                 """,
-                (*direction_params, after_ref, limit),
+                direction_params,
             ).fetchall()
         except Exception as exc:
             raise RuntimeBoundaryError("base knowledge relation query failed") from exc
@@ -889,18 +1184,69 @@ class BaseKnowledgeRepository:
                       source_ref, target_ref, ordinal, metadata_json
                     FROM content_relations
                     WHERE {content_direction_sql}
-                      AND stable_ref > ?
                     ORDER BY stable_ref
-                    LIMIT ?
                     """,
-                    (*direction_params, after_ref, limit),
+                    direction_params,
                 ).fetchall()
             except Exception as exc:
                 raise RuntimeBoundaryError(
                     "content knowledge relation query failed"
                 ) from exc
             result.extend(self._content_relation(row) for row in content_rows)
-        return sorted(result, key=lambda item: item["relation_ref"])[:limit]
+        if self.bindings_enabled and include_bindings and direct_relation is None:
+            binding_direction_sql = {
+                "outgoing": "content_ref = ?",
+                "incoming": "knowledge_ref = ?",
+                "both": "(content_ref = ? OR knowledge_ref = ?)",
+            }[direction]
+            try:
+                binding_rows = self._connection.execute(
+                    f"""
+                    SELECT content_ref, knowledge_ref, binding_type, confidence, metadata_json
+                    FROM content_bindings
+                    WHERE {binding_direction_sql}
+                      AND status='active'
+                      AND confidence IN ('exact', 'manual')
+                    ORDER BY content_ref, knowledge_ref, binding_type
+                    """,
+                    direction_params,
+                ).fetchall()
+            except Exception as exc:
+                raise RuntimeBoundaryError("active content binding query failed") from exc
+            result.extend(self._binding_relation(row) for row in binding_rows)
+        candidates.extend(result)
+
+        def other_type_matches(relation: Mapping[str, Any]) -> bool:
+            if not object_types:
+                return True
+            endpoints = (str(relation["source_ref"]), str(relation["target_ref"]))
+            if reference_for_other_end in endpoints:
+                refs = [ref for ref in endpoints if ref != reference_for_other_end]
+            else:
+                refs = list(endpoints)
+            return any(
+                (resolved := self.object_type(ref)) is not None
+                and _object_type_matches(resolved, object_types)
+                for ref in refs
+            )
+
+        return sorted(
+            (
+                relation
+                for relation in candidates
+                if relation["relation_ref"] > after_ref
+                and (
+                    not relation_types
+                    or relation["relation_type"] in relation_types
+                )
+                and (
+                    include_bindings
+                    or relation.get("relation_owner") != "content_binding"
+                )
+                and other_type_matches(relation)
+            ),
+            key=lambda item: item["relation_ref"],
+        )[:limit]
 
     def source_evidence(
         self,
@@ -1205,21 +1551,54 @@ class BaseKnowledgeQueryService:
         request: RequestContext,
         limit: int | None = None,
         cursor: str | None = None,
+        object_types: list[str] | tuple[str, ...] | None = None,
+        category_codes: list[str] | tuple[str, ...] | None = None,
+        source_refs: list[str] | tuple[str, ...] | None = None,
+        statuses: list[str] | tuple[str, ...] | None = None,
+        edition_roles: list[str] | tuple[str, ...] | None = None,
     ) -> ServiceResponse:
         checked_request = self._request(request)
         normalized_query = _normalized_text(query, maximum=256).casefold()
         checked_limit = self._limit("search_knowledge", limit)
-        parameters = {"query": normalized_query, "limit": checked_limit}
+        checked_object_types = _normalized_values(
+            object_types,
+            field="object_types",
+            allowed=self.repository.allowed_object_types(),
+        )
+        checked_category_codes = _normalized_values(
+            category_codes, field="category_codes"
+        )
+        checked_source_refs = _source_refs(source_refs)
+        checked_statuses = _normalized_values(statuses, field="statuses")
+        checked_edition_roles = _normalized_values(
+            edition_roles,
+            field="edition_roles",
+            allowed=_EDITION_ROLES,
+        )
+        parameters = {
+            "query": normalized_query,
+            "limit": checked_limit,
+            "object_types": checked_object_types,
+            "category_codes": checked_category_codes,
+            "source_refs": checked_source_refs,
+            "statuses": checked_statuses,
+            "edition_roles": checked_edition_roles,
+        }
         context = self._cursor_context(
             tool="search_knowledge",
             parameters=parameters,
             request=checked_request,
         )
         after_ref = self.cursor.decode(cursor, context) if cursor else ""
-        rows = self.repository.search(
+        rows, total_count = self.repository.search(
             query=normalized_query,
             after_ref=after_ref,
             limit=checked_limit + 1,
+            object_types=checked_object_types,
+            category_codes=checked_category_codes,
+            source_refs=checked_source_refs,
+            statuses=checked_statuses,
+            edition_roles=checked_edition_roles,
         )
         has_more = len(rows) > checked_limit
         selected = rows[:checked_limit]
@@ -1230,7 +1609,7 @@ class BaseKnowledgeQueryService:
         )
         return self._response(
             tool_name="search_knowledge",
-            data={"items": selected},
+            data={"items": selected, "total_count": total_count},
             request=checked_request,
             page=Page(next_cursor=next_cursor, has_more=has_more),
         )
@@ -1260,6 +1639,9 @@ class BaseKnowledgeQueryService:
         request: RequestContext,
         limit: int | None = None,
         cursor: str | None = None,
+        relation_types: list[str] | tuple[str, ...] | None = None,
+        include_bindings: bool = False,
+        object_types: list[str] | tuple[str, ...] | None = None,
     ) -> ServiceResponse:
         checked_request = self._request(request)
         resolved_ref = _canonical_ref(canonical_ref)
@@ -1271,10 +1653,24 @@ class BaseKnowledgeQueryService:
         ):
             raise ObjectNotAvailableError()
         checked_limit = self._limit("get_related_knowledge", limit)
+        checked_relation_types = _normalized_values(
+            relation_types,
+            field="relation_types",
+        )
+        if not isinstance(include_bindings, bool):
+            raise InvalidInputError("include_bindings must be a boolean")
+        checked_object_types = _normalized_values(
+            object_types,
+            field="object_types",
+            allowed=self.repository.allowed_object_types(),
+        )
         parameters = {
             "canonical_ref": resolved_ref,
             "direction": direction,
             "limit": checked_limit,
+            "relation_types": checked_relation_types,
+            "include_bindings": include_bindings,
+            "object_types": checked_object_types,
         }
         context = self._cursor_context(
             tool="get_related_knowledge",
@@ -1287,6 +1683,9 @@ class BaseKnowledgeQueryService:
             direction=direction,
             after_ref=after_ref,
             limit=checked_limit + 1,
+            relation_types=checked_relation_types,
+            include_bindings=include_bindings,
+            object_types=checked_object_types,
         )
         has_more = len(rows) > checked_limit
         selected = rows[:checked_limit]

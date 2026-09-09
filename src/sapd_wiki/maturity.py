@@ -208,6 +208,20 @@ def _float(value: Any, default: float = 0.0) -> float:
     return number if number == number and abs(number) != float("inf") else default
 
 
+def _radar_capability_is_applicable(row: dict[str, Any]) -> bool:
+    """Return whether an L2 remains an axis in the capability radar.
+
+    The chart projection uses the aggregate applicable-item count.  A partial
+    capability (including one with applicable items not yet scored) remains an
+    axis; only an explicit zero applicable-item count is removed.  This keeps
+    the scoring result and the complete L2 tables untouched.
+    """
+
+    if row.get("applicableItemCount") is not None:
+        return _float(row.get("applicableItemCount"), 0.0) > 0
+    return _text(row.get("status")) != "not_applicable"
+
+
 def _round(value: float | None, digits: int = 2) -> float | None:
     return None if value is None else round(float(value), digits)
 
@@ -3318,6 +3332,27 @@ def create_maturity_report_snapshot(payload: dict[str, Any]) -> dict[str, Any]:
             }
         )
 
+    # The report keeps complete L2 results and hierarchy statistics, while the
+    # capability radar is a graphical projection over applicable L2 axes only.
+    # Rebuild the groups for that projection so sector counts and axis order
+    # stay in the same filtered coordinate system.
+    radar_capability_groups: list[dict[str, Any]] = []
+    for group in capability_groups:
+        radar_rows = [row for row in group["capabilities"] if _radar_capability_is_applicable(row)]
+        if not radar_rows:
+            continue
+        radar_capability_groups.append(
+            {
+                **group,
+                "l2Count": len(radar_rows),
+                "belowTargetCount": sum(1 for row in radar_rows if _float(row.get("gapIndex"), 0.0) > 0),
+                "priorityCounts": priority_counts(
+                    [priority_by_capability[_text(row.get("id"))] for row in radar_rows if _text(row.get("id")) in priority_by_capability]
+                ),
+                "capabilities": radar_rows,
+            }
+        )
+
     l1_statistics: list[dict[str, Any]] = []
     for row in subcategory_results:
         l2_rows = [item for item in capability_results if _text(item.get("categoryId")) == _text(row.get("id"))]
@@ -3441,7 +3476,7 @@ def create_maturity_report_snapshot(payload: dict[str, Any]) -> dict[str, Any]:
         "scale": {"minimum": 1, "maximum": 5},
         "groups": [
             {"id": group["id"], "code": group["code"], "name": group["name"], "count": group["l2Count"]}
-            for group in capability_groups
+            for group in radar_capability_groups
         ],
         "axes": [
             {
@@ -3452,8 +3487,10 @@ def create_maturity_report_snapshot(payload: dict[str, Any]) -> dict[str, Any]:
                 "groupCode": group["code"],
                 "current": row.get("currentIndex"),
                 "target": row.get("targetIndex"),
+                "applicableItemCount": row.get("applicableItemCount"),
+                "notApplicableItemCount": row.get("notApplicableItemCount"),
             }
-            for group in capability_groups
+            for group in radar_capability_groups
             for row in group["capabilities"]
         ],
     }
@@ -3831,7 +3868,8 @@ def create_maturity_report_snapshot(payload: dict[str, Any]) -> dict[str, Any]:
             priority_rows = [[item.get("rank"), f"{item.get('capabilityCode')} {item.get('capabilityName')}", item.get("currentIndex"), item.get("targetIndex"), item.get("gapIndex")] for item in improvement_roadmap[:5]]
             l2_summary_rows = [["L2 评估点总数", evaluation.get("l2TotalCount")], ["L2 已评分", f"{evaluation.get('l2ScoredCount')} / {evaluation.get('l2TotalCount')}"], ["达标（当前 ≥ 目标）", evaluation.get("l2ReachedTargetCount")], ["低于目标", evaluation.get("l2BelowTargetCount")], ["未评估", int(_float(evaluation.get("l2TotalCount"))) - int(_float(evaluation.get("l2ScoredCount")))]]
             category_rows = [[f"{item.get('code')} {item.get('name')}", item.get("currentIndex"), item.get("targetIndex"), item.get("gapIndex")] for item in category_results]
-            body = f"""<header class='scorecard-heading'><h2>L2 能力成熟度雷达 <small>32 维</small></h2><p>关键比较与缺口按本次正式评估结果呈现</p></header><div class='scorecard-main'><figure class='capability-radar'><figcaption>{legend}</figcaption>{radar_svg(capability_chart)}<p class='figure-note'>未评分能力保留为空，不按 0 计入；其余已评估轴继续绘制。</p></figure><aside class='priority-panel'><h3>优先级缺口 <small>按差距降序</small></h3>{html_table(['排名', '能力编号与名称', '当前', '目标', '差距'], priority_rows, 'priority-table')}<h3>L2 评分概况</h3>{html_table(['项目', '数值'], l2_summary_rows, 'l2-summary-table')}</aside></div><div class='scorecard-lower'><section><h3>维度表现与证据覆盖</h3>{html_table(['能力类别', '当前', '目标', '差距'], category_rows, 'category-profile-table')}</section><figure class='dimension-radar-card'><figcaption><h3>{h(dimension_chart.get('title'))}</h3><div class='legend'><span class='current'><i></i>当前</span><span class='target'><i></i>目标</span></div></figcaption>{radar_svg(dimension_chart, compact=True)}</figure><section class='evidence-profile'><h3>证据覆盖与完成度</h3><dl><div><dt>适用评估点</dt><dd>{summary.get('applicableItemCount')} / {int(_float(summary.get('applicableItemCount'))) + int(_float(summary.get('notApplicableCount')))}</dd></div><div><dt>完成度</dt><dd>{summary.get('scoredItemCount')} / {summary.get('applicableItemCount')}</dd></div><div><dt>证据 E1+</dt><dd>{evaluation.get('evidenceFilledCount')} / {evaluation.get('evidenceTotalCount')}</dd></div><div><dt>证据 E0</dt><dd>{evaluation.get('evidenceMissingCount')}</dd></div></dl></section></div>"""
+            capability_axis_count = len(_list(capability_chart.get("axes")))
+            body = f"""<header class='scorecard-heading'><h2>L2 能力成熟度雷达 <small>{capability_axis_count} 项适用能力</small></h2><p>关键比较与缺口按本次正式评估结果呈现</p></header><div class='scorecard-main'><figure class='capability-radar'><figcaption>{legend}</figcaption>{radar_svg(capability_chart)}<p class='figure-note'>未评分能力保留为空，不按 0 计入；不适用 L2 不进入雷达轴。</p></figure><aside class='priority-panel'><h3>优先级缺口 <small>按差距降序</small></h3>{html_table(['排名', '能力编号与名称', '当前', '目标', '差距'], priority_rows, 'priority-table')}<h3>L2 评分概况</h3>{html_table(['项目', '数值'], l2_summary_rows, 'l2-summary-table')}</aside></div><div class='scorecard-lower'><section><h3>维度表现与证据覆盖</h3>{html_table(['能力类别', '当前', '目标', '差距'], category_rows, 'category-profile-table')}</section><figure class='dimension-radar-card'><figcaption><h3>{h(dimension_chart.get('title'))}</h3><div class='legend'><span class='current'><i></i>当前</span><span class='target'><i></i>目标</span></div></figcaption>{radar_svg(dimension_chart, compact=True)}</figure><section class='evidence-profile'><h3>证据覆盖与完成度</h3><dl><div><dt>适用评估点</dt><dd>{summary.get('applicableItemCount')} / {int(_float(summary.get('applicableItemCount'))) + int(_float(summary.get('notApplicableCount')))}</dd></div><div><dt>完成度</dt><dd>{summary.get('scoredItemCount')} / {summary.get('applicableItemCount')}</dd></div><div><dt>证据 E1+</dt><dd>{evaluation.get('evidenceFilledCount')} / {evaluation.get('evidenceTotalCount')}</dd></div><div><dt>证据 E0</dt><dd>{evaluation.get('evidenceMissingCount')}</dd></div></dl></section></div>"""
         elif section_id == "hierarchy_statistics":
             body = html_table(["类别", "当前 / 目标", "L1", "L2", "低于目标", "高 / 中 / 低"], [[group.get("code"), f"{value_or_dash(group.get('currentIndex'))} / {value_or_dash(group.get('targetIndex'))}", sum(1 for item in _list(_dict(data).get("l1")) if _text(item.get("groupCode")) == _text(group.get("code"))), group.get("l2Count"), group.get("belowTargetCount"), f"{_dict(group.get('priorityCounts')).get('高', 0)} / {_dict(group.get('priorityCounts')).get('中', 0)} / {_dict(group.get('priorityCounts')).get('低', 0)}"] for group in _list(_dict(data).get("groups"))])
             body = section_heading("A1", "分类与 L1 分层统计", "T / G / M 分类、能力域与优先级分布") + body

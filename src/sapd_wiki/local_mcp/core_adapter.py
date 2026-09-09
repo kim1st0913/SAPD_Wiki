@@ -55,13 +55,28 @@ class CoreKnowledgeServiceAdapter:
         query: str,
         limit: int,
         cursor: str | None,
+        object_types: list[str] | None = None,
+        category_codes: list[str] | None = None,
+        source_refs: list[str] | None = None,
+        statuses: list[str] | None = None,
+        edition_roles: list[str] | None = None,
     ) -> dict[str, Any]:
-        return self._core.search_knowledge(
-            query,
-            request=self._request(),
-            limit=limit,
-            cursor=cursor,
-        ).to_dict()
+        arguments: dict[str, Any] = {
+            "request": self._request(),
+            "limit": limit,
+            "cursor": cursor,
+        }
+        optional = {
+            "object_types": object_types,
+            "category_codes": category_codes,
+            "source_refs": source_refs,
+            "statuses": statuses,
+            "edition_roles": edition_roles,
+        }
+        arguments.update(
+            (name, value) for name, value in optional.items() if value is not None
+        )
+        return self._core.search_knowledge(query, **arguments).to_dict()
 
     async def get_knowledge_object(
         self,
@@ -80,13 +95,25 @@ class CoreKnowledgeServiceAdapter:
         direction: Literal["outgoing", "incoming", "both"],
         limit: int,
         cursor: str | None,
+        relation_types: list[str] | None = None,
+        include_bindings: bool = False,
+        object_types: list[str] | None = None,
     ) -> dict[str, Any]:
+        arguments: dict[str, Any] = {
+            "request": self._request(),
+            "limit": limit,
+            "cursor": cursor,
+        }
+        if relation_types is not None:
+            arguments["relation_types"] = relation_types
+        if include_bindings:
+            arguments["include_bindings"] = True
+        if object_types is not None:
+            arguments["object_types"] = object_types
         return self._core.get_related_knowledge(
             canonical_ref,
             direction,
-            request=self._request(),
-            limit=limit,
-            cursor=cursor,
+            **arguments,
         ).to_dict()
 
     async def get_source_evidence(

@@ -1319,3 +1319,87 @@
 | 3 | 后端补齐环境矩阵投影 | 输出环境对象到服务、模块、系统/产品扁平矩阵 |
 | 4 | 完成第二批/第三批业务确认 | 确认主键、关系基数、展示口径 |
 | 5 | 再考虑本地 API 服务 | 在静态契约稳定后实现 `/api/v1/*` |
+
+## 19. 安全运行知识 API（WP2 scoped P0 Gate 2 / WP2I 本地受控预览）
+
+本组端点只读取通过 scoped Gate 1 且包含 `content_projection` 和同级私有预览包合同的 WP1I 候选包，不读取原始 Excel、Markdown、外部图片目录、正式 SQLite 或用户库。这是 P0 页面集成合同，不表示所有 P1 分类与关系已经完成。当前尚未授权 formal set freeze / apply，因此每个成功响应的 `data` 都必须包含：
+
+| 字段 | 固定值 | 说明 |
+|---|---|---|
+| `data_state` | `partial` | 内容可用于页面集成，但仍有显式暂缓项 |
+| `data_scope` | `scoped_candidate` | 不得显示为正式 active 数据 |
+| `candidate_only` | `true` | 当前只读候选投影 |
+| `gate_status` | `scoped_passed` | 仅表示 scoped Gate 1 已通过 |
+| `formal_apply_authorized` | `false` | 不授权写正式库 |
+
+### 19.1 端点
+
+| 端点 | 主要返回 | 精确引用参数 |
+|---|---|---|
+| `GET /api/v1/security-operations` | 模块、来源版次、七页目录、01-000 第 1—10 章总体思路来源投影、第 4 章五点、功能状态、计数和候选包版本 | 无 |
+| `GET /api/v1/security-operations/sections/{section_ref}` | 精确章节、安全有序内容段、已解析链接和 source-only 图示占位 | 路径 `section_ref` |
+| `GET /api/v1/security-operations/knowledge` | 总体概念、活动、视角、维度、证据要求及显式业务关系 | `ref / relation_ref` |
+| `GET /api/v1/security-operations/capability-mappings` | 主题与能力 / 关注点的同一关系记录集合 | `relation_ref` |
+| `GET /api/v1/security-operations/threat-models` | 检测规则及其场景、日志、响应建议 | `rule_ref` |
+| `GET /api/v1/security-operations/questions` | 458 个调研问题 | `question_ref` |
+| `GET /api/v1/security-operations/metrics` | 指标设计参考，不含当前值和趋势 | `metric_ref` |
+| `GET /api/v1/security-operations/sources` | 八类来源及许可 / 核验状态 | `source_ref` |
+| `GET /api/v1/security-operations/graph` | candidate-only 图谱 node / edge 投影、`projection_version` 与 `projection_digest` | 精确 `focus`；可选 `depth` |
+| `GET /api/v1/security-operations/figures/{figure_ref}/preview` | 本地受控的精确 PNG 图示预览 | 路径 `figure_ref` |
+
+任何非空精确引用找不到时返回 HTTP `404`，并在 `data` 中返回 `error = target_missing` 和原请求 `target_ref`；禁止回退到第一条、父级对象或默认焦点。运行时必须同时配置候选包和预期 SHA-256；候选包缺失、未配置摘要、摘要不符或 Gate 边界不符时返回 HTTP `503 / candidate_bundle_unavailable`。
+
+### 19.2 列表、过滤和游标
+
+- 列表按稳定 ref 排序，`page` 包含 `total / returned / limit / next_cursor`；`limit` 范围为 `1..200`。
+- 游标绑定端点及全部过滤条件；改变条件后复用旧游标返回 `400 / bad_request`。
+- `knowledge` 支持 `page_id / object_type(s) / status(es) / source_ref(s) / q`；`include_relations=true` 或关系过滤时，附带非能力映射业务关系。关系支持 `relation_ref / relation_type(s) / relation_state(s) / subject_ref / target_ref`，关系使用独立的 `relation_cursor / relation_limit`，不得混入 capability mapping。`page_id` 只按候选包显式 page ownership 过滤，禁止标题或类型猜测。
+- `capability-mappings` 支持 `page_id / source_ref / target_ref / target_code(s) / capability_domain_ref / capability_domain_code / relation_type(s) / decision_state / status(es) / q`；`domain_ref` 和 `domain_code` 是能力域过滤的兼容别名。能力域字段只能从候选包 `capability_target_context[target_ref].domain` 取得，不得从目标编码前缀或标题推断。`page_id` 只按关系的显式 page ownership 过滤。正向与反向查询必须返回同一批 `relation_ref` 记录，而不是重建两套关系。
+- `threat-models` 支持 `rule_ref / scenario_ref / log_ref / response_ref / domain / record_role / source_ref / q`；场景、日志和响应端点只能通过候选包显式关系反查规则，并返回原关系 ref 与状态。
+- `questions` 的 scoped P0 过滤为 `q / domain_ref / domain / source_ref / status`。响应中的 `filter_contract.supported_filters` 是前端可显示的控件清单；`activity_ref / survey_facet` 在映射或分类冻结前列入 `deferred_filters`，前端必须隐藏对应 P1 控件，调用方传入这些参数时返回 `400 / bad_request`。
+- `questions[].ordinal` 来自 WP1I 保留的冻结顺序，458 题均非空且每个域内从 1 连续编号；唯一缺少来源显式题号的问题仍使用该 ordinal，不按问题文本推断编号。响应 `coverage` 必须显式报告 `questions / domain_ref / ordinal / survey_facets_classified / survey_assesses_relations`。
+- `metrics` 支持 `metric_domain`（`domain` 为兼容别名）、`claim_status / completeness / source_ref / activity_ref / relation_state(s) / capability_ref / capability_code / capability_domain_ref / capability_domain_code / q`。`activity_ref` 只使用指标自身的显式 `measures_activity`；capability 和能力域只使用 `source_ref = metric_ref` 的直接能力映射及 `capability_target_context` 精确 join。不得把活动的全部能力继承给指标，也不得按标题或编码前缀推断。
+- `sources` 支持 `edition_role(s) / verification_status(es) / q`。
+
+### 19.3 字段边界
+
+- 普通响应只返回业务字段、稳定 ref、受控 `source_ref` 和候选治理状态，不返回 raw `body`、`metadata` dump、`source_locator`、`source_token`、`source_image_token`、文件名、原始行列、绝对路径、asset blob、token 或 MCP 控制字段。
+- manifest 严格消费 `content_projection.editions / pages / section_index / feature_contract / overview_guide`。正文页面的 `default_section_ref` 必须属于默认版次 TOC；来源导航和纯结构化页面必须显式返回 `default_section_ref = null`，不得伪造章节。`integrated_edition_state` 必须诚实返回 `unavailable_not_authored`。语义镜像文档不是可选版次，不进入 selectable TOC。七页模式固定为：`overview = source_guided_overview`、`document = primary_document_reader`、`framework / threat-modeling / metrics = structured_workspace`、`assessment = document_reader`、`sources = source_catalog`。`overview` 不暴露 TOC；`document` 是 01-010 正文 106 节的唯一完整正文 reader；`framework.document_refs / edition_refs` 必须为空，30-010 仅通过来源 provenance 与数据视角对象融合。来源页可以列出版次元数据，但 `toc = [] / edition_tocs = {}`，不得重复正文页目录。
+- `overview_guide` 返回 `schema_version=security-operations-overview-guide-v2`、`content_role=source_projection`、01-000 来源标题，以及 `context_chapters / core_model / expansion_chapters / closeout_chapters`。章序固定为 1—10；第 4 章固定五个核心点，两条并列主线保留为该点下的 branches。每章只返回业务 `id / ordinal / anchor / title / lead / content_role=source_fact / subsections / dimensions / deepening_links`；核心点另返回业务标题、原文 body 和安全目标 anchor。深化链接只包含 `role / label / page_route / anchor`，不返回内部 source/document/edition/section ref、原路径、hash 或 token。页面 route 不含查询串或 `#`，页内定位通过独立 anchor，支持刷新恢复。
+- 章节 `content_segments` 按原始顺序返回纯文本、精确章节链接、精确 `route_link`、source-only 图示占位和 unresolved 占位。API 识别 Obsidian `[[...]] / ![[...]]` 与标准 Markdown `[]() / ![]()` 四种来源语法，但只能使用 WP1I `link_index` 提供的 exact target；不得让前端解析来源 token，也不得从 token、标题或文件名匹配目标。每个来源链接必须有章节内从 1 连续的安全 `source_ordinal`，后端按“同节正文链接出现顺序 = source_ordinal”逐一绑定；数量、序号或保留的非图示 source token 不一致即 fail closed。图示链接不得在候选页面合同中保留原文件名 token。`route_link` 只能使用 WP1I 的 `page_link` 投影，返回业务 label 和 exact `page_route`。`content_figure` 不进入 `knowledge`；图示占位只在有序 `content_segments` 返回，不再另设顶层重复图示列表。图示占位仅新增 `preview_available` 与同源 `preview_url`；仍不得返回 owner、内部相对路径、文件名、独立 hash/digest、源图 token 或绝对路径。`figure_ref` 是正式稳定 opaque ref，可作为 `target_ref / annotation_target` 身份，即使其字符串含摘要派生后缀也属于稳定 ref 豁免；前端不得把该 ref 作为可见业务文案渲染，也不得另造 public id。
+- 关系状态只使用 `formal_active / policy_accepted_candidate / system_deferred_candidate`。不得使用 `confirmed` 命名候选关系；WP1I 当前正式 active 数为 0。
+- 每条能力映射返回 focus 目标、L2 `capability_ref / capability_code / capability_title` 及 `domain_ref / domain_code / domain_title`；这些字段只能来自 `capability_target_context[target_ref]`。状态分桶与七域数量之和必须等于同一批关系总数。
+- 章节、知识对象和关系、能力映射、威胁规则及子对象、调研问题、指标、来源和来源缺口统一返回 `annotation_target.target_ref / page_route / anchor_type / object_type / object_title`。`feature_contract.annotations = deferred` 表示本阶段不实现用户状态叠加，不影响提供稳定注释目标元数据。
+- 指标仅返回名称、领域、定义、公式、建议数据来源、周期、责任角色、适用条件、资料完整性和来源；不得返回客户当前值、趋势、告警、工单或处置执行状态。
+- 来源接口只返回逻辑名称、版本角色、核验状态、4 个稳定来源缺口和许可边界。权限与可用性必须分开：若 WP1I 私有预览包成功验签，本地受控预览 `permission = allowed / availability = supported`；权限允许但预览包缺失、摘要不符、越界或内容漂移时为 `permission = allowed / availability = deferred_unpublished`；来源边界禁止时为 `permission = forbidden / availability = not_available`。本地只读知识访问固定 `permission = allowed_redacted / availability = supported`，原件下载及外部分发固定 `permission = forbidden`。不得把全局 `source_scope` 的 v0.2 作者或版本身份状态复制到八条来源；Gate B 的身份缺口只通过对应来源的 `open_gap_refs` 和稳定 gap 投影表达。
+- `version.candidate_bundle_digest / source_manifest_digest` 只用于缓存、摘要门禁和运行诊断，不是图示 hash，也不是面向用户的展示字段；前端不得可见渲染。
+
+### 19.4 P1 延后边界
+
+当前候选包没有冻结“问题 → 运行活动”关系，也没有完成调研 facet 分类，因此 activity / facet 过滤不属于本轮 scoped P0 Gate 2。该缺口通过 `filter_contract` 和 `coverage` 显式返回，不得把 P0 可用描述成完整目标合同，也不得在 API 或前端按问题文本、标题关键词或相邻行推断。后续只有 WP1 提供稳定映射 / 分类后才能启用对应 P1 控件。
+
+### 19.5 WP2I 本地受控图示预览边界
+
+- 预览资产只允许位于候选包同级的 `private/figure-preview-pack-v1/`；API 不接受外部绝对路径、运行参数中的图源目录或公开静态目录。候选包迁移时必须连同私有包整体迁移。
+- 后端严格校验 manifest 自摘要、候选包 SHA 绑定、28 个 `figure_ref -> preview_asset_ref` owner、内部相对路径、PNG MIME、字节数、内容 SHA、宽高和完整覆盖。私有目录、manifest、任一中间目录或资产为软链、路径越界、摘要不符或读取后内容变化时，所有已知图示预览均 fail closed。
+- 私有包缺失或无效不阻断 manifest、section 等 JSON 知识接口；对应图示返回 `preview_available = false / preview_url = null`。精确预览请求返回 `503 / preview_unavailable`。不存在的 `figure_ref` 始终返回 `404 / target_missing`，不得用第一张图或相邻图替代。
+- 成功预览仅允许 `GET /api/v1/security-operations/figures/{figure_ref}/preview`，响应 `Content-Type: image/png`、`Content-Disposition: inline`、`X-Content-Type-Options: nosniff`、`Cache-Control: private, no-store`。不提供 list、download、Range、公开文件路径或外发接口。
+- 普通 JSON 响应不得暴露预览包 manifest、内部相对路径、asset SHA、宽高、文件名或 backend owner。`candidate_bundle_digest` 继续仅作非展示诊断；预览端点返回二进制，不把图片内容或摘要嵌入 JSON。
+
+### 19.6 V2 candidate graph projection 增量
+
+`GET /api/v1/security-operations/graph` 复用本节 19 的通用 envelope、candidate-only 与错误语义。当前候选实测为 43 nodes、57 edges；descriptor 的 `material_source_count=8`，nodes 按 kind 统计 `foundation_dimension=8`、`profile_dimension=8`，跨来源 `editorial_pending` 为 21 条；数量是快照证据，不是前端常量。
+
+| 字段 / 参数 | 约束 |
+|---|---|
+| `manifest.knowledge_graph` | 仅包含 `schema_version / status / projection_version / projection_digest / node_count / edge_count / material_source_count`；8 个 `foundation_dimension` 与 8 个 `profile_dimension` 来自 nodes 按 kind 统计，不是 descriptor 字段 |
+| `projection_version` | 当前 `2026-09-07.2`；独立于 candidate bundle version |
+| `projection_digest` | 当前 `sha256:989023d6fec4d7264b249b73b127d8e7a502209ceb23d6561b99c5deb453da17`；不得用 bundle digest 代替 |
+| `nodes[]` | 使用 graph config 的 `id / kind / label / visual_role / page_id` 及按类型声明的 `item_ref / source_section_ref / anchor`；仅 material node 使用 `source_ref`，不另造 `source_refs / evidence_refs` |
+| `edges[]` | 使用 graph config 的 `id / source / target / relation_type / relation_state / label / source_section_ref`，深化边可带 `business_reason / endpoint_evidence`；不得使用 `edge.status` 或未声明别名 |
+| `focus` | 只接受声明的精确值；当前 `asset / profile-data-asset / support-threat-modeling / metric-definition` 均可精确返回，未知值 404，不回退首项或父级 |
+| `depth` | 非法值 fail closed；当前 `depth=99` 返回 400 |
+
+graph 的 `relation_state` 是 overview 导航专用 enum，不得直接喂给 `/knowledge` 的 `relation_state(s)` 过滤器或未来 MCP 业务关系字段。
+
+图谱缺失或结构无效时返回 `graph_unavailable`，七页 manifest 仍保留；loading 是 UI 异步状态，不写入 API envelope。`candidate_only=true`、`formal_apply=false`，正式 MCP/apply 未授权。

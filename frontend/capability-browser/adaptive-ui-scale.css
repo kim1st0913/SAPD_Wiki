@@ -44,6 +44,7 @@
 .app-shell-integrated .settings-workspace,
 .app-shell-integrated .source-workspace,
 .app-shell-integrated .workbench-workspace,
+.app-shell-integrated .security-operations-workspace,
 .app-shell-integrated .settings-workspace,
 .app-shell-integrated .workspace {
   height: 100%;
@@ -114,6 +115,7 @@ html[data-sapd-ui-layout="compact"] .app-shell-integrated :where(
   .settings-workspace,
   .source-workspace,
   .workbench-workspace,
+  .security-operations-workspace,
   .workspace
 ) {
   min-width: 0;

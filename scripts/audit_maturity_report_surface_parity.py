@@ -120,17 +120,23 @@ def result_matrix(report_path: Path) -> dict[str, Any]:
     axes = capability_radar.get("axes") or []
     capabilities = result.get("capabilityResults") or []
     capability_by_id = identity_rows(capabilities)
+    radar_capabilities = [
+        row for row in capabilities
+        if int(float(row.get("applicableItemCount") or 0)) > 0
+    ]
+    radar_capability_by_id = identity_rows(radar_capabilities)
     axis_ids = [str(axis.get("id", "")) for axis in axes]
-    check("L2 雷达轴数量与唯一性", len(axes) == len(capabilities) == len(set(axis_ids)), len(capabilities), len(axes))
+    check("L2 雷达轴数量与唯一性", len(axes) == len(radar_capabilities) == len(set(axis_ids)), len(radar_capabilities), len(axes))
     capability_axis_fields = all(
-        axis.get("id") in capability_by_id
-        and same(axis.get("code"), capability_by_id[axis["id"]].get("code"))
-        and same(axis.get("label"), capability_by_id[axis["id"]].get("name"))
-        and same(axis.get("current"), capability_by_id[axis["id"]].get("currentIndex"))
-        and same(axis.get("target"), capability_by_id[axis["id"]].get("targetIndex"))
+        axis.get("id") in radar_capability_by_id
+        and same(axis.get("code"), radar_capability_by_id[axis["id"]].get("code"))
+        and same(axis.get("label"), radar_capability_by_id[axis["id"]].get("name"))
+        and same(axis.get("current"), radar_capability_by_id[axis["id"]].get("currentIndex"))
+        and same(axis.get("target"), radar_capability_by_id[axis["id"]].get("targetIndex"))
+        and ("applicableItemCount" not in axis or same(axis.get("applicableItemCount"), radar_capability_by_id[axis["id"]].get("applicableItemCount")))
         for axis in axes
     )
-    check("L2 雷达 32 轴 ID/名称/当前/目标", capability_axis_fields, len(capabilities), sum(1 for axis in axes if axis.get("id") in capability_by_id))
+    check("L2 雷达轴 ID/名称/当前/目标", capability_axis_fields, len(radar_capabilities), sum(1 for axis in axes if axis.get("id") in radar_capability_by_id))
     hierarchy_groups = (sections.get("hierarchy_statistics") or {}).get("groups") or []
     flattened_ids = [capability.get("id") for group in hierarchy_groups for capability in group.get("capabilities") or []]
     check("L2 雷达顺序与 T/G/M 分组", axis_ids == flattened_ids)

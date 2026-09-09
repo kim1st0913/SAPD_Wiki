@@ -24,6 +24,7 @@ from sapd_wiki.maturity import (  # noqa: E402
     import_maturity_score_exchange,
     import_maturity_template_exchange,
     validate_maturity_template,
+    _radar_capability_is_applicable,
 )
 from sapd_wiki import api_server as maturity_api  # noqa: E402
 
@@ -412,9 +413,10 @@ def main() -> int:
     required_report_sections = {"overall", "narratives", "radars", "hierarchy_statistics", "evaluation", "capability_results", "overall_rankings", "dimension_rankings", "improvement_roadmap", "score_appendix", "traceability"}
     require(report_model["schemaVersion"] == "sapd-maturity-report-model-v3" and set(report_sections) == required_report_sections and report_model["resultVersion"]["resultHash"] == completed_result["calculationRun"]["resultHash"], "report snapshot must expose one versioned, extensible model tied to the exact calculation result")
     require(all(axis.get("target") == completed_result["summary"]["targetDimensionResults"].get(axis.get("id")) for axis in report_sections["radars"]["data"]["dimensionRadar"]["axes"]), "report radar must use actual per-dimension target results")
-    require(len(report_sections["radars"]["data"]["capabilityRadar"]["axes"]) == len(completed_result["capabilityResults"]) and len(report_sections["radars"]["data"]["dimensionRadar"]["axes"]) == 4 and {item["code"] for item in report_sections["radars"]["data"]["capabilityRadar"]["groups"]} >= {"T", "G", "M"}, "report model must retain every backend L2 current/target axis plus the overall four-dimension radar")
+    expected_radar_capabilities = [item for item in completed_result["capabilityResults"] if _radar_capability_is_applicable(item)]
+    require(len(report_sections["radars"]["data"]["capabilityRadar"]["axes"]) == len(expected_radar_capabilities) and len(report_sections["radars"]["data"]["dimensionRadar"]["axes"]) == 4 and {item["code"] for item in report_sections["radars"]["data"]["capabilityRadar"]["groups"]} >= {"T", "G", "M"}, "report model must retain every applicable backend L2 current/target axis plus the overall four-dimension radar")
     report_capability_axes = {item["id"]: item for item in report_sections["radars"]["data"]["capabilityRadar"]["axes"]}
-    require(all(report_capability_axes[item["id"]]["current"] == item["currentIndex"] and report_capability_axes[item["id"]]["target"] == item["targetIndex"] for item in completed_result["capabilityResults"]) and all(item.get("displayLabel") for item in report_capability_axes.values()), "HTML radar axes must preserve every current/target value from the exact calculation result and expose the same compact labels as the report page")
+    require(all(report_capability_axes[item["id"]]["current"] == item["currentIndex"] and report_capability_axes[item["id"]]["target"] == item["targetIndex"] and report_capability_axes[item["id"]]["applicableItemCount"] == item["applicableItemCount"] for item in expected_radar_capabilities) and all(item.get("displayLabel") for item in report_capability_axes.values()), "HTML radar axes must preserve every applicable current/target value from the exact calculation result and expose the same compact labels as the report page")
     ordered_l0_ids = [
         item["id"]
         for item in sorted(
@@ -426,6 +428,7 @@ def main() -> int:
         row["id"]
         for category_id in ordered_l0_ids
         for row in completed_result["capabilityResults"]
+        if _radar_capability_is_applicable(row)
         if row.get("topCategoryId") == category_id
     ]
     actual_radar_axis_ids = [item["id"] for item in report_sections["radars"]["data"]["capabilityRadar"]["axes"]]

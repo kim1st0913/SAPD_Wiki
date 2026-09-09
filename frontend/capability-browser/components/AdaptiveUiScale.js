@@ -8,6 +8,7 @@
   const MIN_LOGICAL_HEIGHT = 700;
   let frameId = 0;
   let mounted = false;
+  let viewportObserver = null;
 
   const clamp = (value, minimum, maximum) => Math.min(maximum, Math.max(minimum, value));
   const rounded = (value, precision = 3) => Number(value.toFixed(precision));
@@ -54,11 +55,21 @@
     });
   }
 
+  function applyWhenVisible() {
+    if (document.visibilityState === "visible") scheduleApply();
+  }
+
   function mount() {
     if (mounted) return apply();
     mounted = true;
     window.addEventListener("resize", scheduleApply, { passive: true });
     window.visualViewport?.addEventListener("resize", scheduleApply, { passive: true });
+    window.addEventListener("pageshow", scheduleApply, { passive: true });
+    document.addEventListener("visibilitychange", applyWhenVisible, { passive: true });
+    if (typeof window.ResizeObserver === "function") {
+      viewportObserver = new window.ResizeObserver(scheduleApply);
+      viewportObserver.observe(document.documentElement);
+    }
     return apply();
   }
 

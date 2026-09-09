@@ -95,6 +95,7 @@ const state = {
   activeCapabilityProjectionRequest: null,
   capabilityProjectionRequests: new Map(),
   capabilityProjectionLoadResults: new Map(),
+  securityOperationsFocusRequestSeq: 0,
   annotationContextLoads: new Map(),
   userFavorites: [],
   userFavoritesByRef: new Map(),
@@ -1893,6 +1894,7 @@ function activeSearchRootElement() {
     search: "searchWorkspace",
     settings: "settingsWorkspace",
     capabilities: "capabilityWorkspace",
+    "security-operations": "securityOperationsWorkspace",
     environment: "environmentWorkspace",
     "dev-lifecycle": "devLifecycleWorkspace",
     "data-lifecycle": "dataLifecycleWorkspace",
@@ -3276,6 +3278,7 @@ function routePackagesForCurrentState() {
   if (state.activeView === "workbench") return [];
   if (state.activeView === "search") return [];
   if (state.activeView === "settings") return [];
+  if (state.activeView === "security-operations") return [];
   if (state.activeView === "overview") return ["analyticsSummary", "maintenanceIndex", "dashboardKnowledgeSummary"];
   if (state.activeView === "capabilities") return ["capabilityInitial", "maintenanceIndex"];
   if (state.activeView === "environment") {
@@ -8569,6 +8572,65 @@ function capabilityAncestorIds(targetId) {
   return [];
 }
 
+async function focusCapabilityFromSecurityOperations({ targetRef = "", objectType = "", code = "" } = {}) {
+  const requestSeq = ++state.securityOperationsFocusRequestSeq;
+  const sourceRoute = state.activeRoute;
+  const expected = {
+    targetRef: text(targetRef).trim(),
+    objectType: text(objectType).trim(),
+    code: text(code).trim(),
+  };
+  const failure = (message) => ({ ok: false, message });
+  const stale = () => ({ ok: false, stale: true });
+  if (!expected.targetRef || !expected.objectType || !expected.code) {
+    return failure("当前能力映射缺少完整的对象标识，已停止跳转。");
+  }
+  let envelope;
+  try {
+    const locateCapability = window.sapdDataClient?.locateCapability;
+    if (typeof locateCapability !== "function") return failure("当前运行环境未提供能力精确定位，已停止跳转。");
+    envelope = await locateCapability({ objectType: expected.objectType, code: expected.code });
+  } catch (error) {
+    if (requestSeq !== state.securityOperationsFocusRequestSeq || state.activeView !== "security-operations" || state.activeRoute !== sourceRoute) return stale();
+    return failure(`能力精确定位失败：${text(error?.message || error).trim() || "请求未返回可用对象"}，已停止跳转。`);
+  }
+  if (requestSeq !== state.securityOperationsFocusRequestSeq || state.activeView !== "security-operations" || state.activeRoute !== sourceRoute) return stale();
+  const selected = envelope?.data?.selected;
+  const selectedId = text(selected?.id).trim();
+  if (
+    !selectedId ||
+    text(selected?.canonical_ref).trim() !== expected.targetRef ||
+    text(selected?.type).trim() !== expected.objectType ||
+    text(selected?.code).trim() !== expected.code
+  ) {
+    return failure("定位返回的能力对象与当前映射不一致，已停止跳转。");
+  }
+  if (!capabilityItemById(selectedId) && !state.loadedPackages.has("capabilityInitial")) {
+    await loadDataPackage("capabilityInitial");
+  }
+  if (requestSeq !== state.securityOperationsFocusRequestSeq || state.activeView !== "security-operations" || state.activeRoute !== sourceRoute) return stale();
+  if (state.packageLoadErrors.has("capabilityInitial") && !capabilityItemById(selectedId)) {
+    return failure("安全能力目录暂时无法提供该对象，已停止跳转。");
+  }
+  activateRoute("/capability-mapping");
+  if (requestSeq !== state.securityOperationsFocusRequestSeq) return stale();
+  if (state.activeView !== "capabilities" || state.activeRoute !== "/capability-mapping") {
+    return failure("当前页面仍有未完成的批注操作，未执行能力跳转。");
+  }
+  const item = capabilityItemById(selectedId);
+  if (!item) return failure("安全能力目录中未找到定位对象，已停止跳转。");
+  state.selectedCapabilityId = item.id;
+  state.activeCapabilityRelationTab = "overview";
+  state.capabilityCatalogCollapsed = false;
+  capabilityAncestorIds(item.id).forEach((id) => state.expandedCapabilityIds.add(id));
+  state.expandedSelectionId = item.id;
+  if (item.type === "capability_focus") ensureCapabilityProjectionForFocus(item.id);
+  else ensureCapabilityWorkspaceViewForSelection(item.id);
+  renderCapabilities();
+  announceCapabilitySelection(item.id);
+  return { ok: true };
+}
+
 function capabilityCategoryIds() {
   return list(state.capability?.categories)
     .map((category) => category.id)
@@ -9886,15 +9948,24 @@ function appRouteBasePath() {
   return pathname.endsWith("/") ? pathname : `${pathname.replace(/index\.html$/, "").replace(/\/+$/, "")}/`;
 }
 
+function routePreservesQuery(route) {
+  const normalized = normalizeAppRoute(route);
+  return normalized === "/search" || normalized.startsWith("/security-operations/");
+}
+
 function syncBrowserRoute(route, { replace = false } = {}) {
   const normalized = normalizeAppRoute(route);
-  const query = normalized === "/search" ? routeQueryString(route) : "";
+  const query = routePreservesQuery(normalized) ? routeQueryString(route) : "";
   const nextHash = normalized === "/" ? "" : `#${normalized}${query}`;
   const nextPath = appRouteBasePath();
   if (window.location.pathname === nextPath && window.location.hash === nextHash) return;
   const nextUrl = `${nextPath}${window.location.search}${nextHash}`;
   if (replace) window.history.replaceState({ route: normalized }, "", nextUrl);
   else window.history.pushState({ route: normalized }, "", nextUrl);
+}
+
+function browserRouteForTarget(target, route) {
+  return routePreservesQuery(target.route) ? route : state.activeRoute;
 }
 
 function activateRoute(route, options = {}) {
@@ -9937,8 +10008,12 @@ function activateRoute(route, options = {}) {
     skipAnnotationGuard: true,
     environmentTab: options.environmentTab,
   });
-  const browserRoute = target.route === "/search" ? route : state.activeRoute;
-  if (!options.fromBrowser) syncBrowserRoute(browserRoute, { replace: Boolean(options.replace) });
+  const browserRoute = browserRouteForTarget(target, route);
+  if (!options.fromBrowser) {
+    syncBrowserRoute(browserRoute, { replace: Boolean(options.replace) });
+  } else if (normalizeAppRoute(route) !== state.activeRoute) {
+    syncBrowserRoute(state.activeRoute, { replace: true });
+  }
 }
 
 function openGlobalSearchPage(query = state.globalSearch, options = {}) {
@@ -12632,6 +12707,12 @@ function renderActiveView() {
   if (state.activeView === "data-lifecycle") renderLifecycle("data");
   if (state.activeView === "maintenance") renderMaintenance();
   if (state.activeView === "content") renderContent();
+  if (state.activeView === "security-operations") {
+    window.sapdComponents?.SecurityOperationsKnowledge?.render?.({
+      route: state.activeRoute,
+      onFocusCanonical: focusCapabilityFromSecurityOperations,
+    });
+  }
   if (state.activeView === "placeholder") renderPlaceholder();
   scheduleAnnotationAnchorMarkers("render-active-view");
   syncSearchInputs();
@@ -12670,6 +12751,7 @@ function setActiveView(view, options = {}) {
     settings: "settingsWorkspace",
     workbench: "workbenchWorkspace",
     capabilities: "capabilityWorkspace",
+    "security-operations": "securityOperationsWorkspace",
     environment: "environmentWorkspace",
     "dev-lifecycle": "devLifecycleWorkspace",
     "data-lifecycle": "dataLifecycleWorkspace",
@@ -12879,6 +12961,12 @@ function bindEvents() {
   document.addEventListener("click", (event) => {
     const routeButton = event.target?.closest?.("[data-app-route]");
     if (!routeButton) return;
+    // Overview owns source-backed cross-route links so it can persist the
+    // exact Atlas focus and scroll position before the shared router runs.
+    if (
+      routeButton.matches?.(".sok-source-link")
+      && routeButton.closest?.(".sok-module-shell[data-sok-page='overview']")
+    ) return;
     event.preventDefault();
     event.stopPropagation();
     const dashboardIssueId = text(routeButton.dataset.dashboardIssueId).trim();

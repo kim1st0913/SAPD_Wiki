@@ -3479,6 +3479,85 @@
 .maturity-v4-focus-applicability > span:last-child { min-height: 32px; display: inline-flex; align-items: center; gap: 7px; padding: 0 9px; border: 1px solid #c9d5df; border-radius: 5px; background: #fafdff; color: #40566c; font-size: 11px; }
 .maturity-v4-focus-applicability input { width: 15px; height: 15px; margin: 0; accent-color: #1676c5; }
 
+.maturity-v25-l2-identity-row {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.maturity-v25-l2-identity-row > h3 {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.maturity-v25-l2-applicability {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  color: #405b73;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.maturity-v25-l2-applicability input {
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  margin: 0;
+  accent-color: #1676c5;
+}
+
+.maturity-v25-l2-applicability > span {
+  color: #405b73;
+  font-size: 13px;
+}
+
+.maturity-v25-l2-applicability.maturity-v4-focus-applicability > strong {
+  min-height: 26px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 8px;
+  border: 1px solid #bdd9c9;
+  border-radius: 5px;
+  background: #e8f3ed;
+  color: #39725a;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.maturity-v25-l2-applicability[data-maturity-l2-applicability-state="mixed"] > strong {
+  border-color: #e7cda8;
+  background: #faf0df;
+  color: #8d632f;
+}
+
+.maturity-v25-l2-applicability[data-maturity-l2-applicability-state="not-applicable"] > strong,
+.maturity-v25-l2-applicability[data-maturity-l2-applicability-state="empty"] > strong {
+  border-color: #d7dce1;
+  background: #f1f3f5;
+  color: #737e89;
+}
+
+.maturity-v25-l2-applicability input:disabled,
+.maturity-v25-l2-applicability:has(input:disabled) {
+  cursor: not-allowed;
+}
+
+@container maturity-score-workbench (max-width: 620px) {
+  .maturity-v25-l2-identity-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+}
+
 .maturity-v4-focus-na-reason {
   display: grid;
   grid-template-columns: 160px minmax(260px, 1fr) minmax(240px, auto);
@@ -7606,6 +7685,10 @@
 .maturity-v23-score-context {
   min-width: 0;
   background: rgba(247, 250, 252, 0.96);
+}
+
+.maturity-v23-score-context > .maturity-v13-hierarchy-heading {
+  margin: 0 2px;
 }
 
 .maturity-v23-score-context > .maturity-v3-l2-summary {
@@ -13159,4 +13242,550 @@ body.is-template-node-dragging .maturity-v41-mindmap-viewport * {
 
 .maturity-v1-list-page .maturity-v26-home-grid .maturity-v24-template-table table {
   min-width: 0;
+}
+
+/* Hierarchy results: share the approved compact data surface without changing scoring behavior. */
+.maturity-v17-hierarchy-compact {
+  gap: 10px;
+  padding: 12px 14px;
+}
+
+.maturity-v17-hierarchy-compact:not(.maturity-v17-l2-workbench) > .maturity-v13-hierarchy-heading {
+  margin-bottom: 10px;
+}
+
+.maturity-v17-l2-workbench > .maturity-v33-focus-batch {
+  margin: 0;
+  border: 1px solid rgba(117, 143, 168, 0.24);
+  border-radius: 10px;
+  background: rgba(243, 248, 253, 0.72);
+}
+
+.maturity-v17-l2-workbench > .maturity-v33-focus-batch > header {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: baseline;
+  gap: 4px 12px;
+  padding: 9px 12px;
+}
+
+.maturity-v17-l2-workbench > .maturity-v33-focus-batch .maturity-v33-focus-batch-row {
+  gap: 10px;
+  padding: 9px 12px;
+}
+
+.maturity-v17-hierarchy-analysis {
+  grid-template-columns: minmax(220px, 0.84fr) minmax(260px, 1fr) minmax(280px, 1.16fr);
+  grid-template-rows: auto auto;
+  grid-template-areas:
+    "insight visual child-radar"
+    "comparison comparison comparison";
+  align-items: start;
+  gap: 0;
+}
+
+.maturity-v17-hierarchy-analysis > .maturity-v14-hierarchy-insight { grid-area: insight; }
+.maturity-v17-hierarchy-analysis > .maturity-v14-hierarchy-visual { grid-area: visual; }
+.maturity-v17-hierarchy-analysis > .maturity-v15-child-radar-panel { grid-area: child-radar; }
+.maturity-v17-hierarchy-analysis > .maturity-v17-hierarchy-children {
+  grid-area: comparison;
+  min-width: 0;
+  border: 0;
+  border-top: 1px solid rgba(107, 135, 161, 0.18);
+  border-radius: 0;
+  background: transparent;
+}
+
+.maturity-v17-hierarchy-analysis > .maturity-v14-hierarchy-insight,
+.maturity-v17-hierarchy-analysis > .maturity-v14-hierarchy-visual,
+.maturity-v17-hierarchy-analysis > .maturity-v15-child-radar-panel {
+  min-height: 0;
+  padding: 12px 14px;
+}
+
+.maturity-v17-hierarchy-analysis > .maturity-v14-hierarchy-insight,
+.maturity-v17-hierarchy-analysis > .maturity-v14-hierarchy-visual {
+  border-right: 1px solid rgba(107, 135, 161, 0.18);
+  border-radius: 0;
+  background: transparent;
+}
+
+.maturity-v17-hierarchy-analysis > .maturity-v15-child-radar-panel {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.maturity-v17-hierarchy-analysis .maturity-v14-hierarchy-radar,
+.maturity-v17-hierarchy-analysis .maturity-v15-child-radar-panel canvas,
+.maturity-v17-hierarchy-analysis .maturity-v14-hierarchy-radar canvas {
+  min-height: 0;
+  height: auto;
+}
+
+.maturity-v17-hierarchy-analysis .maturity-v14-hierarchy-radar canvas,
+.maturity-v17-hierarchy-analysis .maturity-v15-child-radar-panel canvas {
+  object-fit: contain;
+  object-position: center;
+}
+
+.maturity-v17-hierarchy-analysis > .maturity-v14-hierarchy-insight > .maturity-v12-score-dimension-stats {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 10px;
+}
+
+.maturity-v17-hierarchy-analysis > .maturity-v14-hierarchy-insight > .maturity-v12-score-dimension-stats > div {
+  grid-template-columns: minmax(52px, auto) minmax(38px, 1fr) 30px;
+}
+
+.maturity-v17-hierarchy-analysis > .maturity-v15-child-radar-panel {
+  align-content: start;
+  gap: 6px;
+}
+
+.maturity-v17-hierarchy-analysis > .maturity-v15-child-radar-panel > header {
+  gap: 6px;
+}
+
+.maturity-v17-hierarchy-analysis > .maturity-v17-hierarchy-children > header {
+  min-height: 38px;
+  padding: 7px 14px;
+}
+
+.maturity-v17-hierarchy-analysis > .maturity-v17-hierarchy-children .maturity-v13-child-list {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.maturity-v17-hierarchy-analysis > .maturity-v17-hierarchy-children .maturity-v13-child-list > div {
+  min-height: 0;
+  padding: 8px 12px;
+}
+
+.maturity-v17-hierarchy-analysis > .maturity-v17-hierarchy-children .maturity-v13-child-list > div:nth-child(2n) {
+  border-right: 1px solid #e2e9ef;
+}
+
+.maturity-v17-hierarchy-analysis > .maturity-v17-hierarchy-children .maturity-v13-child-list > div:nth-child(3n) {
+  border-right: 0;
+}
+
+@container maturity-score-workbench (max-width: 980px) {
+  .maturity-v17-hierarchy-analysis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas:
+      "insight insight"
+      "visual child-radar"
+      "comparison comparison";
+  }
+
+  .maturity-v17-hierarchy-analysis > .maturity-v14-hierarchy-insight {
+    border-right: 0;
+    border-bottom: 1px solid rgba(107, 135, 161, 0.18);
+  }
+
+  .maturity-v17-hierarchy-analysis > .maturity-v14-hierarchy-visual {
+    border-bottom: 0;
+  }
+
+  .maturity-v17-hierarchy-analysis > .maturity-v15-child-radar-panel {
+    border-bottom: 0;
+  }
+
+  .maturity-v17-hierarchy-analysis > .maturity-v17-hierarchy-children .maturity-v13-child-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .maturity-v17-hierarchy-analysis > .maturity-v17-hierarchy-children .maturity-v13-child-list > div:nth-child(3n) {
+    border-right: 1px solid #e2e9ef;
+  }
+
+  .maturity-v17-hierarchy-analysis > .maturity-v17-hierarchy-children .maturity-v13-child-list > div:nth-child(2n) {
+    border-right: 0;
+  }
+}
+
+@container maturity-score-workbench (max-width: 920px) {
+  .maturity-v17-l2-workbench > .maturity-v33-focus-batch .maturity-v33-focus-batch-row,
+  .maturity-v18-l2-content-grid > .maturity-v33-focus-batch .maturity-v33-focus-batch-row {
+    grid-template-columns: minmax(150px, 0.78fr) minmax(0, 1.22fr);
+    align-items: start;
+  }
+
+  .maturity-v17-l2-workbench > .maturity-v33-focus-batch .maturity-v10-focus-batch-actions,
+  .maturity-v18-l2-content-grid > .maturity-v33-focus-batch .maturity-v10-focus-batch-actions {
+    grid-column: 1 / -1;
+    justify-items: stretch;
+  }
+
+  .maturity-v17-l2-workbench > .maturity-v33-focus-batch .maturity-v10-focus-batch-actions small,
+  .maturity-v18-l2-content-grid > .maturity-v33-focus-batch .maturity-v10-focus-batch-actions small {
+    max-width: none;
+    text-align: left;
+  }
+}
+
+@container maturity-score-workbench (max-width: 680px) {
+  .maturity-v17-l2-workbench > .maturity-v33-focus-batch .maturity-v33-focus-batch-row,
+  .maturity-v18-l2-content-grid > .maturity-v33-focus-batch .maturity-v33-focus-batch-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .maturity-v17-l2-workbench > .maturity-v33-focus-batch .maturity-v10-focus-batch-actions,
+  .maturity-v18-l2-content-grid > .maturity-v33-focus-batch .maturity-v10-focus-batch-actions {
+    grid-column: auto;
+  }
+}
+
+@container maturity-score-workbench (max-width: 790px) {
+  .maturity-v17-hierarchy-analysis {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "insight"
+      "visual"
+      "child-radar"
+      "comparison";
+  }
+
+  .maturity-v17-hierarchy-analysis > .maturity-v14-hierarchy-insight,
+  .maturity-v17-hierarchy-analysis > .maturity-v14-hierarchy-visual,
+  .maturity-v17-hierarchy-analysis > .maturity-v15-child-radar-panel {
+    border-right: 0;
+    border-bottom: 1px solid rgba(107, 135, 161, 0.18);
+  }
+
+  .maturity-v17-hierarchy-analysis > .maturity-v15-child-radar-panel {
+    border-bottom: 0;
+  }
+}
+
+@container maturity-score-workbench (max-width: 680px) {
+  .maturity-v17-hierarchy-analysis > .maturity-v17-hierarchy-children .maturity-v13-child-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .maturity-v17-hierarchy-analysis > .maturity-v17-hierarchy-children .maturity-v13-child-list > div {
+    border-right: 0;
+  }
+}
+
+@container maturity-score-workbench (max-width: 620px) {
+  .maturity-v17-hierarchy-analysis > .maturity-v14-hierarchy-insight > .maturity-v12-score-dimension-stats {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* 2026-09-09 L2 hierarchy split: keep the capability strip in normal flow and pair the three analysis surfaces with a compact context rail. */
+.maturity-v17-l2-workbench > .maturity-v3-l2-summary,
+.maturity-v23-score-context > .maturity-v3-l2-summary {
+  position: static;
+  top: auto;
+  margin: 0 0 10px;
+  grid-template-columns: minmax(150px, 0.7fr) minmax(150px, 0.7fr) minmax(0, 2.4fr) minmax(220px, 1.2fr);
+  grid-template-rows: auto minmax(76px, auto);
+  box-shadow: none;
+}
+
+.maturity-v23-score-context > .maturity-v3-l2-summary {
+  margin-inline: 2px;
+}
+
+.maturity-v17-l2-workbench > .maturity-v3-l2-summary > .maturity-v3-l2-identity,
+.maturity-v23-score-context > .maturity-v3-l2-summary > .maturity-v3-l2-identity {
+  grid-column: 1 / -1;
+  padding: 10px 14px;
+  border-bottom: 1px solid #e0e7ed;
+}
+
+.maturity-v17-l2-workbench > .maturity-v3-l2-summary > .maturity-v3-l2-identity h3,
+.maturity-v23-score-context > .maturity-v3-l2-summary > .maturity-v3-l2-identity h3 { font-size: 16px; }
+.maturity-v17-l2-workbench > .maturity-v3-l2-summary > .maturity-v22-maturity-summary,
+.maturity-v23-score-context > .maturity-v3-l2-summary > .maturity-v22-maturity-summary { display: contents; }
+.maturity-v17-l2-workbench > .maturity-v3-l2-summary > .maturity-v22-maturity-summary > div,
+.maturity-v23-score-context > .maturity-v3-l2-summary > .maturity-v22-maturity-summary > div,
+.maturity-v17-l2-workbench > .maturity-v3-l2-summary > .maturity-v19-dimension-summary,
+.maturity-v23-score-context > .maturity-v3-l2-summary > .maturity-v19-dimension-summary,
+.maturity-v17-l2-workbench > .maturity-v3-l2-summary > .maturity-v22-point-summary,
+.maturity-v23-score-context > .maturity-v3-l2-summary > .maturity-v22-point-summary {
+  min-width: 0;
+  border-top: 0;
+  border-bottom: 0;
+  border-right: 1px solid #e7edf2;
+}
+
+.maturity-v17-l2-workbench > .maturity-v3-l2-summary > .maturity-v22-maturity-summary > div + div,
+.maturity-v23-score-context > .maturity-v3-l2-summary > .maturity-v22-maturity-summary > div + div { border-left: 0; }
+.maturity-v17-l2-workbench > .maturity-v3-l2-summary > .maturity-v22-point-summary,
+.maturity-v23-score-context > .maturity-v3-l2-summary > .maturity-v22-point-summary { border-right: 0; }
+
+.maturity-v17-l2-workbench > .maturity-v3-l2-summary > .maturity-v19-dimension-summary,
+.maturity-v23-score-context > .maturity-v3-l2-summary > .maturity-v19-dimension-summary {
+  grid-template-rows: auto minmax(56px, auto);
+  align-content: center;
+}
+
+.maturity-v17-l2-workbench > .maturity-v3-l2-summary > .maturity-v19-dimension-summary > div,
+.maturity-v23-score-context > .maturity-v3-l2-summary > .maturity-v19-dimension-summary > div {
+  min-width: 0;
+  display: grid;
+  grid-template-rows: auto auto;
+  align-content: center;
+  gap: 4px;
+}
+
+.maturity-v17-l2-workbench > .maturity-v3-l2-summary > .maturity-v19-dimension-summary > div > span,
+.maturity-v23-score-context > .maturity-v3-l2-summary > .maturity-v19-dimension-summary > div > span {
+  overflow: visible;
+  font-size: 11px;
+  text-overflow: clip;
+  white-space: nowrap;
+}
+
+.maturity-v17-l2-workbench > .maturity-v3-l2-summary > .maturity-v19-dimension-summary > div > strong,
+.maturity-v23-score-context > .maturity-v3-l2-summary > .maturity-v19-dimension-summary > div > strong {
+  font-size: 28px !important;
+}
+
+.maturity-v17-l2-workbench > .maturity-v3-l2-summary > .maturity-v22-maturity-summary > div,
+.maturity-v23-score-context > .maturity-v3-l2-summary > .maturity-v22-maturity-summary > div,
+.maturity-v17-l2-workbench > .maturity-v3-l2-summary > .maturity-v19-dimension-summary > div,
+.maturity-v23-score-context > .maturity-v3-l2-summary > .maturity-v19-dimension-summary > div,
+.maturity-v17-l2-workbench > .maturity-v3-l2-summary > .maturity-v22-point-summary > div > div,
+.maturity-v23-score-context > .maturity-v3-l2-summary > .maturity-v22-point-summary > div > div {
+  justify-items: stretch;
+  text-align: left;
+}
+
+.maturity-v17-l2-workbench > .maturity-v3-l2-summary > .maturity-v22-maturity-summary dt,
+.maturity-v23-score-context > .maturity-v3-l2-summary > .maturity-v22-maturity-summary dt {
+  width: 100%;
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.maturity-v17-l2-workbench > .maturity-v3-l2-summary > .maturity-v22-maturity-summary dd,
+.maturity-v23-score-context > .maturity-v3-l2-summary > .maturity-v22-maturity-summary dd {
+  width: 100%;
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.maturity-v17-l2-workbench > .maturity-v3-l2-summary > .maturity-v22-maturity-summary dd > .maturity-v24-level-score,
+.maturity-v23-score-context > .maturity-v3-l2-summary > .maturity-v22-maturity-summary dd > .maturity-v24-level-score {
+  align-self: center;
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.maturity-v17-l2-workbench > .maturity-v3-l2-summary > .maturity-v19-dimension-summary > div > span,
+.maturity-v17-l2-workbench > .maturity-v3-l2-summary > .maturity-v19-dimension-summary > div > strong,
+.maturity-v17-l2-workbench > .maturity-v3-l2-summary > .maturity-v22-point-summary > div > div > span,
+.maturity-v17-l2-workbench > .maturity-v3-l2-summary > .maturity-v22-point-summary > div > div > strong,
+.maturity-v17-l2-workbench > .maturity-v3-l2-summary > .maturity-v22-point-summary > div > div > small,
+.maturity-v23-score-context > .maturity-v3-l2-summary > .maturity-v19-dimension-summary > div > span,
+.maturity-v23-score-context > .maturity-v3-l2-summary > .maturity-v19-dimension-summary > div > strong,
+.maturity-v23-score-context > .maturity-v3-l2-summary > .maturity-v22-point-summary > div > div > span,
+.maturity-v23-score-context > .maturity-v3-l2-summary > .maturity-v22-point-summary > div > div > strong,
+.maturity-v23-score-context > .maturity-v3-l2-summary > .maturity-v22-point-summary > div > div > small {
+  width: 100%;
+  text-align: left;
+}
+
+.maturity-v18-l2-content-grid {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 12px;
+}
+
+.maturity-v18-l2-analysis {
+  min-width: 0;
+  grid-template-columns: minmax(180px, 0.76fr) minmax(220px, 1fr) minmax(240px, 1.14fr);
+  grid-template-rows: auto auto auto;
+  grid-template-areas:
+    "description description description"
+    "insight visual child-radar"
+    "comparison comparison comparison";
+  align-items: start;
+  gap: 0;
+}
+
+.maturity-v18-l2-analysis > .maturity-v18-l2-capability-description { grid-area: description; }
+.maturity-v18-l2-analysis > .maturity-v14-hierarchy-insight { grid-area: insight; }
+.maturity-v18-l2-analysis > .maturity-v14-hierarchy-visual { grid-area: visual; }
+.maturity-v18-l2-analysis > .maturity-v15-child-radar-panel { grid-area: child-radar; }
+.maturity-v18-l2-analysis > .maturity-v17-hierarchy-children { grid-area: comparison; }
+
+.maturity-v18-l2-analysis > .maturity-v14-hierarchy-insight,
+.maturity-v18-l2-analysis > .maturity-v14-hierarchy-visual,
+.maturity-v18-l2-analysis > .maturity-v15-child-radar-panel {
+  min-width: 0;
+  min-height: 0;
+  padding: 12px 13px;
+}
+
+.maturity-v18-l2-analysis > .maturity-v14-hierarchy-insight,
+.maturity-v18-l2-analysis > .maturity-v14-hierarchy-visual {
+  border-right: 1px solid rgba(107, 135, 161, 0.18);
+  border-radius: 0;
+  background: transparent;
+}
+
+.maturity-v18-l2-analysis > .maturity-v15-child-radar-panel {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.maturity-v18-l2-analysis > .maturity-v17-hierarchy-children {
+  min-width: 0;
+  border: 0;
+  border-top: 1px solid rgba(107, 135, 161, 0.18);
+  border-radius: 0;
+  background: transparent;
+}
+
+.maturity-v18-l2-analysis .maturity-v14-hierarchy-radar canvas,
+.maturity-v18-l2-analysis .maturity-v15-child-radar-panel canvas {
+  width: 100%;
+  max-width: 100%;
+  object-fit: contain;
+  object-position: center;
+}
+
+.maturity-v18-l2-analysis > .maturity-v17-hierarchy-children > header {
+  min-height: 38px;
+  padding: 7px 13px;
+}
+
+.maturity-v18-l2-analysis > .maturity-v17-hierarchy-children .maturity-v13-child-list {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.maturity-v18-l2-analysis > .maturity-v17-hierarchy-children .maturity-v13-child-list > div {
+  min-height: 0;
+  padding: 8px 10px;
+}
+
+.maturity-v18-l2-analysis > .maturity-v17-hierarchy-children .maturity-v13-child-list > div:nth-child(2n) {
+  border-right: 1px solid #e2e9ef;
+}
+
+.maturity-v18-l2-analysis > .maturity-v17-hierarchy-children .maturity-v13-child-list > div:nth-child(3n) {
+  border-right: 0;
+}
+
+.maturity-v18-l2-analysis > .maturity-v14-hierarchy-insight > .maturity-v12-score-dimension-stats > div {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr) 40px;
+}
+
+.maturity-v18-l2-analysis > .maturity-v14-hierarchy-insight > .maturity-v12-score-dimension-stats span,
+.maturity-v18-l2-analysis > .maturity-v14-hierarchy-insight > .maturity-v12-score-dimension-stats strong {
+  min-width: 0;
+}
+
+.maturity-v18-l2-analysis > .maturity-v14-hierarchy-insight > .maturity-v12-score-dimension-stats span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.maturity-v18-l2-analysis > .maturity-v14-hierarchy-insight > .maturity-v12-score-dimension-stats strong {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.maturity-v18-l2-content-grid > .maturity-v33-focus-batch {
+  grid-column: 1 / -1;
+  margin: 0;
+  border: 1px solid rgba(117, 143, 168, 0.24);
+  border-radius: 10px;
+  background: rgba(243, 248, 253, 0.72);
+}
+
+.maturity-v18-l2-content-grid > .maturity-v33-focus-batch > header {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: baseline;
+  gap: 4px 12px;
+  padding: 9px 12px;
+}
+
+.maturity-v18-l2-content-grid > .maturity-v33-focus-batch .maturity-v33-focus-batch-row {
+  gap: 10px;
+  padding: 9px 12px;
+}
+
+.maturity-v18-l2-capability-description {
+  margin: 0;
+  padding: 9px 13px;
+  border-bottom: 1px solid rgba(107, 135, 161, 0.18);
+  color: var(--maturity-ink);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.65;
+}
+
+.maturity-v18-l2-capability-description strong {
+  color: var(--maturity-ink);
+  font-weight: 800;
+}
+
+@container maturity-score-workbench (max-width: 1080px) {
+  .maturity-v18-l2-content-grid { grid-template-columns: minmax(0, 1fr); }
+  .maturity-v18-l2-analysis { grid-template-columns: minmax(165px, 0.72fr) minmax(205px, 1fr) minmax(220px, 1.12fr); }
+}
+
+@container maturity-score-workbench (max-width: 900px) {
+  .maturity-v17-l2-workbench > .maturity-v3-l2-summary,
+  .maturity-v23-score-context > .maturity-v3-l2-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .maturity-v17-l2-workbench > .maturity-v3-l2-summary > .maturity-v19-dimension-summary,
+  .maturity-v23-score-context > .maturity-v3-l2-summary > .maturity-v19-dimension-summary,
+  .maturity-v17-l2-workbench > .maturity-v3-l2-summary > .maturity-v22-point-summary,
+  .maturity-v23-score-context > .maturity-v3-l2-summary > .maturity-v22-point-summary {
+    grid-column: 1 / -1;
+  }
+  .maturity-v18-l2-content-grid { grid-template-columns: minmax(0, 1fr); }
+  .maturity-v18-l2-analysis { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-areas: "description description" "insight insight" "visual child-radar" "comparison comparison"; }
+  .maturity-v18-l2-analysis > .maturity-v14-hierarchy-insight { border-right: 0; border-bottom: 1px solid rgba(107, 135, 161, 0.18); }
+  .maturity-v18-l2-analysis > .maturity-v14-hierarchy-visual { border-bottom: 0; }
+  .maturity-v18-l2-analysis > .maturity-v15-child-radar-panel { border-bottom: 0; }
+}
+
+@container maturity-score-workbench (max-width: 720px) {
+  .maturity-v17-l2-workbench > .maturity-v3-l2-summary,
+  .maturity-v23-score-context > .maturity-v3-l2-summary { grid-template-columns: minmax(0, 1fr); }
+  .maturity-v17-l2-workbench > .maturity-v3-l2-summary > *,
+  .maturity-v23-score-context > .maturity-v3-l2-summary > * { grid-column: 1; }
+  .maturity-v17-l2-workbench > .maturity-v3-l2-summary > .maturity-v22-maturity-summary > div,
+  .maturity-v23-score-context > .maturity-v3-l2-summary > .maturity-v22-maturity-summary > div { grid-column: 1; border-right: 0; border-bottom: 1px solid #e7edf2; }
+  .maturity-v17-l2-workbench > .maturity-v3-l2-summary > .maturity-v22-maturity-summary > div:last-child,
+  .maturity-v23-score-context > .maturity-v3-l2-summary > .maturity-v22-maturity-summary > div:last-child { border-bottom: 0; }
+  .maturity-v17-l2-workbench > .maturity-v3-l2-summary > .maturity-v19-dimension-summary,
+  .maturity-v23-score-context > .maturity-v3-l2-summary > .maturity-v19-dimension-summary { border-right: 0; border-bottom: 1px solid #e7edf2; }
+  .maturity-v18-l2-analysis { grid-template-columns: minmax(0, 1fr); grid-template-areas: "description" "insight" "visual" "child-radar" "comparison"; }
+  .maturity-v18-l2-analysis > .maturity-v14-hierarchy-insight,
+  .maturity-v18-l2-analysis > .maturity-v14-hierarchy-visual,
+  .maturity-v18-l2-analysis > .maturity-v15-child-radar-panel { border-right: 0; border-bottom: 1px solid rgba(107, 135, 161, 0.18); }
+  .maturity-v18-l2-analysis > .maturity-v15-child-radar-panel { border-bottom: 0; }
+  .maturity-v18-l2-analysis > .maturity-v17-hierarchy-children .maturity-v13-child-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@container maturity-score-workbench (max-width: 560px) {
+  .maturity-v18-l2-analysis > .maturity-v17-hierarchy-children .maturity-v13-child-list { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* 2026-09-09: keep the focus route's shared L2 summary internals on the L2 baseline. */
+.maturity-v23-score-context > .maturity-v3-l2-summary .maturity-v19-dimension-summary {
+  gap: 8px 10px;
+}
+
+.maturity-v23-score-context > .maturity-v3-l2-summary .maturity-v19-dimension-summary > div > span {
+  line-height: normal;
+}
+
+.maturity-v17-l2-workbench > .maturity-v3-l2-summary .maturity-v22-point-summary > div,
+.maturity-v23-score-context > .maturity-v3-l2-summary .maturity-v22-point-summary > div {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }

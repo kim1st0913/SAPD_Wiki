@@ -377,9 +377,8 @@ def build(args: argparse.Namespace) -> dict[str, object]:
         "bytes": archive_path.stat().st_size,
         "sha256": sha256_file(archive_path),
     }
-    manifest_text = json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
     manifest_path = output_dir / MANIFEST_NAME
-    manifest_path.write_text(manifest_text, encoding="utf-8")
+    manifest_path.write_bytes(windows_policy.canonical_bytes(manifest))
     result = {
         "archive": archive_path.name,
         "archiveSha256": sha256_file(archive_path),

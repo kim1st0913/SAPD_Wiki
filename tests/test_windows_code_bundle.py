@@ -106,7 +106,10 @@ class WindowsCodeBundleTests(unittest.TestCase):
                 expected_run_id="123",
             )
             self.assertEqual(verified["archiveSha256"], result["archiveSha256"])
-            manifest = json.loads((output / bundle.MANIFEST_NAME).read_text(encoding="utf-8"))
+            manifest_bytes = (output / bundle.MANIFEST_NAME).read_bytes()
+            manifest = json.loads(manifest_bytes.decode("utf-8"))
+            self.assertEqual(manifest_bytes, policy.canonical_bytes(manifest))
+            self.assertNotIn(b"\r", manifest_bytes)
             self.assertEqual(manifest["workflowSha"], WORKFLOW_SHA)
             self.assertEqual(manifest["build"]["workflowSha"], WORKFLOW_SHA)
             self.assertEqual(manifest["build"]["sourceSha"], source_sha)

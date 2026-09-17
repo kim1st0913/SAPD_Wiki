@@ -121,9 +121,9 @@ function validateSemanticColorBoundary(contract, sources) {
 function validateAccessibilityBoundary(sources) {
   const tabSource = sources.capabilityMap;
   assert(tabSource.includes('role="tab"'), "capability relation tabs need tab semantics");
-  assert(tabSource.includes('aria-selected="${activeTab === id ? "true" : "false"}"'), "capability relation tabs need aria-selected");
-  assert(tabSource.includes('tabindex="${activeTab === id ? "0" : "-1"}"'), "capability relation tabs need roving tabindex");
-  assert(tabSource.includes('aria-controls="capability-relation-panel-${escape(id)}"'), "capability relation tabs need aria-controls");
+  assert(tabSource.includes('aria-selected="${normalizedActiveTab === tab.id ? "true" : "false"}"'), "capability relation tabs need aria-selected");
+  assert(tabSource.includes('tabindex="${normalizedActiveTab === tab.id ? "0" : "-1"}"'), "capability relation tabs need roving tabindex");
+  assert(tabSource.includes('aria-controls="capability-relation-panel-${escape(tab.id)}"'), "capability relation tabs need aria-controls");
   assert(tabSource.includes('tabindex="-1"') && tabSource.includes("relation-view-radio"), "hidden relation radios must leave the tab order");
   assert(sources.app.includes('event.target?.closest?.(".relation-view-tab[role=\'tab\']")'), "capability tabs need keyboard handling");
   for (const key of ["ArrowLeft", "ArrowRight", "Home", "End", "Enter"]) assert(sources.app.includes(`"${key}"`), `capability tab keyboard flow missing ${key}`);

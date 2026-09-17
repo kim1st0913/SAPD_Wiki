@@ -259,7 +259,7 @@ class PrepareWindowsElectronRuntimeTests(unittest.TestCase):
             encoding="utf-8"
         )
 
-        self.assertEqual(DEFAULT_APP_VERSION, "0.4.1")
+        self.assertEqual(DEFAULT_APP_VERSION, "0.4.2")
         self.assertEqual(package["version"], DEFAULT_APP_VERSION)
         self.assertEqual(lockfile["version"], DEFAULT_APP_VERSION)
         self.assertEqual(lockfile["packages"][""]["version"], DEFAULT_APP_VERSION)

@@ -41,7 +41,7 @@ DEFAULT_CONTENT_ASSET_DB = (
     REPO_ROOT / "data" / "database" / "sapd_content_assets.sqlite3"
 )
 DEFAULT_OUTPUT = REPO_ROOT / "apps" / "electron" / ".build" / "runtime-template"
-DEFAULT_APP_VERSION = "0.4.1"
+DEFAULT_APP_VERSION = "0.4.2"
 BACKEND_NAME = "SAPD-Wiki-Backend.exe"
 DELIVERY_MANIFEST_RUNTIME_NAME = "windows-delivery-data-manifest.json"
 MAX_BACKEND_ARCHIVE_FILES = 20_000

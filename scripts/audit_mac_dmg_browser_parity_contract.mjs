@@ -358,7 +358,7 @@ add(checks, "dmg_reuses_one_current_source_backend_across_variants", [
   "BACKEND_BUILT_THIS_RUN=1",
 ].every((item) => packageDmg.includes(item)), { file: files.packageDmg });
 add(checks, "app_bundle_version_defaults_to_display_version", [
-  'DISPLAY_VERSION="${SAPD_WIKI_DISPLAY_VERSION:-${SAPD_WIKI_APP_VERSION:-0.4.1}}"',
+  'DISPLAY_VERSION="${SAPD_WIKI_DISPLAY_VERSION:-${SAPD_WIKI_APP_VERSION:-0.4.2}}"',
   'BUNDLE_VERSION="${SAPD_WIKI_BUNDLE_VERSION:-$DISPLAY_VERSION}"',
   '<string>$BUNDLE_VERSION</string>',
 ].every((item) => buildAndRun.includes(item)), {

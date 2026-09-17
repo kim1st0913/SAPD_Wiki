@@ -191,9 +191,9 @@ class WindowsPolicyTests(unittest.TestCase):
         package_lock = json.loads(
             (root / "apps/electron/package-lock.json").read_text(encoding="utf-8")
         )
-        self.assertEqual(package["version"], "0.4.1")
-        self.assertEqual(package_lock["version"], "0.4.1")
-        self.assertEqual(package_lock["packages"][""]["version"], "0.4.1")
+        self.assertEqual(package["version"], "0.4.2")
+        self.assertEqual(package_lock["version"], "0.4.2")
+        self.assertEqual(package_lock["packages"][""]["version"], "0.4.2")
 
     def test_stable_policy_excludes_product_identity_and_payload(self) -> None:
         with tempfile.TemporaryDirectory() as name:

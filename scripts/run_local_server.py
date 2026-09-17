@@ -1851,7 +1851,7 @@ def configure_projection_api(runtime: BundleRuntime) -> None:
             export_dir=runtime.export_dir.resolve(),
             import_dir=runtime.import_dir.resolve(),
             app_data_root=runtime.root.parent.resolve(),
-            app_version=str(runtime.manifest.get("app_version") or "0.3.0"),
+            app_version=str(runtime.manifest.get("app_version") or "0.4.2"),
             runtime_label="bundle",
         )
     else:

@@ -9,7 +9,7 @@ RELEASES_DIR="${SAPD_WIKI_RELEASES_DIR:-$DIST_DIR/releases}"
 PACKAGE_WORK_DIR="${SAPD_WIKI_PACKAGE_WORK_DIR:-$APP_ROOT/.build/packaging}"
 APP_NAME="SAPD Wiki"
 APP_BUNDLE="$PACKAGE_WORK_DIR/$APP_NAME.app"
-APP_VERSION="${SAPD_WIKI_APP_VERSION:-0.4.1}"
+APP_VERSION="${SAPD_WIKI_APP_VERSION:-0.4.2}"
 export SAPD_WIKI_DISPLAY_VERSION="${SAPD_WIKI_DISPLAY_VERSION:-$APP_VERSION}"
 BUILD_STAMP="${SAPD_WIKI_BUILD_STAMP:-$(date -u +%Y%m%d-%H%M%SZ)}"
 ARCH="$(uname -m)"
@@ -169,6 +169,12 @@ write_readme() {
 本 DMG 用于 SAPD Wiki macOS 内测交付。当前版本：${APP_VERSION}。当前包类型：${title}。
 
 ## Changelog
+
+### ${APP_VERSION}
+
+- 版本号同步为 ${APP_VERSION}；本轮仅更新桌面产品版本 owner 与打包默认值，不改变业务数据、用户库或 schema。
+- ${mode_summary}
+- 当前仍为 ad-hoc signing、未 notarize 的内测包，不启用自动更新。
 
 ### 0.4.1
 
@@ -347,6 +353,11 @@ write_runtime_readme() {
 当前版本：${APP_VERSION}。当前包类型：${title}。
 
 ## Changelog
+
+### ${APP_VERSION}
+
+- 版本号同步为 ${APP_VERSION}；本轮仅更新桌面产品版本 owner 与打包默认值，不改变业务数据、用户库或 schema。
+- ${mode_summary}
 
 ### 0.4.1
 

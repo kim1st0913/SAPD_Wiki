@@ -1,6 +1,6 @@
 # CURRENT_STATE: SAPD Wiki
 
-> 状态：`active / OI-201 R2.1 detached Demo / 0.4.1 source checkpoint`
+> 状态：`active / OI-201 R2.1 detached Demo / 0.4.2 source checkpoint`
 >
 > 更新日期：2026-09-17
 
@@ -9,9 +9,10 @@
 
 ## 1. Git 与工作区
 
-- 本轮 R2.1 生产剥离已形成单一 source checkpoint；完整 SHA 以最终推送后的 Git 实查和收口报告
-  为准，状态文档不嵌入自身 commit SHA。后续双平台打包必须使用该 checkpoint 作为唯一
-  `source_sha`，只更新状态文档的提交不得替代产品源码身份。
+- 本轮 0.4.2 源码已在 Electron、macOS、API / CLI、本地服务、Windows 运行时及相关审计 / 测试中
+  统一；最终 source checkpoint 的完整 SHA 以最终推送后的 Git 实查和收口报告为准，状态文档不
+  嵌入自身 commit SHA。后续双平台打包必须使用该 checkpoint 作为唯一 `source_sha`，只更新状态
+  文档的提交不得替代产品源码身份。
 - 工作树包含 R2.1 独立 Demo、状态文档和既有 AppIcon，以及 `data/`、generated basemap 等未提交
   资产；全部按现状保留，不得覆盖、批量加入或用 reset / clean 清理。
 - `data/`、两张 generated basemap、DMG、Setup、SQLite、恢复包、导出和构建缓存不进入 Git。
@@ -51,10 +52,12 @@
 - Keychain 与此前成熟度修复已进入 `d2a644c4` 和当前 macOS 0.4.1 DMG；新拖动优化只进入
   `4f909044` 源码，尚未进入新 DMG 或 Windows Setup。
 
-## 5. 0.4.1 交付状态
+## 5. 0.4.2 源码 / 0.4.1 既有交付状态
 
-- 当前 0.4.1 产品源码身份以本轮最终推送到 Public `main` 的 source checkpoint 为准；Electron、
-  macOS 和 Windows 默认版本均为 0.4.1，本轮尚未生成新的 DMG 或 Windows Setup。
+- 当前 0.4.2 产品源码身份以本轮最终推送到 Public `main` 的 source checkpoint 为准；Electron、
+  macOS 和 Windows 默认版本均为 0.4.2，本轮尚未生成 0.4.2 DMG、Windows Setup 或 Release。
+- 既有 0.4.1 macOS no-license DMG 是历史候选；9/17 pre-dmg 门禁未通过，不得作为 0.4.2
+  交付物或验收依据。
 - macOS no-license DMG 已生成：
   `SAPD-Wiki-0.4.1-no-license-20260813-095002Z-mac-arm64.dmg`，bytes=347736271，
   SHA-256 `3d7e11e1607a3dfce9344eb6b427e0e4bf5c8a695f93648a8d2d2e948e97a783`。
@@ -64,6 +67,8 @@
   user DB=`not_included`。
 - Windows Run 31687536086 成功下载、拼接并校验 Delivery Data，但在上传约 198 MB 中间
   Artifact 时命中存储配额；build / publish 未执行，未生成 Runtime、Setup 或 Internal Release。
+- 0.4.2 相关 Windows Public Run `35186432363` 成功；Synthetic Run `35186801694` 因名称校验失败。
+  两文件私有补丁仍仅为本地候选，未推送；本轮不触发 workflow、不打包。
 - 私有 workflow 已在提交 `e46f8384bc5c1175eac4786b6a3971b485240b17` 优化：build 直接读取
   不可变私有 Release，只保留约 303 MB 安装器 Artifact，保留期 1 天，发布成功后按 artifact ID
   精确删除。随后 schedule watcher 错把旧 `windows-data-20260727-r1` 与 `d2a644c4` 组合并循环

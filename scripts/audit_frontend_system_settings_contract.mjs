@@ -131,7 +131,7 @@ const certificate = (state = "not_configured", overrides = {}) => ({
 const systemHtml = component.render({
   route: "/settings/system",
   system: {
-    currentVersion: "0.2.0",
+    currentVersion: "0.4.2",
     dataRoot: "/tmp/SAPDWiki",
     importDirectory: "/tmp/SAPDWiki/import",
     downloadDirectory: "/tmp/SAPDWiki/export",

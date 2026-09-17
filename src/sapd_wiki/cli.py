@@ -1289,8 +1289,8 @@ def build_parser() -> argparse.ArgumentParser:
     )
     serve_cmd.add_argument(
         "--app-version",
-        default="0.2.0",
-        help="Display version shown in system settings. Defaults to 0.2.0.",
+        default="0.4.2",
+        help="Display version shown in system settings. Defaults to 0.4.2.",
     )
     serve_cmd.add_argument(
         "--runtime-label",

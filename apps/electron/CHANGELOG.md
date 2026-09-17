@@ -1,5 +1,10 @@
 # SAPD Wiki Windows Changelog
 
+## 0.4.2
+
+- 版本号同步为 0.4.2；本轮仅更新桌面产品版本 owner 与打包默认值，不改变业务数据、用户库或 schema。
+- 当前仍为未签名内测版本，可能出现“未知发布者”或 SmartScreen 提示；正式发布前仍需完成 Windows 10 和 Windows 11 实机 UAT。
+
 ## 0.4.1
 
 - Phase 2 Batch 1 将能力、维护和共享索引的数据 owner 切换到 SQLite-backed `/api/v1/projections/*`；本批业务数据不再回退到 `public/data` JSON。

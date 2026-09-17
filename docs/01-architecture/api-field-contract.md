@@ -1320,7 +1320,9 @@
 | 4 | 完成第二批/第三批业务确认 | 确认主键、关系基数、展示口径 |
 | 5 | 再考虑本地 API 服务 | 在静态契约稳定后实现 `/api/v1/*` |
 
-## 19. 安全运行知识 API（WP2 scoped P0 Gate 2 / WP2I 本地受控预览）
+## 19. [历史] 安全运行知识 API（WP2 scoped P0 Gate 2 / WP2I 本地受控预览）
+
+> 状态（2026-09-17，R2.1）：本节是已从主版本运行时移除的 candidate-only 合同，仅保留作历史迁移参考。当前可运行副本位于 [`demos/security-operations-r2/`](../../demos/security-operations-r2/)；主版本不再注册本节列出的安全运行 API 或图示预览路由。其源文档、候选包和专用测试均保存在 Demo 的 `archive/` 下。
 
 本组端点只读取通过 scoped Gate 1 且包含 `content_projection` 和同级私有预览包合同的 WP1I 候选包，不读取原始 Excel、Markdown、外部图片目录、正式 SQLite 或用户库。这是 P0 页面集成合同，不表示所有 P1 分类与关系已经完成。当前尚未授权 formal set freeze / apply，因此每个成功响应的 `data` 都必须包含：
 

@@ -8,7 +8,6 @@ listing and focuses on the configured port.
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import os
 import signal
@@ -36,50 +35,6 @@ BATCH1_PROJECTION_ROUTES = {
     "maintenance": "/api/v1/projections/maintenance",
     "shared_lookups": "/api/v1/projections/shared-lookups",
 }
-SECURITY_OPERATIONS_RUNTIME_CONFIG = (
-    ROOT / "config" / "security-operations-runtime-candidate.v1.json"
-)
-
-
-def security_operations_runtime_config() -> dict[str, str]:
-    """Load the explicit candidate-only runtime binding without mutating data."""
-
-    if not SECURITY_OPERATIONS_RUNTIME_CONFIG.is_file():
-        return {}
-    try:
-        payload = json.loads(
-            SECURITY_OPERATIONS_RUNTIME_CONFIG.read_text(encoding="utf-8")
-        )
-    except (OSError, json.JSONDecodeError) as exc:
-        return {"security_operations_config_error": str(exc)}
-    if not isinstance(payload, dict) or payload.get("enabled") is not True:
-        return {}
-    bundle_value = str(payload.get("candidate_bundle_path") or "").strip()
-    digest = str(payload.get("candidate_bundle_sha256") or "").strip().lower()
-    if not bundle_value or len(digest) != 64 or any(
-        char not in "0123456789abcdef" for char in digest
-    ):
-        return {
-            "security_operations_config_error": (
-                "candidate bundle path or SHA-256 is invalid"
-            )
-        }
-    candidate = Path(bundle_value).expanduser()
-    resolved = candidate if candidate.is_absolute() else ROOT / candidate
-    resolved = resolved.resolve()
-    try:
-        resolved.relative_to(ROOT)
-    except ValueError:
-        return {
-            "security_operations_config_error": (
-                "candidate bundle must remain inside the project root"
-            )
-        }
-    return {
-        "security_operations_bundle": str(resolved),
-        "security_operations_bundle_sha256": digest,
-    }
-
 
 def default_persistent_mcp_runtime_root() -> Path | None:
     """Return the CurrentUser MCP Runtime root without creating it."""
@@ -252,35 +207,6 @@ def batch1_projection_routes_ok(
     return bool(routes) and all(route.get("ok") is True for route in routes.values())
 
 
-def security_operations_route_status(
-    port: int,
-    runtime: dict[str, str],
-) -> dict[str, object] | None:
-    expected_digest = runtime.get("security_operations_bundle_sha256")
-    if not expected_digest:
-        return None
-    response = http_json_status(
-        f"http://127.0.0.1:{port}/api/v1/security-operations"
-    )
-    payload = response.get("json")
-    data = payload.get("data") if isinstance(payload, dict) else None
-    version = data.get("version") if isinstance(data, dict) else None
-    actual_digest = (
-        str(version.get("candidate_bundle_digest") or "")
-        if isinstance(version, dict)
-        else ""
-    )
-    expected_value = f"sha256:{expected_digest}"
-    return {
-        "name": "security_operations_candidate",
-        "status": int(response.get("status") or 0),
-        "ok": response.get("ok") is True and actual_digest == expected_value,
-        "expected": expected_value,
-        "actual": actual_digest,
-        "time_seconds": response.get("time_seconds"),
-    }
-
-
 def guard_result(
     *,
     stop_only: bool,
@@ -332,7 +258,6 @@ def expected_runtime(args: argparse.Namespace) -> dict[str, str]:
     if args.port == DEFAULT_PORT:
         for key, default_path in DEFAULT_RUNTIME_PATHS.items():
             values.setdefault(key, str(default_path))
-        values.update(security_operations_runtime_config())
     return values
 
 
@@ -356,21 +281,6 @@ def reserved_preview_port_blockers(port: int, runtime: dict[str, str]) -> list[s
                 blockers.append(f"{key} must use the stable default path")
     if runtime.get("mcp_runtime_root"):
         blockers.append("explicit MCP runtime roots are test-only")
-    config_error = runtime.get("security_operations_config_error")
-    if config_error:
-        blockers.append(f"security operations runtime config is invalid: {config_error}")
-    bundle_value = runtime.get("security_operations_bundle")
-    bundle_digest = runtime.get("security_operations_bundle_sha256")
-    if bundle_value or bundle_digest:
-        bundle_path = Path(bundle_value or "").expanduser()
-        if not bundle_path.is_file():
-            blockers.append("security operations candidate bundle is missing")
-        elif not bundle_digest:
-            blockers.append("security operations candidate digest is missing")
-        else:
-            actual_digest = hashlib.sha256(bundle_path.read_bytes()).hexdigest()
-            if actual_digest != bundle_digest:
-                blockers.append("security operations candidate digest mismatch")
     return blockers
 
 
@@ -435,7 +345,6 @@ def existing_server_requires_restart(
     health: dict[str, object],
     expected: dict[str, str],
     batch1_projection_routes: dict[str, dict[str, object]] | None = None,
-    security_operations_status: dict[str, object] | None = None,
 ) -> bool:
     if not any(row.get("is_project_server") for row in processes):
         return False
@@ -446,14 +355,6 @@ def existing_server_requires_restart(
     if (
         batch1_projection_routes is not None
         and not batch1_projection_routes_ok(batch1_projection_routes)
-    ):
-        return True
-    if (
-        expected.get("security_operations_bundle_sha256")
-        and (
-            security_operations_status is None
-            or security_operations_status.get("ok") is not True
-        )
     ):
         return True
     if expected.get("mcp_platform_integration") == "1":
@@ -508,14 +409,6 @@ def start_project_server(port: int, runtime: dict[str, str]) -> int | None:
     env = os.environ.copy()
     src = str(ROOT / "src")
     env["PYTHONPATH"] = src if not env.get("PYTHONPATH") else f"{src}{os.pathsep}{env['PYTHONPATH']}"
-    if runtime.get("security_operations_bundle"):
-        env["SAPD_SECURITY_OPERATIONS_BUNDLE"] = runtime[
-            "security_operations_bundle"
-        ]
-    if runtime.get("security_operations_bundle_sha256"):
-        env["SAPD_SECURITY_OPERATIONS_BUNDLE_SHA256"] = runtime[
-            "security_operations_bundle_sha256"
-        ]
     command = [
         str(server_python_executable()),
         "-m",
@@ -620,17 +513,11 @@ def main() -> int:
             if any(row.get("is_project_server") for row in existing_processes)
             else None
         )
-        existing_security_operations = (
-            security_operations_route_status(args.port, runtime)
-            if any(row.get("is_project_server") for row in existing_processes)
-            else None
-        )
         if existing_server_requires_restart(
             existing_processes,
             existing_health,
             runtime,
             existing_batch1_routes,
-            existing_security_operations,
         ):
             stopped = stop_project_servers(existing_processes)
             if stopped:
@@ -659,15 +546,10 @@ def main() -> int:
     batch1_routes = (
         {} if stop_only else batch1_projection_route_statuses(args.port)
     )
-    security_operations = (
-        None if stop_only else security_operations_route_status(args.port, runtime)
-    )
     profile_checks = runtime_health_checks(health, runtime)
     mcp_integration_check = mcp_integration_process_check(processes, runtime)
     if mcp_integration_check is not None:
         profile_checks.append(mcp_integration_check)
-    if security_operations is not None:
-        profile_checks.append(security_operations)
     has_healthy_project_response = bool(home.get("ok") and projection.get("ok") and processes)
     has_project_server = any(row["is_project_server"] for row in processes) or has_healthy_project_response
     profile_ok = all(check["ok"] for check in profile_checks)
@@ -701,7 +583,6 @@ def main() -> int:
             "time_seconds": projection.get("time_seconds"),
         },
         "batch1_projection_routes": batch1_routes,
-        "security_operations": security_operations,
         "runtime_profile": runtime,
         "runtime_profile_checks": profile_checks,
         "result": result,

@@ -24,7 +24,7 @@
 
 | 编号 | 状态 | 标题 |
 |---|---|---|
-| OI-201 | candidate-only Web 已按最终页面职责重构并验收 / 保持 open | 安全运行知识页面、来源保真、结构化调研题与 MCP 查询 |
+| OI-201 | R2.1 已移入独立 Demo / open for future migration | 安全运行知识页面、来源保真、结构化调研题与 MCP 查询 |
 | OI-199 | 0.4.0 自动矩阵通过 / 人工安装态 UAT 非阻塞保留 | 本地 MCP 正式知识访问已接入，安装态与客户端矩阵仍待完成 |
 | OI-200 | 已规划 / 待用户明确启动，不进入当前开发 | MCP 2026-07-28 双时代协议与 Web/App 前端分流 |
 | OI-197 | V3 提案已就绪 / 分批业务复核中 | 成熟度评分依据与当前能力字典尚未全量映射 |
@@ -58,7 +58,9 @@
 
 ## OI-201：安全运行模块、来源保真、能力关联与 MCP 查询
 
-- 状态：candidate-only Web 总体思路已按 01-000 来源主轴重构并完成运行态验收；OI 保持 open，继续逐页复核其余页面及等待后续独立授权门
+> R2.1 当前状态（2026-09-17）：安全运行七页已提取至 `demos/security-operations-r2/` 独立审阅 Demo；主版本前端入口、专用 API / backend route、candidate 配置 / 脚本 / 数据包和专用测试已移除。以下候选 Web 运行记录保留作历史证据，不代表主版本当前运行态。
+
+- 状态：独立 Demo 已完成静态快照与 845 / 1280 / 1920 / 3440 视口验收；OI 保持 open，仅等待未来是否重新纳入主线的迁移裁定
 - 严重性：中
 - 类型：产品 / 内容治理 / 数据 / ETL / API / MCP / shared runtime / 用户状态边界
 - 对象或页面：一级 `安全运行` 及六个 `/security-operations/*` 二级页面；八个逻辑业务来源、当前 `01-000` 快照及第二快照缺口、现有安全能力框架、内容查询库、基础知识库、固定五个 MCP 工具和全局批注叠加层。
@@ -66,9 +68,9 @@
 - 影响：candidate-only Web 已可用于本地产品体验和内容查询，但不能把候选关系冒充正式 active，不能让正式 MCP 提前返回安全运行对象，也不能用 5173 验收替代 App / DMG 或发布验收。
 - 建单理由：跨来源资产、正式双库、ETL、API、MCP、shared frontend、用户数据和 App 发布边界，且需要内容保真与业务融合裁定，不能作为单页小修改处理。
 - 当前处理：权威候选 bundle SHA-256 为 `5fb801e33ef6bf907cd92179735c8ea34f47073a1f04b29fe73665fedeba68a6`；投影包含 2445 个知识项、2096 条关系、393 个 section、458 个调研问题、59 个指标、8 个来源与 4 个显式缺口、119 条能力映射（`formal_active=0 / policy=66 / deferred=53`）和 603 条当前威胁记录。技术身份、旧映射审核流和逐图确认不再作为用户待办；总体思路、V0.2 完整正文和结构化运行体系已分离，30-010 仅作数据视角补充。
-- 需要确认：来源正文、原图、技术身份和默认能力映射不作为审核题；新增的业务摘要或模型概括才需要用户确认。下一步继续逐页复核其余 Tab。只有用户决定进入正式链时，才需明确授权 formal freeze / apply；Windows、发布、commit / push 和打包继续分别授权。
-- 验收入口：`docs/06-implementation/security-operations-knowledge-prd-v1.md`、`docs/02-data-model/security-operations-knowledge-data-and-mcp-contract-v1.md`、`frontend/design-handoff/implementation-specs/security-operations-knowledge-page-design-v1.md`、`docs/06-implementation/security-operations-knowledge-execution-plan-v1.md`。
-- 关闭条件：用户明确当前 candidate-only Web 已满足最终范围并要求关闭；或者在其另行授权后完成 formal freeze / apply、正式 MCP 验收和 App / DMG 集成 UAT。未授权的正式链与发布边界不得为关闭 Issue 而擅自执行。
+- 需要确认：未来若要重新纳入主版本，需重新审阅来源、候选 bundle、API / `dataClient` 接缝及跨平台 UAT，并单独授权 formal freeze / apply；Windows、发布、commit / push 和打包继续分别授权。
+- 验收入口：`demos/security-operations-r2/README.md`、`demos/security-operations-r2/tests/test_demo_static.mjs`、`demos/security-operations-r2/tools/audit-boundary.mjs` 及 `artifacts/security-operations-r2-extraction-backup-20260917/MANIFEST.json`。
+- 关闭条件：用户明确未来不再迁移并要求关闭，或在另行授权后完成正式迁移、MCP 与 App / DMG / Windows UAT；未授权的正式链与发布边界不得为关闭 Issue 而擅自执行。
 - 修复说明：WP0—WP5 已完成来源治理、稳定对象和内容投影、候选构建 / 审计、八类 API、正式 MCP 隔离、六页 shared frontend 与 Web 集成验收。当前保持 `candidate-only`，正式 base / content、用户库和来源文件未写，正式 active 与正式 MCP 安全运行结果均为 0。
 - 验证结果：候选 27 / 27、API 22 / 22、前端 12 / 12、文档治理与独立 audit PASS。主控先在隔离 5189 预览以 1024 / 1280 / 1920 / 2560 / 3396 五档宽度实测 01-000 总览、五个核心节点定位和 V0.2 章节深链；console error=0，无整页横向溢出或正文尾部空白。随后关闭 5189，把候选 Runtime 固化到项目候选目录，并把安全运行接口及 digest 纳入 5173 guard；普通 stable 启动已恢复并通过浏览器验收。这是 shared Web runtime UI 证据，不代表正式 apply 或 App / DMG 验收。
 

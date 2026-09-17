@@ -1,20 +1,19 @@
 # CURRENT_STATE: SAPD Wiki
 
-> 状态：`active / OI-201 candidate-only Web integrated / 0.4.1 release consolidation`
+> 状态：`active / OI-201 R2.1 detached Demo / 0.4.1 source checkpoint`
 >
-> 更新日期：2026-09-07
+> 更新日期：2026-09-17
 
 本页只保留恢复工作所需的当前事实、保护边界、风险和下一步。详细执行结果见
 `progress.md`，未完成顺序见 `task_plan.md`。
 
 ## 1. Git 与工作区
 
-- 当前分支 `main`，HEAD `29557ae639f390daaeae7972868fb6e9216073d5`，main / origin 保持
-  `0 / 0`。当前 0.4.1 最新产品源码 checkpoint 仍为
-  `4f9090440c5e295bf7ac289c67e99990690adf61`；其后的提交只更新状态文档，不作为 Windows
-  构建的 `source_sha`。
-- 工作树包含 OI-201 的候选 Web 实现、合同和状态文档，以及既有 AppIcon、`data/`、generated
-  basemap 等未提交资产；全部按现状保留，不得覆盖、批量加入或用 reset / clean 清理。
+- 本轮 R2.1 生产剥离已形成单一 source checkpoint；完整 SHA 以最终推送后的 Git 实查和收口报告
+  为准，状态文档不嵌入自身 commit SHA。后续双平台打包必须使用该 checkpoint 作为唯一
+  `source_sha`，只更新状态文档的提交不得替代产品源码身份。
+- 工作树包含 R2.1 独立 Demo、状态文档和既有 AppIcon，以及 `data/`、generated basemap 等未提交
+  资产；全部按现状保留，不得覆盖、批量加入或用 reset / clean 清理。
 - `data/`、两张 generated basemap、DMG、Setup、SQLite、恢复包、导出和构建缓存不进入 Git。
 
 ## 2. 数据与 Phase 2
@@ -26,28 +25,19 @@
 - 对象保持 4694；关系 7786→7788，仅新增 I-AP / I-US 两条物理 `uses_measure`；投影
   `has_measure=53`。完整回退包和三次候选→旧 SHA 恢复演练均已验收。
 - 当前 5173 PID 22252 为项目 stable Runtime；home、health、workspace projection、
-  capability-catalog / maintenance / shared-lookups 及安全运行候选接口均为 200，guard PASS。
+  capability-catalog / maintenance / shared-lookups 均为 200，guard PASS。安全运行生产接口已
+  移出主版本运行时。
 - Batch 2 `environment` 未授权；Batch 1 Windows 实包未完成前不得开始 Batch 2。
 
 ## 3. OI-201 安全运行知识
 
-- 2026-09-07 本轮已完成 candidate-only 图谱与七页重设计；总体设计见
-  `docs/06-implementation/security-operations-knowledge-overall-design-v2.md`。
-- 权威候选：`data/database/candidates/security-operations-current/candidate.bundle.json`；
-  SHA-256 `5fb801e33ef6bf907cd92179735c8ea34f47073a1f04b29fe73665fedeba68a6` 未变。
-- 01-000 为唯一主轴；图谱 43 节点 / 57 关系 / 8 逻辑来源，版本 `2026-09-07.2`。
-  21 条跨材料关系为 `editorial_pending`；新增设计归纳标注待用户确认；MCRA 仅作视觉参考。
-- 七页为总体思路、完整正文、运行体系、威胁建模、调研与核验、运营指标、成果与来源。
-  运行体系按 13 活动 / 8 运营维度 / 7 数据视角组织；30-010 不形成第二主线。
-  完整正文仅承载 01-010，保留 104 个正文标题与 28 张来源原图；不审核或推断图意。
-- 候选仍为 2445 项 / 2096 关系 / 393 sections / 458 调研题 / 59 指标 / 603 当前威胁；
-  119 能力映射为 formal_active=0 / policy=66 / deferred=53，53 个指标字段缺口继续暂缓。
-- 本轮定向测试 32/32（frontend 27 + helper 5）；API 21 PASS + 1 SKIP（历史临时包缺失）。
-  稳定 5173 guard PASS；1920 / 1280 无整页横向溢出，console error=0。
-  图谱查询、来源回链、精确原文与能力往返、缓存焦点选中 / 分页、无结果清旧详情已验证。
-- 845 宽度、完整无障碍与 App / DMG 未全量验收；正式 freeze / apply、MCP 安全运行对象
-  激活、commit / push、打包与发布未授权。本轮不写正式库、用户库和来源文件。
-- 下一步仅收集用户对图谱业务关联与视觉使用的反馈；不因本轮结束自动开启后续开发包。
+- 2026-09-17 R2.1 已将安全运行前端、API、MCP 查询依赖和候选入口从生产主版本移出；主版本相关
+  路由保留明确的历史占位，不再加载 SQLite、用户库或安全运行候选数据。
+- 独立审阅 Demo 位于 `demos/security-operations-r2/`，不进入产品构建或交付包；原始候选、正式库和
+  用户数据仍按保护边界留在本地，不纳入 Git。
+- 临时预览已验证主页、能力页 L0→L2 / focus、成熟度页、RASP 搜索及生产安全运行 API 404；
+  本轮未写真实用户库或正式 SQLite，未进行 DMG、Windows Setup 或 Release 打包。
+- 后续业务关联、视觉使用和正式迁移仍需单独评审与授权；独立 Demo 的验收不自动授权回迁主版本。
 
 ## 4. 当前源码修复
 
@@ -63,7 +53,8 @@
 
 ## 5. 0.4.1 交付状态
 
-- 当前 0.4.1 最新源码为 `4f909044`；Electron、macOS 和 Windows 默认版本均为 0.4.1。
+- 当前 0.4.1 产品源码身份以本轮最终推送到 Public `main` 的 source checkpoint 为准；Electron、
+  macOS 和 Windows 默认版本均为 0.4.1，本轮尚未生成新的 DMG 或 Windows Setup。
 - macOS no-license DMG 已生成：
   `SAPD-Wiki-0.4.1-no-license-20260813-095002Z-mac-arm64.dmg`，bytes=347736271，
   SHA-256 `3d7e11e1607a3dfce9344eb6b427e0e4bf5c8a695f93648a8d2d2e948e97a783`。
@@ -89,10 +80,9 @@
 
 ## 6. 当前未完成主线
 
-1. OI-201 本轮图谱与七页实现、总体设计已完成；等待用户对业务关联和视觉使用反馈。
-   21 条跨材料关联与新增设计归纳待确认，原文、原图、技术身份不作为审核题。
-   formal apply / MCP 激活及 App / DMG 验收仅在另行授权后进行。
-2. 仅在用户明确下令时，以 `4f909044`、
+1. OI-201 R2.1 安全运行内容已移入独立 Demo；等待用户对业务关联与视觉使用反馈，正式迁移不自动开启。
+   原文、原图、技术身份不作为未经授权的主版本变更依据。
+2. 仅在用户明确下令时，以本轮最终 Public `main` source checkpoint、
    `windows-data-20260813-phase2-batch1-r2` 和 0.4.1 人工触发一次，验收 backend、Runtime、
    Setup、Internal Release 与 Artifact 清理。r2 的 source revision 是该源码的祖先，满足 workflow
    CAS 合同；输出 Artifact 是否仍受当前配额阻断尚未实证。
@@ -107,5 +97,6 @@
 - 不使用旧 Windows Runtime、旧 Delivery manifest 或 retired 二进制冒充新源码候选。
 - 只有用户明确下令才可手动触发 Windows Runner；不得使用旧 r1 或放宽 job 权限绕过门禁。
 - 5173 通过不能替代 DMG / Windows 实包验收；不因保存回退方案而执行实际回退。
-- OI-201 Web 验收不等于正式 freeze / apply、App / DMG、Windows、commit / push、打包或发布授权。
+- 独立 Demo / 5173 验收不等于正式 freeze / apply、App / DMG、Windows 实包或发布验收；本轮源码
+  checkpoint 已完成 commit / push，但未进行打包或发布。
 - 未完成 Windows 10/11 UAT、Developer ID / notarization 前，只能声明内部测试包。

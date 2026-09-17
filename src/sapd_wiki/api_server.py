@@ -41,14 +41,6 @@ from .projection_contract import (
     ProjectionManifestError,
     load_projection_identity,
 )
-from .security_operations_knowledge import (
-    SecurityOperationsBundleError,
-    SecurityOperationsPreviewUnavailable,
-    SecurityOperationsTargetMissing,
-    security_operations_api_response,
-    security_operations_service,
-)
-
 from .maturity import (
     build_maturity_workspace,
     calculate_maturity_assessment,
@@ -4587,10 +4579,9 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
     def end_headers(self) -> None:
         # The local preview server is used while editing frontend files. Disable
         # browser caching so a normal refresh always picks up changed JS/CSS/HTML.
-        if not getattr(self, "_security_operations_private_no_store", False):
-            self.send_header("Cache-Control", "no-store, max-age=0, must-revalidate")
-            self.send_header("Pragma", "no-cache")
-            self.send_header("Expires", "0")
+        self.send_header("Cache-Control", "no-store, max-age=0, must-revalidate")
+        self.send_header("Pragma", "no-cache")
+        self.send_header("Expires", "0")
         super().end_headers()
 
     def do_OPTIONS(self) -> None:
@@ -4610,18 +4601,6 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
                     "GET",
                     parsed.path,
                     parse_qs(parsed.query, keep_blank_values=True),
-                )
-                return
-            figure_preview_prefix = "/api/v1/security-operations/figures/"
-            if (
-                parsed.path.startswith(figure_preview_prefix)
-                and parsed.path.endswith("/preview")
-            ):
-                encoded_ref = parsed.path[
-                    len(figure_preview_prefix) : -len("/preview")
-                ]
-                self._serve_security_operations_figure_preview(
-                    unquote(encoded_ref)
                 )
                 return
             if parsed.path == "/api/v1/content/assets/by-owner":
@@ -4812,72 +4791,6 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
                 status=500,
             )
 
-    def _serve_security_operations_figure_preview(
-        self,
-        figure_ref: str,
-    ) -> None:
-        try:
-            preview, payload = security_operations_service().read_figure_preview(
-                figure_ref
-            )
-            self._security_operations_private_no_store = True
-            self.send_response(200)
-            self.send_header("Content-Type", preview.mime_type)
-            self.send_header("Content-Length", str(len(payload)))
-            self.send_header("Content-Disposition", "inline")
-            self.send_header("X-Content-Type-Options", "nosniff")
-            self.send_header("Cache-Control", "private, no-store")
-            self.end_headers()
-            self.wfile.write(payload)
-        except SecurityOperationsTargetMissing as exc:
-            self._send_json(
-                create_envelope(
-                    {
-                        "error": "target_missing",
-                        "target_ref": exc.target_ref,
-                        "data_state": "error",
-                        "data_scope": "scoped_candidate",
-                    }
-                ),
-                status=404,
-            )
-        except SecurityOperationsPreviewUnavailable as exc:
-            self._send_json(
-                create_envelope(
-                    {
-                        "error": "preview_unavailable",
-                        "message": str(exc),
-                        "data_state": "error",
-                        "data_scope": "scoped_candidate",
-                    }
-                ),
-                status=503,
-            )
-        except SecurityOperationsBundleError as exc:
-            self._send_json(
-                create_envelope(
-                    {
-                        "error": "candidate_bundle_unavailable",
-                        "message": str(exc),
-                        "data_state": "error",
-                        "data_scope": "scoped_candidate",
-                    }
-                ),
-                status=503,
-            )
-        except OSError:
-            self._send_json(
-                create_envelope(
-                    {
-                        "error": "preview_unavailable",
-                        "message": "figure preview asset is unavailable",
-                        "data_state": "error",
-                        "data_scope": "scoped_candidate",
-                    }
-                ),
-                status=503,
-            )
-
     def _serve_content_asset_by_owner(
         self,
         query: dict[str, list[str]],
@@ -5023,13 +4936,6 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
     def _handle_api(self, path: str, query: dict[str, list[str]]) -> None:
         parts = [part for part in path.split("/") if part]
         try:
-            if path == "/api/v1/security-operations" or path.startswith(
-                "/api/v1/security-operations/"
-            ):
-                self._send_json(
-                    create_envelope(security_operations_api_response(path, query))
-                )
-                return
             if path == "/api/v1/projections/capability-focus":
                 self._send_json(capability_focus_projection_response(query))
                 return
@@ -5186,32 +5092,6 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
                 self._send_json(create_envelope(maintenance_payload(section)))
                 return
             self._send_json(create_envelope({"error": "not_found", "path": path}), status=404)
-        except SecurityOperationsTargetMissing as exc:
-            self._send_json(
-                create_envelope(
-                    {
-                        "error": "target_missing",
-                        "target_ref": exc.target_ref,
-                        "path": path,
-                        "data_state": "error",
-                        "data_scope": "scoped_candidate",
-                    }
-                ),
-                status=404,
-            )
-        except SecurityOperationsBundleError as exc:
-            self._send_json(
-                create_envelope(
-                    {
-                        "error": "candidate_bundle_unavailable",
-                        "message": str(exc),
-                        "path": path,
-                        "data_state": "error",
-                        "data_scope": "scoped_candidate",
-                    }
-                ),
-                status=503,
-            )
         except McpCoreError as exc:
             status = 404 if exc.code == "OBJECT_NOT_AVAILABLE" else 400
             self._send_json(

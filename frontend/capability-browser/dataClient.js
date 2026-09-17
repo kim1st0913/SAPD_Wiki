@@ -77,15 +77,6 @@
     mcpConfirmCertificate: "/api/v1/mcp/certificate/actions/confirm",
     mcpPrepareReset: "/api/v1/mcp/reset/actions/prepare",
     mcpConfirmWebReset: "/api/v1/mcp/reset/actions/confirm-web",
-    securityOperationsManifest: "/api/v1/security-operations",
-    securityOperationsGraph: "/api/v1/security-operations/graph",
-    securityOperationsSections: "/api/v1/security-operations/sections",
-    securityOperationsKnowledge: "/api/v1/security-operations/knowledge",
-    securityOperationsCapabilityMappings: "/api/v1/security-operations/capability-mappings",
-    securityOperationsThreatModels: "/api/v1/security-operations/threat-models",
-    securityOperationsQuestions: "/api/v1/security-operations/questions",
-    securityOperationsMetrics: "/api/v1/security-operations/metrics",
-    securityOperationsSources: "/api/v1/security-operations/sources",
   };
 
   const API_FETCH_TIMEOUT_MS = 12000;
@@ -503,24 +494,6 @@
       recordApiFailure(path);
       return null;
     }
-  }
-
-  function securityOperationsQueryPath(path, params = {}) {
-    const query = new URLSearchParams();
-    for (const [key, value] of Object.entries(params || {})) {
-      if (value == null || value === "") continue;
-      if (Array.isArray(value)) {
-        value.filter((item) => item != null && item !== "").forEach((item) => query.append(key, text(item)));
-      } else {
-        query.set(key, text(value));
-      }
-    }
-    return `${path}${query.size ? `?${query.toString()}` : ""}`;
-  }
-
-  async function fetchSecurityOperations(path, params = {}) {
-    const payload = await fetchApiData(securityOperationsQueryPath(path, params));
-    return createEnvelope(payload, payload ? [] : ["安全运行知识服务当前不可用。"]);
   }
 
   function projectionApiError(path, status, payload, fallbackMessage) {
@@ -1753,50 +1726,6 @@
   }
 
   const dataClient = {
-    async getSecurityOperationsManifest() {
-      return fetchSecurityOperations(API_PATHS.securityOperationsManifest);
-    },
-
-    async getSecurityOperationsGraph(params = {}) {
-      return fetchSecurityOperations(API_PATHS.securityOperationsGraph, params);
-    },
-
-    async getSecurityOperationsSection(sectionRef) {
-      const ref = text(sectionRef).trim();
-      if (!ref) return createEnvelope(null, ["未指定安全运行章节。"]);
-      return fetchSecurityOperations(`${API_PATHS.securityOperationsSections}/${encodeURIComponent(ref)}`);
-    },
-
-    async getSecurityOperationsKnowledge(params = {}) {
-      return fetchSecurityOperations(API_PATHS.securityOperationsKnowledge, params);
-    },
-
-    async getSecurityOperationsPageKnowledge(pageId, params = {}) {
-      const page = text(pageId).trim();
-      if (!page) return createEnvelope(null, ["未指定安全运行知识页面。"]);
-      return fetchSecurityOperations(API_PATHS.securityOperationsKnowledge, { page_id: page, ...params });
-    },
-
-    async getSecurityOperationsCapabilityMappings(params = {}) {
-      return fetchSecurityOperations(API_PATHS.securityOperationsCapabilityMappings, params);
-    },
-
-    async getSecurityOperationsThreatModels(params = {}) {
-      return fetchSecurityOperations(API_PATHS.securityOperationsThreatModels, params);
-    },
-
-    async getSecurityOperationsQuestions(params = {}) {
-      return fetchSecurityOperations(API_PATHS.securityOperationsQuestions, params);
-    },
-
-    async getSecurityOperationsMetrics(params = {}) {
-      return fetchSecurityOperations(API_PATHS.securityOperationsMetrics, params);
-    },
-
-    async getSecurityOperationsSources(params = {}) {
-      return fetchSecurityOperations(API_PATHS.securityOperationsSources, params);
-    },
-
     async getHealth() {
       const runtimeHealth = await fetchRuntimeHealth();
       return createEnvelope({

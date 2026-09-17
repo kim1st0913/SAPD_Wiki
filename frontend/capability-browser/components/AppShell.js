@@ -73,21 +73,6 @@
         ],
       },
       { id: "capability-mapping", label: "安全能力映射", route: "/capability-mapping", type: "capability-mapping-workbench", children: [] },
-      {
-        id: "security-operations",
-        label: "安全运行",
-        route: "/security-operations",
-        type: "business-workspace",
-        children: [
-          { id: "security-operations-overview", label: "总体思路", route: "/security-operations/overview", type: "business-workspace-page", children: [] },
-          { id: "security-operations-document", label: "完整正文", route: "/security-operations/document", type: "business-workspace-page", children: [] },
-          { id: "security-operations-framework", label: "运行体系", route: "/security-operations/framework", type: "business-workspace-page", children: [] },
-          { id: "security-operations-threat-modeling", label: "威胁建模", route: "/security-operations/threat-modeling", type: "business-workspace-page", children: [] },
-          { id: "security-operations-assessment", label: "调研与核验", route: "/security-operations/assessment", type: "business-workspace-page", children: [] },
-          { id: "security-operations-metrics", label: "运营指标", route: "/security-operations/metrics", type: "business-workspace-page", children: [] },
-          { id: "security-operations-sources", label: "成果与来源", route: "/security-operations/sources", type: "business-workspace-page", children: [] },
-        ],
-      },
       { id: "environment-mapping", label: "信息化环境安全能力映射", route: "/environment-mapping", type: "environment-mapping-workbench", children: [] },
       { id: "development-security", label: "LC-AP安全开发生命周期", route: "/development-security", type: "domain-module", children: [] },
       { id: "data-security", label: "LC-DT数据生命周期安全", route: "/data-security", type: "domain-module", children: [] },
@@ -174,15 +159,8 @@
     "/guides/maturity-model-usage": { view: "content", contentPage: "html" },
     "/guides/others": { view: "placeholder", placeholder: true },
     "/capability-mapping": { view: "capabilities" },
-    "/security-operations": { view: "security-operations", canonicalRoute: "/security-operations/overview" },
-    "/guides/security-operations": { view: "security-operations", canonicalRoute: "/security-operations/overview" },
-    "/security-operations/overview": { view: "security-operations" },
-    "/security-operations/document": { view: "security-operations" },
-    "/security-operations/framework": { view: "security-operations" },
-    "/security-operations/threat-modeling": { view: "security-operations" },
-    "/security-operations/assessment": { view: "security-operations" },
-    "/security-operations/metrics": { view: "security-operations" },
-    "/security-operations/sources": { view: "security-operations" },
+    "/security-operations": { view: "placeholder", placeholder: true, canonicalRoute: "/security-operations" },
+    "/guides/security-operations": { view: "placeholder", placeholder: true, canonicalRoute: "/guides/security-operations" },
     "/environment-mapping": { view: "environment" },
     "/development-security": { view: "dev-lifecycle" },
     "/data-security": { view: "data-lifecycle" },
@@ -221,7 +199,6 @@
     search: "/search",
     settings: "/settings/system",
     capabilities: "/capability-mapping",
-    "security-operations": "/security-operations/overview",
     environment: "/environment-mapping",
     "dev-lifecycle": "/development-security",
     "data-lifecycle": "/data-security",
@@ -276,13 +253,8 @@
     "/guides/light-planning": "以本地幻灯片形式浏览轻规划设计报告模版，后续可扩展为轻规划设计指南目录。",
     "/guides/maturity-model-usage": "说明成熟度模型的方法论、等级含义、评估工具、四要素评分、证据采集和报告使用。",
     "/capability-mapping": "从安全能力和关注点出发，核对技术视角、管理视角和标准 / 框架映射。",
-    "/security-operations/overview": "安全运行 · 总体思路",
-    "/security-operations/document": "安全运行 · 完整正文",
-    "/security-operations/framework": "安全运行 · 运行体系",
-    "/security-operations/threat-modeling": "安全运行 · 威胁建模",
-    "/security-operations/assessment": "安全运行 · 调研与核验",
-    "/security-operations/metrics": "安全运行 · 运营指标",
-    "/security-operations/sources": "安全运行 · 成果与来源",
+    "/security-operations": "安全运行页面已移入独立审阅 Demo；主版本暂不提供该模块运行时入口。",
+    "/guides/security-operations": "安全运行页面已移入独立审阅 Demo；主版本暂不提供该模块运行时入口。",
     "/environment-mapping": "从信息化环境和对象出发，核对对象、作用域、服务、模块、措施和能力关联。",
     "/development-security": "以 LC-AP安全开发生命周期阶段和活动为主语，承载受控专项关系投影。",
     "/data-security": "以 LC-DT 数据生命周期过程和场景为主语，承载数据安全服务、模块和措施的受控专项关系投影。",
@@ -379,9 +351,6 @@
     const manifestRoute = manifestRouteFor(route);
     return utilityItems().find((item) => item.route === manifestRoute)
       || allNavItems().find((item) => item.route === manifestRoute)
-      || (manifestRoute.startsWith("/security-operations/")
-        ? allNavItems().find((item) => item.id === "security-operations")
-        : null)
       || NAV_MANIFEST.navigation[0];
   }
 
@@ -422,8 +391,13 @@
 
     if (normalized.startsWith("/workbench")) return { view: "workbench", route: "/workbench", canonicalRoute: "/workbench" };
 
-    if (normalized.startsWith("/security-operations/")) {
-      return { view: "security-operations", route: normalized, canonicalRoute: normalized };
+    if (normalized.startsWith("/security-operations/") || normalized === "/guides/security-operations") {
+      return {
+        view: "placeholder",
+        placeholder: true,
+        route: normalized,
+        canonicalRoute: normalized,
+      };
     }
 
     const target = ROUTE_TARGETS[normalized] || { view: "overview", route: "/" };

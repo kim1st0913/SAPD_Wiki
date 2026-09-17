@@ -103,20 +103,6 @@ _CONTENT_SECTION_TYPES = frozenset(
 )
 _DECLARED_OBJECT_TYPES = frozenset(
     {
-        "security_operations_concept",
-        "security_operations_activity",
-        "security_operations_perspective",
-        "security_operations_dimension",
-        "survey_instrument",
-        "survey_domain",
-        "survey_question",
-        "survey_evidence_requirement",
-        "threat_scenario",
-        "attack_technique",
-        "detection_rule",
-        "log_source_requirement",
-        "response_action",
-        "operations_metric",
         "knowledge_claim",
         "capability",
         "capability_focus",

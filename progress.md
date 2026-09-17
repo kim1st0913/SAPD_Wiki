@@ -2,9 +2,18 @@
 
 > 状态：`active / recent milestones`
 >
-> 更新日期：2026-09-08
+> 更新日期：2026-09-17
 
 本页只保留最近的重要结果；历史记录从 `docs/05-archive/progress-history/` 进入。
+
+## 2026-09-17
+
+- `安全运行 R2.1 独立审阅 Demo / 主版本边界`：将当前安全运行七页及其 28 个图示资产提取为独立可运行 Demo：`demos/security-operations-r2/`（本地预览 `http://127.0.0.1:5192/index.html`）。Demo 仅读取自带 `data/snapshot.json`，无 `/api/v1`、SQLite 或用户库依赖；845 / 1280 / 1920 / 3440 视口矩阵通过，图谱 35 节点、35 条可见边、0 overlap、无整页横溢出；正文 104 标题、28 图示及资产 → 暴露面 → 原文阅读路径通过。主版本移除安全运行前端入口、专用 API / backend route、candidate 配置 / 脚本 / 数据包和专用测试，历史 route 保留明确 placeholder；`viewModels.js` 中“安全运行类安全技术服务”正式业务分组保持不变。可恢复备份为 `artifacts/security-operations-r2-extraction-backup-20260917/`，`MANIFEST.json` SHA-256=`b17a4c42d199d9d6296afb4278843083ca5001660e5e782f3ed65376fccef7a8`。frontend / renderer / MCP 定向测试、静态边界审计、语法与 diff 检查通过；macOS / Windows placeholder staging 均未包含 Demo 或 SOK 路径，合成 macOS backend health / projection 通过且旧 SOK API 404。未复制或写入真实正式库 / 用户库，未 formal apply、未提交 / 推送、未生成 DMG / Setup；原生 App、Windows GUI 和未来迁移 UAT 仍未验证。
+- 追加当前剥离源码验收：临时 5189 源码服务使用正式 base/content 只读库与 `memory://isolated-web-dev` 用户态，首页、能力字典（含 L0→L2→关注点）、成熟度工作台、`RASP` 搜索及结果跳转均通过，控制台无 error；`/api/v1/security-operations` 返回 404，历史 `#/security-operations/*` 仅显示“安全运行页面已移入独立审阅 Demo”提示且不加载 SOK workspace。验证后已停止 5189；stable 5173 未重启、未借其旧进程结果替代当前源码验收。
+
+## 2026-09-14
+
+- `安全运行资产知识阅读路径 / 5173`：用户指出原验收忽略正常导航体验后，改为“导航图 → 独立阅读状态 → 返回原图”。主控实际从图谱点击资产，1280×720 首屏可见正文及继续阅读；暴露面 → 漏洞 → 威胁、关系原文、Esc、浏览器 Back、原图节点及键盘焦点恢复通过。845 窄屏可读；2560 / 3840 阅读区沿共享自适应保持合适行宽，无横向溢出。定向测试 10/10，最后焦点修改相关 3 项复验通过；旧 32/32 只保留为上一轮机制检查。改动限 shared frontend 组件、模块样式和测试；数据 / API / 用户库未改，未新增哈希或安全校验机制，未提交、推送、打包或设定时任务。只验本条路径及 5173 Web，不代表其他六页、整个知识产品或 App 完成。详见 `frontend/design-handoff/implementation-specs/asset-knowledge-path-design.md`。
 
 ## 2026-09-08
 

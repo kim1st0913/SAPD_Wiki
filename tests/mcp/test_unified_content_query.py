@@ -619,9 +619,9 @@ class McpV11AdapterAndSchemaTests(unittest.TestCase):
                     query="保护对象",
                     limit=8,
                     cursor=None,
-                    object_types=["security_operations_concept"],
+                    object_types=["capability"],
                     category_codes=["overview"],
-                    source_refs=["sok-source:overall-framework"],
+                    source_refs=["base-source:fixture"],
                     statuses=["active"],
                     edition_roles=["integrated_edition"],
                 )
@@ -641,8 +641,8 @@ class McpV11AdapterAndSchemaTests(unittest.TestCase):
                 adapter.search_knowledge(query="legacy", limit=8, cursor=None)
             )
         search_call = core.calls[0][1]
-        self.assertEqual(search_call["object_types"], ["security_operations_concept"])
-        self.assertEqual(search_call["source_refs"], ["sok-source:overall-framework"])
+        self.assertEqual(search_call["object_types"], ["capability"])
+        self.assertEqual(search_call["source_refs"], ["base-source:fixture"])
         related_call = core.calls[1][1]
         self.assertTrue(related_call["include_bindings"])
         self.assertEqual(related_call["object_types"], ["capability_focus"])

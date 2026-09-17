@@ -272,7 +272,9 @@ L2 流程组
 - 每页包含 `id`、`slide_number`、`title`、`content`、`note`、`preview_path`、`media_count`、`source_file_id`。
 - 页面左侧为幻灯片目录，中间为页正文或预览，右侧为来源与相关业务对象。
 
-### 8.4 安全运行（2026-08-21 当前增量）
+### 8.4 [历史] 安全运行（2026-08-21 当前增量）
+
+> R2.1 状态（2026-09-17）：本节保留原 IA 设计与路由合同作历史/迁移参考；安全运行当前可运行副本位于 `demos/security-operations-r2/`，主版本已移除 `/security-operations/*` 运行时入口。
 
 安全运行不进入“知识库字典”，也不作为“安全指南”的一篇附件型文档。它与“安全指南”并列为一级业务模块；当前导航和页面合同冻结为：
 
@@ -305,12 +307,12 @@ L2 能力 / 安全关注点稳定 ref，概览矩阵和明细表使用同一 API
 
 完整正文的章节目录默认关闭，通过按钮按需打开可搜索 sheet；正文是唯一主纵向阅读面。
 宽屏不拉长正文行宽，窄屏目录、筛选和 inspector 转为 sheet。完整行为以
-`frontend/design-handoff/implementation-specs/security-operations-knowledge-page-design-v1.md`
+`../../demos/security-operations-r2/archive/implementation-specs/security-operations-knowledge-page-design-v1.md`
 为 active implementation source。
 
 ### 8.4.1 V2 本轮 IA 入口（2026-09-07）
 
-本节本轮相关内容以 [安全运行知识图谱总体设计 V2](../06-implementation/security-operations-knowledge-overall-design-v2.md) 为本轮设计入口；覆盖旧规格中本轮相关的 IA / UI 组织，不改历史验收记录。七页固定为 `overview / document / framework / threat-modeling / assessment / metrics / sources`，并保持 01-000 总体主轴与 01-010 完整正文基线候选分离。
+本节本轮相关内容以 [安全运行知识图谱总体设计 V2](../../demos/security-operations-r2/archive/docs/06-implementation/security-operations-knowledge-overall-design-v2.md) 为本轮设计入口；覆盖旧规格中本轮相关的 IA / UI 组织，不改历史验收记录。七页固定为 `overview / document / framework / threat-modeling / assessment / metrics / sources`，并保持 01-000 总体主轴与 01-010 完整正文基线候选分离。
 
 overview 以保护对象为主画布焦点，§5 八个运营维度与 §6.1 八个保护对象画像要素分别作为共同观察口径，双主线、三类核心工作、八类横向支撑及并列的有效性验证 / 指标反馈由 graph projection 提供；document 仅是 01-010 正文阅读器。framework、threat-modeling、assessment、metrics、sources 各自消费声明 API / `dataClient` 对象，MCRA 只作关系表现参考；candidate-only，formal apply / MCP activation 未授权。
 

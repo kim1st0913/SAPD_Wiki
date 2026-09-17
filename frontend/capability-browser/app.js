@@ -95,7 +95,6 @@ const state = {
   activeCapabilityProjectionRequest: null,
   capabilityProjectionRequests: new Map(),
   capabilityProjectionLoadResults: new Map(),
-  securityOperationsFocusRequestSeq: 0,
   annotationContextLoads: new Map(),
   userFavorites: [],
   userFavoritesByRef: new Map(),
@@ -1894,7 +1893,6 @@ function activeSearchRootElement() {
     search: "searchWorkspace",
     settings: "settingsWorkspace",
     capabilities: "capabilityWorkspace",
-    "security-operations": "securityOperationsWorkspace",
     environment: "environmentWorkspace",
     "dev-lifecycle": "devLifecycleWorkspace",
     "data-lifecycle": "dataLifecycleWorkspace",
@@ -3278,7 +3276,6 @@ function routePackagesForCurrentState() {
   if (state.activeView === "workbench") return [];
   if (state.activeView === "search") return [];
   if (state.activeView === "settings") return [];
-  if (state.activeView === "security-operations") return [];
   if (state.activeView === "overview") return ["analyticsSummary", "maintenanceIndex", "dashboardKnowledgeSummary"];
   if (state.activeView === "capabilities") return ["capabilityInitial", "maintenanceIndex"];
   if (state.activeView === "environment") {
@@ -8572,65 +8569,6 @@ function capabilityAncestorIds(targetId) {
   return [];
 }
 
-async function focusCapabilityFromSecurityOperations({ targetRef = "", objectType = "", code = "" } = {}) {
-  const requestSeq = ++state.securityOperationsFocusRequestSeq;
-  const sourceRoute = state.activeRoute;
-  const expected = {
-    targetRef: text(targetRef).trim(),
-    objectType: text(objectType).trim(),
-    code: text(code).trim(),
-  };
-  const failure = (message) => ({ ok: false, message });
-  const stale = () => ({ ok: false, stale: true });
-  if (!expected.targetRef || !expected.objectType || !expected.code) {
-    return failure("当前能力映射缺少完整的对象标识，已停止跳转。");
-  }
-  let envelope;
-  try {
-    const locateCapability = window.sapdDataClient?.locateCapability;
-    if (typeof locateCapability !== "function") return failure("当前运行环境未提供能力精确定位，已停止跳转。");
-    envelope = await locateCapability({ objectType: expected.objectType, code: expected.code });
-  } catch (error) {
-    if (requestSeq !== state.securityOperationsFocusRequestSeq || state.activeView !== "security-operations" || state.activeRoute !== sourceRoute) return stale();
-    return failure(`能力精确定位失败：${text(error?.message || error).trim() || "请求未返回可用对象"}，已停止跳转。`);
-  }
-  if (requestSeq !== state.securityOperationsFocusRequestSeq || state.activeView !== "security-operations" || state.activeRoute !== sourceRoute) return stale();
-  const selected = envelope?.data?.selected;
-  const selectedId = text(selected?.id).trim();
-  if (
-    !selectedId ||
-    text(selected?.canonical_ref).trim() !== expected.targetRef ||
-    text(selected?.type).trim() !== expected.objectType ||
-    text(selected?.code).trim() !== expected.code
-  ) {
-    return failure("定位返回的能力对象与当前映射不一致，已停止跳转。");
-  }
-  if (!capabilityItemById(selectedId) && !state.loadedPackages.has("capabilityInitial")) {
-    await loadDataPackage("capabilityInitial");
-  }
-  if (requestSeq !== state.securityOperationsFocusRequestSeq || state.activeView !== "security-operations" || state.activeRoute !== sourceRoute) return stale();
-  if (state.packageLoadErrors.has("capabilityInitial") && !capabilityItemById(selectedId)) {
-    return failure("安全能力目录暂时无法提供该对象，已停止跳转。");
-  }
-  activateRoute("/capability-mapping");
-  if (requestSeq !== state.securityOperationsFocusRequestSeq) return stale();
-  if (state.activeView !== "capabilities" || state.activeRoute !== "/capability-mapping") {
-    return failure("当前页面仍有未完成的批注操作，未执行能力跳转。");
-  }
-  const item = capabilityItemById(selectedId);
-  if (!item) return failure("安全能力目录中未找到定位对象，已停止跳转。");
-  state.selectedCapabilityId = item.id;
-  state.activeCapabilityRelationTab = "overview";
-  state.capabilityCatalogCollapsed = false;
-  capabilityAncestorIds(item.id).forEach((id) => state.expandedCapabilityIds.add(id));
-  state.expandedSelectionId = item.id;
-  if (item.type === "capability_focus") ensureCapabilityProjectionForFocus(item.id);
-  else ensureCapabilityWorkspaceViewForSelection(item.id);
-  renderCapabilities();
-  announceCapabilitySelection(item.id);
-  return { ok: true };
-}
-
 function capabilityCategoryIds() {
   return list(state.capability?.categories)
     .map((category) => category.id)
@@ -9950,7 +9888,7 @@ function appRouteBasePath() {
 
 function routePreservesQuery(route) {
   const normalized = normalizeAppRoute(route);
-  return normalized === "/search" || normalized.startsWith("/security-operations/");
+  return normalized === "/search";
 }
 
 function syncBrowserRoute(route, { replace = false } = {}) {
@@ -12672,8 +12610,15 @@ function renderPlaceholder() {
   const components = window.sapdComponents || {};
   const routeInfo = components.AppShell?.getRouteInfo?.(state.activeRoute) || {};
   const item = routeInfo.item || {};
-  const pageTitle = item.label || "预留页面";
-  const description = routeInfo.description || "该页面已进入导航规划，等待独立设计和数据契约确认。";
+  const detachedSecurityOperations = state.activeRoute === "/security-operations"
+    || state.activeRoute === "/guides/security-operations"
+    || state.activeRoute.startsWith("/security-operations/");
+  const pageTitle = detachedSecurityOperations
+    ? "安全运行页面已移入独立审阅 Demo"
+    : item.label || "预留页面";
+  const description = detachedSecurityOperations
+    ? "主版本暂不提供该模块运行时入口，不加载安全运行专用资源；请使用独立审阅 Demo。"
+    : routeInfo.description || "该页面已进入导航规划，等待独立设计和数据契约确认。";
   setHtml(
     "placeholderDetail",
     `
@@ -12707,12 +12652,6 @@ function renderActiveView() {
   if (state.activeView === "data-lifecycle") renderLifecycle("data");
   if (state.activeView === "maintenance") renderMaintenance();
   if (state.activeView === "content") renderContent();
-  if (state.activeView === "security-operations") {
-    window.sapdComponents?.SecurityOperationsKnowledge?.render?.({
-      route: state.activeRoute,
-      onFocusCanonical: focusCapabilityFromSecurityOperations,
-    });
-  }
   if (state.activeView === "placeholder") renderPlaceholder();
   scheduleAnnotationAnchorMarkers("render-active-view");
   syncSearchInputs();
@@ -12751,7 +12690,6 @@ function setActiveView(view, options = {}) {
     settings: "settingsWorkspace",
     workbench: "workbenchWorkspace",
     capabilities: "capabilityWorkspace",
-    "security-operations": "securityOperationsWorkspace",
     environment: "environmentWorkspace",
     "dev-lifecycle": "devLifecycleWorkspace",
     "data-lifecycle": "dataLifecycleWorkspace",

@@ -63,13 +63,15 @@ implementation-source 的规格。Stitch 输出、截图和旧 brief 只是参�
 
 ### 安全运行
 
-- [`06-implementation/security-operations-knowledge-prd-v1.md`](06-implementation/security-operations-knowledge-prd-v1.md)：产品范围、来源权威、内容版本和验收口径
-- [`02-data-model/security-operations-knowledge-data-and-mcp-contract-v1.md`](02-data-model/security-operations-knowledge-data-and-mcp-contract-v1.md)：对象、能力关系、威胁、指标、调研题、页面 API 与 MCP 增量合同
-- [`06-implementation/security-operations-knowledge-overall-design-v2.md`](06-implementation/security-operations-knowledge-overall-design-v2.md)：以 01-000 保护对象为唯一主轴的七页 candidate-only 图谱总体设计、来源关系、交互和验收矩阵
-- [`../frontend/design-handoff/implementation-specs/security-operations-knowledge-page-design-v1.md`](../frontend/design-handoff/implementation-specs/security-operations-knowledge-page-design-v1.md)：一级 `/security-operations` 与七个二级页面的 active 前端实施规格
-- [`06-implementation/security-operations-knowledge-execution-plan-v1.md`](06-implementation/security-operations-knowledge-execution-plan-v1.md)：主控工作包、依赖门、写集与验收矩阵
+> R2.1 边界说明（2026-09-17）：安全运行七页已从主版本运行时移入独立审阅 Demo。下列合同与规格链接保留作历史/迁移参考；可运行的独立副本及其归档材料位于 [`demos/security-operations-r2/`](../demos/security-operations-r2/)，主版本当前不提供 `/security-operations` 运行时入口。
 
-当前索引状态为 candidate-only 图谱与七页实现协同中；总体思路仍以 01-000 保护对象主轴为准，01-010 只作为 document 完整正文基线候选。正式 apply / MCP 激活未授权；真实 UI、文档交接和整体验收由主控 QA 记录。
+- [`demos/security-operations-r2/archive/docs/06-implementation/security-operations-knowledge-prd-v1.md`](../demos/security-operations-r2/archive/docs/06-implementation/security-operations-knowledge-prd-v1.md)：产品范围、来源权威、内容版本和验收口径（归档）
+- [`demos/security-operations-r2/archive/docs/02-data-model/security-operations-knowledge-data-and-mcp-contract-v1.md`](../demos/security-operations-r2/archive/docs/02-data-model/security-operations-knowledge-data-and-mcp-contract-v1.md)：对象、能力关系、威胁、指标、调研题、页面 API 与 MCP 增量合同（归档）
+- [`demos/security-operations-r2/archive/docs/06-implementation/security-operations-knowledge-overall-design-v2.md`](../demos/security-operations-r2/archive/docs/06-implementation/security-operations-knowledge-overall-design-v2.md)：以 01-000 保护对象为唯一主轴的七页 candidate-only 图谱总体设计、来源关系、交互和验收矩阵（归档）
+- [`demos/security-operations-r2/archive/implementation-specs/security-operations-knowledge-page-design-v1.md`](../demos/security-operations-r2/archive/implementation-specs/security-operations-knowledge-page-design-v1.md)：一级 `/security-operations` 与七个二级页面的前端实施规格（归档）
+- [`demos/security-operations-r2/archive/docs/06-implementation/security-operations-knowledge-execution-plan-v1.md`](../demos/security-operations-r2/archive/docs/06-implementation/security-operations-knowledge-execution-plan-v1.md)：主控工作包、依赖门、写集与验收矩阵（归档）
+
+当前索引仅保留上述 candidate-only 合同和归档材料作历史迁移参考；可运行副本是独立 Demo，主版本没有安全运行页面或其 API 入口。总体思路与 01-010 正文仍属于候选来源，未形成正式 apply / MCP 激活或发布验收。
 
 ### 成熟度
 

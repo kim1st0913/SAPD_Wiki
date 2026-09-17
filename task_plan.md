@@ -2,7 +2,7 @@
 
 > 状态：`active / 0.4.1 final candidate / OI-201 overview source-axis accepted`
 >
-> 更新日期：2026-08-25
+> 更新日期：2026-09-17
 
 ## 当前目标
 
@@ -24,18 +24,15 @@ macOS no-license DMG 与 Windows Runtime / Setup 的共同 0.4.1 内测候选。
 
 | 工作流 | 状态 | 可安排范围 | 独立授权门 |
 |---|---|---|---|
-| OI-201 安全运行知识参考 | `overview_source_axis_runtime_accepted / open` | 继续逐页复核其余 Tab 的页面职责与来源分配；若明确授权，再做 formal freeze / apply，其后做 App / DMG 集成验收 | 不把 UI 或内容复核当 formal apply；未授权不写正式库，不启动 App / DMG、Windows、commit / push、打包或发布 |
+| OI-201 安全运行知识参考 | `detached_to_r2_demo / open_for_future_migration` | 审阅独立 Demo 的来源与迁移接缝；若重新纳入主线，另行授权并重做 formal freeze / apply、App / DMG 与 Windows 验收 | 主版本不提供该模块运行时入口；未授权不写正式库，不启动 App / DMG、Windows、commit / push、打包或发布 |
 
-执行依据为 `docs/06-implementation/security-operations-knowledge-prd-v1.md`、
-`docs/02-data-model/security-operations-knowledge-data-and-mcp-contract-v1.md`、active 前端实施规格和
-`docs/06-implementation/security-operations-knowledge-execution-plan-v1.md`。WP0—WP5 candidate-only Web
-和 candidate-only 集成门已完成；权威候选包 SHA-256 为
-`5fb801e33ef6bf907cd92179735c8ea34f47073a1f04b29fe73665fedeba68a6`。技术身份、能力映射和图示无需
-用户逐项审核：有来源且关系合理的映射默认接纳为候选，证据不足系统暂缓，图示原样 `source-only`
-保留。该工作流仍保持 open，但下一步产品内容 / UAT 复核是用户可选项，不阻断 Gate，也不改变
-当前 0.4.1 发布主线顺序。总体思路已按 01-000 第 1—10 章及第 4 章五个核心思路重构；V0.2 的
-104 个正文标题节点 / 28 张原图阅读器和 13 / 8 / 7 运行体系结构已通过 shared Web runtime 验收；
-5173 静态资源直接生效不替代 App / DMG 验收。
+执行依据与候选源文档已随独立 Demo 归档至 `demos/security-operations-r2/archive/`；可运行副本为
+`demos/security-operations-r2/`，提取前备份为
+`artifacts/security-operations-r2-extraction-backup-20260917/`。2026-09-17 已从主版本移除安全运行
+前端入口、专用 API / backend route、candidate 配置 / 脚本 / 数据包和专用测试；`viewModels.js` 的
+“安全运行类安全技术服务”正式业务分组保持不变。该工作流仍保持 open，仅用于未来迁移审阅；当前
+Demo 的 35 节点 / 35 边图谱、28 图示正文和 845 / 1280 / 1920 / 3440 视口证据不替代 App / DMG
+或 Windows 原生 UAT，也不改变当前 0.4.1 发布主线顺序。
 
 ## 当前执行顺序
 

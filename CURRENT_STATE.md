@@ -58,6 +58,8 @@
   macOS 和 Windows 默认版本均为 0.4.2，本轮尚未生成 0.4.2 DMG、Windows Setup 或 Release。
 - 既有 0.4.1 macOS no-license DMG 是历史候选；9/17 pre-dmg 门禁未通过，不得作为 0.4.2
   交付物或验收依据。
+- 0.4.2 新包装候选仍待重建：08:08:47Z 旧候选因未引用 SVG 不予交付；Public Run `35197954377`
+  因旧 manifest 失败，未生成 Artifact 或 Private Run。
 - macOS no-license DMG 已生成：
   `SAPD-Wiki-0.4.1-no-license-20260813-095002Z-mac-arm64.dmg`，bytes=347736271，
   SHA-256 `3d7e11e1607a3dfce9344eb6b427e0e4bf5c8a695f93648a8d2d2e948e97a783`。

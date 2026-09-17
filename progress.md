@@ -12,6 +12,7 @@
 - 追加当前剥离源码验收：临时 5189 源码服务使用正式 base/content 只读库与 `memory://isolated-web-dev` 用户态，首页、能力字典（含 L0→L2→关注点）、成熟度工作台、`RASP` 搜索及结果跳转均通过，控制台无 error；`/api/v1/security-operations` 返回 404，历史 `#/security-operations/*` 仅显示“安全运行页面已移入独立审阅 Demo”提示且不加载 SOK workspace。验证后已停止 5189；stable 5173 未重启、未借其旧进程结果替代当前源码验收。
 - `0.4.2 源码版本统一 / 前置状态记录`：Electron、macOS、API / CLI、本地服务、Windows runtime 及相关审计 / 测试默认版本已统一为 0.4.2；本轮不生成 DMG / Setup / Release，不 dispatch workflow。9/17 的 0.4.1 DMG 为 pre-dmg 门禁未过候选；历史 0.4.1 Windows Public Run `35186432363` 成功，Synthetic Run `35186801694` 因名称校验失败；当时两文件私有补丁尚未推送。
 - `0.4.2 源码冻结 / 待打包`：上述版本 owner 与共享前端搜索 / 批注修复已完成源码验收，Public 源码待以本轮最终 checkpoint 作为双平台唯一 `source_sha`；0.4.2 尚无 DMG、Windows Setup 或 Release。旧 Public/Synthetic Run 仅作 0.4.1 历史证据；私有 Synthetic 修复已推送为 `f8346be`，本轮不触发 workflow。
+- `0.4.2 包装候选 / 待重建`：08:08:47Z 旧候选因未引用 SVG 不予交付；Public Run `35197954377` 因旧 manifest 失败，未生成 Artifact 或 Private。最新 Policy manifest 已与 `tests/test_windows_policy.py` 摘要重新同步，待最终源码 checkpoint 重新验收后再打包。
 
 ## 2026-09-14
 

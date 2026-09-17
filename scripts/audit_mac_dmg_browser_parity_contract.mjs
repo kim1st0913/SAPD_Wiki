@@ -32,13 +32,17 @@ function sha256File(filePath) {
   return createHash("sha256").update(readFileSync(filePath)).digest("hex");
 }
 
-function sha256Tree(rootPath, excludedSuffixes = new Set()) {
+function sha256Tree(rootPath, excludedSuffixes = new Set(), excludedPaths = new Set()) {
   const files = [];
   function visit(directory) {
     for (const entry of readdirSync(directory, { withFileTypes: true }).sort((left, right) => left.name < right.name ? -1 : left.name > right.name ? 1 : 0)) {
       const absolutePath = path.join(directory, entry.name);
       if (entry.isDirectory()) visit(absolutePath);
-      else if (entry.isFile() && !excludedSuffixes.has(path.extname(entry.name).toLowerCase())) files.push(absolutePath);
+      else if (
+        entry.isFile()
+        && !excludedSuffixes.has(path.extname(entry.name).toLowerCase())
+        && !excludedPaths.has(path.relative(rootPath, absolutePath).split(path.sep).join("/"))
+      ) files.push(absolutePath);
     }
   }
   visit(rootPath);
@@ -59,7 +63,14 @@ function sha256Tree(rootPath, excludedSuffixes = new Set()) {
 }
 
 function frontendParityDriftFor(sourceFrontendRoot, runtimeRoots) {
-  const sourceFrontendDigest = sha256Tree(sourceFrontendRoot, new Set([".drawio", ".pptx"]));
+  const sourceFrontendDigest = sha256Tree(
+    sourceFrontendRoot,
+    new Set([".drawio", ".pptx"]),
+    new Set([
+      "generated/branchOfficeBasemap.drawio",
+      "generated/branchOfficeBasemap.svg",
+    ]),
+  );
   const drift = [];
   for (const runtimeRoot of runtimeRoots) {
     const stagedFrontendRoot = path.join(runtimeRoot, "app/frontend-dist");
@@ -414,6 +425,9 @@ add(checks, "bundle_copies_frontend_base_and_creates_empty_user_db", [
 });
 add(checks, "bundle_excludes_editable_frontend_source_artifacts", [
   'FRONTEND_SOURCE_ARTIFACT_SUFFIXES = {".drawio", ".pptx"}',
+  'FRONTEND_SOURCE_ARTIFACT_PATHS = {',
+  '"generated/branchOfficeBasemap.drawio"',
+  '"generated/branchOfficeBasemap.svg"',
   "exclude_frontend_source_artifacts",
   '"frontend_source_artifacts_excluded"',
   '"source_sha256"',

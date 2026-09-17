@@ -41,6 +41,10 @@ DEFAULT_BUNDLE_ROOT = Path(
 )
 DEFAULT_OUTPUT_DIR = Path(os.environ.get("SAPD_WIKI_BUNDLE_OUTPUT_DIR", str(DEFAULT_BUNDLE_ROOT / "package-work")))
 FRONTEND_SOURCE_ARTIFACT_SUFFIXES = {".drawio", ".pptx"}
+FRONTEND_SOURCE_ARTIFACT_PATHS = {
+    "generated/branchOfficeBasemap.drawio",
+    "generated/branchOfficeBasemap.svg",
+}
 
 
 def copy_tree(source: Path, target: Path) -> None:
@@ -60,14 +64,22 @@ def reject_symbolic_links(root: Path) -> None:
             )
 
 
-def tree_sha256(root: Path, *, excluded_suffixes: set[str] | None = None) -> tuple[str, int]:
+def tree_sha256(
+    root: Path,
+    *,
+    excluded_suffixes: set[str] | None = None,
+    excluded_paths: set[str] | None = None,
+) -> tuple[str, int]:
     reject_symbolic_links(root)
     excluded = {suffix.casefold() for suffix in (excluded_suffixes or set())}
+    excluded_relative_paths = set(excluded_paths or set())
     digest = hashlib.sha256()
     files = [
         path
         for path in root.rglob("*")
-        if path.is_file() and path.suffix.casefold() not in excluded
+        if path.is_file()
+        and path.suffix.casefold() not in excluded
+        and path.relative_to(root).as_posix() not in excluded_relative_paths
     ]
     for path in sorted(files, key=lambda item: item.relative_to(root).as_posix()):
         relative = path.relative_to(root).as_posix()
@@ -83,9 +95,16 @@ def exclude_frontend_source_artifacts(frontend_root: Path) -> list[str]:
 
     excluded: list[str] = []
     for path in sorted(frontend_root.rglob("*")):
-        if not path.is_file() or path.suffix.casefold() not in FRONTEND_SOURCE_ARTIFACT_SUFFIXES:
+        relative_path = path.relative_to(frontend_root).as_posix()
+        if (
+            not path.is_file()
+            or (
+                path.suffix.casefold() not in FRONTEND_SOURCE_ARTIFACT_SUFFIXES
+                and relative_path not in FRONTEND_SOURCE_ARTIFACT_PATHS
+            )
+        ):
             continue
-        excluded.append(path.relative_to(frontend_root).as_posix())
+        excluded.append(relative_path)
         path.unlink()
     return excluded
 
@@ -666,6 +685,7 @@ def build_bundle(args: argparse.Namespace) -> Path:
         frontend_source_sha256, frontend_source_file_count = tree_sha256(
             frontend_source,
             excluded_suffixes=FRONTEND_SOURCE_ARTIFACT_SUFFIXES,
+            excluded_paths=FRONTEND_SOURCE_ARTIFACT_PATHS,
         )
         copy_tree(frontend_source, bundle_root / "app" / "frontend-dist")
         excluded_frontend_sources = exclude_frontend_source_artifacts(

@@ -34,6 +34,10 @@ VARIANTS = ("license", "no-license")
 USER_SCHEMA_VERSION = "user_schema_0.3"
 RUNTIME_API_SMOKE_TIMEOUT_SECONDS = 60
 FRONTEND_SOURCE_ARTIFACT_SUFFIXES = {".drawio", ".pptx"}
+FRONTEND_SOURCE_ARTIFACT_PATHS = {
+    "generated/branchOfficeBasemap.drawio",
+    "generated/branchOfficeBasemap.svg",
+}
 LC_CODE_SIGNATURE = 0x1D
 EMBEDDED_SIGNATURE_MAGIC = b"\xfa\xde\x0c\xc0"
 USER_DATA_TABLES = {
@@ -175,13 +179,21 @@ def stable_macho_code_identity(path: Path) -> dict[str, int | str]:
     }
 
 
-def tree_sha256(root: Path, *, excluded_suffixes: set[str] | None = None) -> tuple[str, int]:
+def tree_sha256(
+    root: Path,
+    *,
+    excluded_suffixes: set[str] | None = None,
+    excluded_paths: set[str] | None = None,
+) -> tuple[str, int]:
     _reject_symbolic_links(root, "frontend tree")
     excluded = {suffix.casefold() for suffix in (excluded_suffixes or set())}
+    excluded_relative_paths = set(excluded_paths or set())
     files = [
         path
         for path in root.rglob("*")
-        if path.is_file() and path.suffix.casefold() not in excluded
+        if path.is_file()
+        and path.suffix.casefold() not in excluded
+        and path.relative_to(root).as_posix() not in excluded_relative_paths
     ]
     digest = hashlib.sha256()
     for path in sorted(files, key=lambda item: item.relative_to(root).as_posix()):
@@ -513,6 +525,7 @@ def _verify_mounted_app(
     source_sha256, source_file_count = tree_sha256(
         source_frontend,
         excluded_suffixes=FRONTEND_SOURCE_ARTIFACT_SUFFIXES,
+        excluded_paths=FRONTEND_SOURCE_ARTIFACT_PATHS,
     )
     runtime_sha256, runtime_file_count = tree_sha256(runtime / "app" / "frontend-dist")
     if (

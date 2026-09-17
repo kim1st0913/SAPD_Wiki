@@ -303,6 +303,7 @@ class VerifyMacDmgArtifactsTests(unittest.TestCase):
             source_sha256, source_file_count = verifier.tree_sha256(
                 ROOT / "frontend/capability-browser",
                 excluded_suffixes=verifier.FRONTEND_SOURCE_ARTIFACT_SUFFIXES,
+                excluded_paths=verifier.FRONTEND_SOURCE_ARTIFACT_PATHS,
             )
             runtime_sha256, runtime_file_count = verifier.tree_sha256(runtime / "app/frontend-dist")
             (runtime / "data/base/base-manifest.json").write_text(

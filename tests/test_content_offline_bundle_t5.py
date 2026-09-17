@@ -69,6 +69,18 @@ class ContentOfflineBundleT5Tests(unittest.TestCase):
             "<svg></svg>",
             encoding="utf-8",
         )
+        (self.frontend / "generated/branchOfficeBasemap.drawio").write_text(
+            "unreferenced editable basemap source",
+            encoding="utf-8",
+        )
+        (self.frontend / "generated/branchOfficeBasemap.svg").write_text(
+            "<svg>unreferenced basemap</svg>",
+            encoding="utf-8",
+        )
+        (self.frontend / "generated/environmentBasemap.svg").write_text(
+            "<svg>referenced basemap</svg>",
+            encoding="utf-8",
+        )
         self.base = self.root / "candidate-query.sqlite3"
         self.asset = self.root / "candidate-assets.sqlite3"
         with closing(sqlite3.connect(self.base)) as connection, connection:
@@ -228,8 +240,8 @@ class ContentOfflineBundleT5Tests(unittest.TestCase):
         )
         self.assertRegex(manifest["frontend"]["source_sha256"], r"^[0-9a-f]{64}$")
         self.assertRegex(manifest["frontend"]["runtime_sha256"], r"^[0-9a-f]{64}$")
-        self.assertEqual(manifest["frontend"]["source_file_count"], 5)
-        self.assertEqual(manifest["frontend"]["runtime_file_count"], 4)
+        self.assertEqual(manifest["frontend"]["source_file_count"], 6)
+        self.assertEqual(manifest["frontend"]["runtime_file_count"], 5)
         self.assertNotEqual(
             manifest["frontend"]["source_sha256"],
             manifest["frontend"]["runtime_sha256"],
@@ -262,11 +274,19 @@ class ContentOfflineBundleT5Tests(unittest.TestCase):
         )
         self.assertEqual(
             manifest["package"]["frontend_source_artifacts_excluded"],
-            ["generated/branch-office.drawio", "generated/source-deck.pptx"],
+            [
+                "generated/branch-office.drawio",
+                "generated/branchOfficeBasemap.drawio",
+                "generated/branchOfficeBasemap.svg",
+                "generated/source-deck.pptx",
+            ],
         )
         self.assertFalse((bundle / "app/frontend-dist/generated/branch-office.drawio").exists())
+        self.assertFalse((bundle / "app/frontend-dist/generated/branchOfficeBasemap.drawio").exists())
+        self.assertFalse((bundle / "app/frontend-dist/generated/branchOfficeBasemap.svg").exists())
         self.assertFalse((bundle / "app/frontend-dist/generated/source-deck.pptx").exists())
         self.assertTrue((bundle / "app/frontend-dist/generated/branch-office.drawio.svg").is_file())
+        self.assertTrue((bundle / "app/frontend-dist/generated/environmentBasemap.svg").is_file())
 
         checked = subprocess.run(
             [sys.executable, str(CHECK), str(bundle), "--json"],

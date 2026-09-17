@@ -344,7 +344,7 @@ const suites = {
         "tests.test_content_offline_bundle_t5",
         "tests.test_delivery_release_control",
         "tests.test_verify_mac_dmg_artifacts",
-      ], { env: { PYTHONPATH: "scripts" } }),
+      ], { env: { PYTHONPATH: "src" } }),
     ],
   },
   "core-regressions": {

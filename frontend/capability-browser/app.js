@@ -10372,6 +10372,19 @@ function environmentSearchObjectMatches(viewModel, query = state.search) {
 }
 
 function resolveCapabilitySelection(viewModel) {
+  const previousSelectedCapabilityId = state.selectedCapabilityId;
+  const query = text(state.search).trim();
+  const rowMatchesDirectly = (row) =>
+    matchesTextQuery(query, row?.level, row?.code, row?.title, row?.label, row?.subtitle);
+  if (query) {
+    const directMatches = list(viewModel?.navigationTree).filter(rowMatchesDirectly);
+    const currentMatch = directMatches.find((row) => row.id === state.selectedCapabilityId);
+    const nextRow = currentMatch || directMatches[0];
+    if (nextRow?.id && state.selectedCapabilityId !== nextRow.id) {
+      state.selectedCapabilityId = nextRow.id;
+      if (state.selectedCapabilityId !== previousSelectedCapabilityId) state.activeCapabilityRelationTab = "overview";
+    }
+  }
   const hadSelectedCapability = Boolean(state.selectedCapabilityId);
   if (!state.selectedCapabilityId) state.selectedCapabilityId = viewModel.selectedCapability?.id || null;
   if (!hadSelectedCapability && viewModel.selectedCapability?.type === "capability_category" && state.selectedCapabilityId) {
@@ -10600,6 +10613,7 @@ function renderCapabilities() {
   if (state.selectedCapabilityId !== previousSelectedCapabilityId) {
     viewModel = buildCapabilityViewModel(viewModels);
     loadState = createCapabilityLoadState(capabilityItemTypeById(state.selectedCapabilityId), state.selectedCapabilityId);
+    announceCapabilitySelection(state.selectedCapabilityId);
   }
   if (!loadState.selectedId && state.selectedCapabilityId) {
     loadState = createCapabilityLoadState(capabilityItemTypeById(state.selectedCapabilityId), state.selectedCapabilityId);

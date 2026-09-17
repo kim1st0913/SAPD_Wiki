@@ -67,8 +67,9 @@
   user DB=`not_included`。
 - Windows Run 31687536086 成功下载、拼接并校验 Delivery Data，但在上传约 198 MB 中间
   Artifact 时命中存储配额；build / publish 未执行，未生成 Runtime、Setup 或 Internal Release。
-- 0.4.2 相关 Windows Public Run `35186432363` 成功；Synthetic Run `35186801694` 因名称校验失败。
-  两文件私有补丁仍仅为本地候选，未推送；本轮不触发 workflow、不打包。
+- 历史 0.4.1 Windows Public Run `35186432363` 成功；对应 Synthetic Run `35186801694` 因名称校验
+  失败。该记录对应旧 `d7daa48` 源码，不代表 0.4.2；私有 Synthetic 身份修复已在 `f8346be` 推送，
+  本轮不触发 workflow、不打包。
 - 私有 workflow 已在提交 `e46f8384bc5c1175eac4786b6a3971b485240b17` 优化：build 直接读取
   不可变私有 Release，只保留约 303 MB 安装器 Artifact，保留期 1 天，发布成功后按 artifact ID
   精确删除。随后 schedule watcher 错把旧 `windows-data-20260727-r1` 与 `d2a644c4` 组合并循环
@@ -87,11 +88,10 @@
 
 1. OI-201 R2.1 安全运行内容已移入独立 Demo；等待用户对业务关联与视觉使用反馈，正式迁移不自动开启。
    原文、原图、技术身份不作为未经授权的主版本变更依据。
-2. 仅在用户明确下令时，以本轮最终 Public `main` source checkpoint、
-   `windows-data-20260813-phase2-batch1-r2` 和 0.4.1 人工触发一次，验收 backend、Runtime、
-   Setup、Internal Release 与 Artifact 清理。r2 的 source revision 是该源码的祖先，满足 workflow
-   CAS 合同；输出 Artifact 是否仍受当前配额阻断尚未实证。
-3. 成功后下载本地副本到 `apps/electron/releases/0.4.1/`；取得 Windows 10/11 主机后完成
+2. 仅在用户明确下令且 Windows Synthetic / Delivery Data 门禁重新通过后，以本轮最终 Public `main`
+   source checkpoint 和经确认的 Delivery Data 人工触发一次 0.4.2，验收 backend、Runtime、Setup、
+   Internal Release 与 Artifact 清理；不得把旧 0.4.1 Run 或产物当作新版本依据。
+3. 成功后下载本地副本到 `apps/electron/releases/0.4.2/`；取得 Windows 10/11 主机后完成
    安装、启动、MCP、退出和卸载保留数据 UAT。
 4. 三平台 Batch 1 同候选通过后，用户再决定是否授权 Batch 2 `environment`。
 5. OI-197 V3 Rubric 继续按“全局规则→争议对象”分批业务复核；正式迁移另行授权。

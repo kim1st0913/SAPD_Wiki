@@ -197,22 +197,25 @@ if (
 if (
   !includesAll(appJs, [
     "function ensureCapabilityAnnotationProjectionForNote",
-    "function findCapabilityProjectionForAnnotationValue",
-    "function capabilityProjectionRowsForAnnotation",
-    "annotationCapabilityProjectionValueCache",
+    "function ensureCapabilityProjectionForAnnotationItem",
+    "ensureCapabilityProjectionForFocus",
+    "ensureCapabilityWorkspaceViewForSelection",
     "annotationBusinessTextVariants",
     "[\"field_value\", \"table_row\"].includes(meta.objectType)",
     "function isGenericAnnotationCapabilityValue",
     "function relatedCapabilityAnnotationValueNotes",
     "findAnnotationAnchorElement(note)",
-    "applyCapabilityAnnotationProjection(match.projection, match.row, note)",
-  ])
+    "window.sapdDataClient?.locateCapability?.({ targetRef: note?.target_ref })",
+    "ensureCapabilityProjectionForAnnotationItem(locatedItem)",
+  ]) ||
+  appJs.includes("public/data/capability/index.json") ||
+  appJs.includes("annotationCapabilityProjectionValueCache")
 ) {
   issues.push({
     severity: "error",
     type: "capability_annotation_projection_index_missing",
     message:
-      "能力页值级批注缺少 projection 懒索引 / 业务值归一 / 旧 capability id 兼容，OI-149 L0/L1 总览 projection 下 PR.DS-02、AT-6 等值可能再次定位失败。",
+      "能力页值级批注必须通过当前 selected capability id 或 capability locator API 进入对应 projection；不得扫描静态能力 JSON 或保留旧值猜测索引。",
   });
 }
 

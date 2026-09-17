@@ -728,9 +728,10 @@ class ResourceProbe(unittest.TestCase):
             root = Path(temporary)
             seed = root / "seed"
             seed.mkdir()
+            historical_version = "0.4.1"
             stamp = "20260805-120000Z"
             architecture = platform.machine()
-            historical = root / "dist/releases/0.4.1/license" / f"SAPD-Wiki-0.4.1-license-{stamp}-mac-{architecture}.dmg"
+            historical = root / f"dist/releases/{historical_version}/license" / f"SAPD-Wiki-{historical_version}-license-{stamp}-mac-{architecture}.dmg"
             historical.parent.mkdir(parents=True)
             historical.write_bytes(b"historical-dmg")
             result = subprocess.run(
@@ -742,6 +743,7 @@ class ResourceProbe(unittest.TestCase):
                     "SAPD_WIKI_PACKAGE_LOCK_DIR": str(root / "package.lock"),
                     "SAPD_WIKI_MATURITY_REPORT_SEED": str(seed),
                     "SAPD_WIKI_BUILD_STAMP": stamp,
+                    "SAPD_WIKI_APP_VERSION": historical_version,
                     "SAPD_WIKI_DMG_VARIANT": "license",
                 },
                 capture_output=True,

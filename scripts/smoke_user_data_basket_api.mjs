@@ -143,24 +143,37 @@ async function main() {
         "conn=sqlite3.connect(sys.argv[1])",
         "conn.execute('CREATE TABLE knowledge_items(id TEXT PRIMARY KEY, title TEXT)')",
         "conn.execute('INSERT INTO knowledge_items(id, title) VALUES (?, ?)', ('base:item:1', 'Smoke Item'))",
+        "conn.execute('CREATE TABLE content_schema_meta(key TEXT PRIMARY KEY, value TEXT)')",
+        "conn.execute('INSERT INTO content_schema_meta(key, value) VALUES (?, ?)', ('base_database_sha256', 'b'*64))",
         "conn.commit()",
         "conn.close()",
       ].join(";"),
       baseDb,
     ]);
+    const contentAssetDb = path.join(baseDir, "sapd_content_assets.sqlite3");
+    await run("python3", ["-c", "import sqlite3, sys; conn=sqlite3.connect(sys.argv[1]); conn.close()", contentAssetDb]);
     await run("python3", ["scripts/create_user_db.py", userDb]);
 
     const preferredPort = 28_000 + Math.floor(Math.random() * 2_000);
+    const baseDbSha256 = await sha256File(baseDb);
+    const contentAssetDbSha256 = await sha256File(contentAssetDb);
     const manifest = {
       app_version: "0.1.0-smoke",
       bundle_type: "zip-alpha",
       platform: "mac-arm64",
       build_time: "2026-06-07T00:00:00Z",
+      knowledge_version: `base-${baseDbSha256.slice(0, 16)}`,
+      parent_source_db_sha256: "b".repeat(64),
+      projection_contract_version: "sapd-ui-projection-v1",
       base_database: {
         file: "sapd_wiki_base.sqlite3",
-        sha256: await sha256File(baseDb),
+        sha256: baseDbSha256,
         schema_version: "smoke_base_0.1",
         data_version: "smoke",
+      },
+      content_asset_database: {
+        file: "sapd_content_assets.sqlite3",
+        sha256: contentAssetDbSha256,
       },
       user_database: {
         file: "sapd_wiki_user.sqlite3",
@@ -172,6 +185,7 @@ async function main() {
     const config = {
       frontend_dist: "app/frontend-dist",
       base_database: "data/base/sapd_wiki_base.sqlite3",
+      content_asset_database: "data/base/sapd_content_assets.sqlite3",
       user_database: "data/user/sapd_wiki_user.sqlite3",
       host: "127.0.0.1",
       preferred_port: preferredPort,

@@ -192,25 +192,29 @@ if (
   });
 }
 
+const capabilityInitialMethodStart = dataClientJs.indexOf("async getCapabilityWorkspaceInitial()");
+const capabilityInitialMethodEnd = dataClientJs.indexOf("async getCapabilityMatrix", capabilityInitialMethodStart);
+const capabilityInitialMethod = dataClientJs.slice(capabilityInitialMethodStart, capabilityInitialMethodEnd > capabilityInitialMethodStart ? capabilityInitialMethodEnd : undefined);
 if (
   !includesAll(dataClientJs, [
-    "oi149SplitManifest",
-    "function getOi149SplitManifest",
-    "function getCapabilityWorkspaceInitialFromSplit",
     "function getEnvironmentNavigatorFromSplit",
     "function getEnvironmentWorkspaceProjectionFromSplit",
-    "capability/index.json",
     "environment/navigator.json",
     "oi149-p4-split-v1",
     "对象详情继续按需加载 workspace-view",
     "对象映射详情继续读取 environment-workbench",
   ]) ||
-  !/async getCapabilityWorkspaceInitial\(\) \{[\s\S]*?getCapabilityWorkspaceInitialFromSplit\(\)[\s\S]*?fetchApiData\(API_PATHS\.capabilityWorkspaceInitial\)/.test(dataClientJs)
+  !includesAll(capabilityInitialMethod, [
+    "fetchProjectionData(API_PATHS.capabilityCatalogProjection, { includeEnvelopeFields: true })",
+    "capabilityInitialProjectionFromCatalog(catalog)",
+  ]) ||
+  capabilityInitialMethod.includes("getCapabilityWorkspaceInitialFromSplit") ||
+  capabilityInitialMethod.includes("fetchApiData(API_PATHS.capabilityWorkspaceInitial")
 ) {
   issues.push({
     severity: "error",
-    type: "oi149_split_initial_loader_missing",
-    message: "OI-149 P4 正式 apply 前必须具备 split manifest 探测和 capability/index.json 首屏读取路径；manifest 缺失时再回退 workspace-initial API。",
+    type: "capability_projection_initial_loader_missing",
+    message: "能力页首屏必须通过 capability-catalog projection 获取导航与首屏摘要；已迁移 projection 不得回退静态 capability/index.json 或旧 workspace-initial API。",
   });
 }
 
@@ -288,7 +292,7 @@ const result = {
     capabilityLoadingStateRerender: true,
     capabilityProgressiveRenderContract: true,
     capabilityWorkspaceTimeout: true,
-    oi149SplitInitialLoader: true,
+    capabilityProjectionInitialLoader: true,
     oi149EnvironmentSplitNavigatorAndProjectionLoader: true,
     oi149FormalApplyConfirmationGate: true,
   },

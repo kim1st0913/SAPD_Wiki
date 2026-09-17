@@ -557,7 +557,7 @@ add(checks, "contract_documents_runtime_interaction_audit_matrix", interactionCo
 });
 
 const bugRuntimeClassificationSnippets = [
-  "Classify Impact Before Changing",
+  "For a non-trivial change, identify the affected runtime:",
   "shared runtime",
   "data / ETL / package",
   "web-only",

@@ -35,7 +35,7 @@ async function fetchText(baseUrl, relativePath) {
 
 async function evaluateCapabilityPackage(dataClientSource, fetchImpl) {
   const context = {
-    window: { location: { protocol: "file:" } },
+    window: { location: { protocol: "http:" }, SAPD_API_BASE: "http://projection.test" },
     fetch: fetchImpl,
     URLSearchParams,
     AbortController,
@@ -106,17 +106,39 @@ async function main() {
 
   assert(includesAll(dataClientSource, ['response.status === 404 ? "missing_file" : "error"', '__data_state: "error"', "invalidatePackage(name)"]), "dataClient 未区分 404、请求错误与可重试缓存", issues);
   assert(dataClientSource.includes('{ ...createLegacyEnvironmentWorkbenchFallback(), __data_state: "missing_file" }'), "环境 fallback 丢失 missing_file 语义", issues);
-  const missingClient = await evaluateCapabilityPackage(dataClientSource, async () => ({ ok: false, status: 404 }));
-  const missingEnvelope = await missingClient.getCapabilityTree();
-  assert(missingEnvelope?.data?.__data_state === "missing_file", "404 未解析为 missing_file", issues);
+  const missingClient = await evaluateCapabilityPackage(dataClientSource, async () => ({ ok: false, status: 404, json: async () => ({}) }));
+  let missingError = null;
+  try {
+    await missingClient.getCapabilityTree();
+  } catch (error) {
+    missingError = error;
+  }
+  assert(
+    missingError?.name === "ProjectionApiError" && missingError.status === 404 && missingError.path === "/api/v1/projections/capability-catalog",
+    "projection 404 未解析为可重试 ProjectionApiError",
+    issues,
+  );
   let retryRequestCount = 0;
   const retryClient = await evaluateCapabilityPackage(dataClientSource, async () => {
     retryRequestCount += 1;
     if (retryRequestCount === 1) return { ok: false, status: 503 };
-    return { ok: true, status: 200, json: async () => ({ data_state: "ready", categories: [{ id: "T" }] }) };
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({ data_state: "ready", navigator: { tree: [{ id: "T", type: "capability_category", children: [] }] } }),
+    };
   });
-  const errorEnvelope = await retryClient.getCapabilityTree();
-  assert(errorEnvelope?.data?.__data_state === "error", "非 404 HTTP 失败未解析为 error", issues);
+  let errorProjection = null;
+  try {
+    await retryClient.getCapabilityTree();
+  } catch (error) {
+    errorProjection = error;
+  }
+  assert(
+    errorProjection?.name === "ProjectionApiError" && errorProjection.status === 503 && errorProjection.path === "/api/v1/projections/capability-catalog",
+    "非 404 projection HTTP 失败未解析为可重试 ProjectionApiError",
+    issues,
+  );
   assert(retryClient.invalidatePackage("capability") === true, "数据包缓存失效接口不可用", issues);
   const recoveredEnvelope = await retryClient.getCapabilityTree();
   assert(recoveredEnvelope?.data?.data_state === "ready" && retryRequestCount === 2, "局部重试未重新请求并恢复 ready", issues);
